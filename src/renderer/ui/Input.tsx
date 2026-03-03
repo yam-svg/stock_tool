@@ -28,7 +28,7 @@ export const Input: React.FC<InputProps> = ({
         <label 
           htmlFor={inputId}
           className={`text-xs font-medium ${
-            darkMode ? 'text-gray-300' : 'text-gray-700'
+            error ? 'text-red-500' : darkMode ? 'text-gray-300' : 'text-gray-700'
           }`}
         >
           {label}
@@ -49,9 +49,11 @@ export const Input: React.FC<InputProps> = ({
           } ${
             rightElement ? 'pr-9' : ''
           } ${
-            darkMode 
-              ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
-              : 'bg-white/50 border-gray-200 text-gray-800 placeholder-gray-500'
+            error
+              ? 'border-red-500 focus:ring-red-500'
+              : darkMode 
+                ? 'bg-gray-700/50 border-gray-600 text-white placeholder-gray-400' 
+                : 'bg-white/50 border-gray-200 text-gray-800 placeholder-gray-500'
           } border ${className}`}
           {...props}
         />

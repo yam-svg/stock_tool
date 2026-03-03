@@ -101,13 +101,15 @@ export const useStore = create<StoreState>()(
       initialize: async () => {
         set({ loading: true, error: null })
         try {
-          // 加载分组
-          const [stockGroups, fundGroups] = await Promise.all([
+          // 加载分组和持仓数据
+          const [stockGroups, fundGroups, stocks, funds] = await Promise.all([
             window.electronAPI.db.getStockGroups(),
-            window.electronAPI.db.getFundGroups()
+            window.electronAPI.db.getFundGroups(),
+            window.electronAPI.db.getStocks(),
+            window.electronAPI.db.getFunds()
           ])
           
-          set({ stockGroups, fundGroups })
+          set({ stockGroups, fundGroups, stocks, funds })
 
           // 如果没有分组，则创建默认分组
           if (stockGroups.length === 0) {
@@ -117,7 +119,7 @@ export const useStore = create<StoreState>()(
             await get().createFundGroup('我的基金')
           }
           
-          // 加载持仓数据
+          // 加载行情数据
           await get().refreshStockQuotes()
           await get().refreshFundQuotes()
         } catch (error) {

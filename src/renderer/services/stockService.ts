@@ -18,17 +18,30 @@ class StockService {
 
   //模拟获取股票行情数据（实际项目中需要替换为真实API）
   async getStockQuotes(symbols: string[]): Promise<StockQuote[]> {
-    //过无效代码
-    const validSymbols = symbols.filter(isValidStockSymbol)
-    
-    if (validSymbols.length === 0) {
+    if (symbols.length === 0) {
       return []
     }
+
+    //过无效代码
+    const validSymbols = symbols.filter(isValidStockSymbol)
+    const invalidSymbols = symbols.filter(s => !isValidStockSymbol(s))
 
     //检查缓存
     const now = Date.now()
     const uncachedSymbols: string[] = []
     const results: StockQuote[] = []
+
+    // 处理无效代码，给默认值
+    invalidSymbols.forEach(symbol => {
+      results.push({
+        symbol,
+        name: `股票${symbol}`,
+        price: 0,
+        change: 0,
+        changePercent: 0,
+        updateTime: now
+      })
+    })
 
     validSymbols.forEach(symbol => {
       const cached = this.cache.get(symbol)

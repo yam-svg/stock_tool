@@ -19,6 +19,8 @@ interface SidebarProps {
   onUpdateGroup?: (id: string, newName: string) => void
   onDeleteGroup?: (id: string) => void
   onMoveGroup?: (groupId: string, targetGroupId: string) => void
+  selectedGroupId?: string | null
+  onAddToGroup?: (groupId: string) => void
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,7 +34,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   stocksCount,
   onUpdateGroup,
   onDeleteGroup,
-  onMoveGroup
+  onMoveGroup,
+  selectedGroupId,
+  onAddToGroup
 }) => {
   return (
     <div className={`w-64 ${
@@ -79,19 +83,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* 分组列表 */}
         <div className="space-y-1">
           <div className="text-xs font-medium text-gray-500 px-2">我的分组</div>
-          <div className="space-y-1 max-h-80 overflow-y-auto">
+          <div className="space-y-1 max-h-80 overflow-y-auto h-full">
             {groups.map(group => (
               <GroupItem
                 key={group.id}
                 darkMode={darkMode}
                 group={group}
-                isSelected={false}
+                isSelected={selectedGroupId === group.id}
                 itemCount={stocksCount?.[group.id] || 0}
                 onSelect={() => onGroupSelect(group.id)}
                 onEdit={(newName) => onUpdateGroup?.(group.id, newName)}
                 onDelete={() => onDeleteGroup?.(group.id)}
                 onMove={(targetId) => onMoveGroup?.(group.id, targetId)}
                 groups={groups}
+                onAdd={() => onAddToGroup?.(group.id)}
               />
             ))}
           </div>

@@ -18,17 +18,30 @@ class FundService {
 
   // 获取基金行情数据（通过第三方接口）
   async getFundQuotes(codes: string[]): Promise<FundQuote[]> {
-    //过滤无效代码
-    const validCodes = codes.filter(isValidFundCode)
-    
-    if (validCodes.length === 0) {
+    if (codes.length === 0) {
       return []
     }
 
+    //过滤无效代码
+    const validCodes = codes.filter(isValidFundCode)
+    const invalidCodes = codes.filter(c => !isValidFundCode(c))
+    
     //检查缓存
     const now = Date.now()
     const uncachedCodes: string[] = []
     const results: FundQuote[] = []
+
+    // 处理无效代码，给默认值
+    invalidCodes.forEach(code => {
+      results.push({
+        code,
+        name: `基金${code}`,
+        nav: 0,
+        change: 0,
+        changePercent: 0,
+        date: new Date().toISOString().split('T')[0]
+      })
+    })
 
     validCodes.forEach(code => {
       const cached = this.cache.get(code)

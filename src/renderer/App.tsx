@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useStore } from './store'
-import { Header, Sidebar, StockForm, StockCard, FundView, MoveModal } from './components'
+import { Header, Sidebar, StockForm, StockCard, FundView, MoveModal, AddStockModal } from './components'
 
 const App: React.FC = () => {
   const { 
     activeTab, 
     darkMode, 
     refreshConfig,
-    loading,
     toggleDarkMode,
     setActiveTab,
     refreshStockQuotes,
@@ -24,8 +23,17 @@ const App: React.FC = () => {
     deleteStockGroup,
     deleteFundGroup,
     addStock,
+    addFund,
+    deleteStock,
+    deleteFund,
     moveStockToGroup,
-    moveFundToGroup
+    moveFundToGroup,
+    selectedStockGroup,
+    selectedFundGroup,
+    selectStockGroup,
+    selectFundGroup,
+    funds,
+    fundQuotes
   } = useStore()
 
   const [newGroupName, setNewGroupName] = useState('')
@@ -38,13 +46,17 @@ const App: React.FC = () => {
   })
   const [moveModalOpen, setMoveModalOpen] = useState(false)
   const [moveItemId, setMoveItemId] = useState<string | null>(null)
+  const [isAddingStock, setIsAddingStock] = useState(false)
+  const [isAddingFund, setIsAddingFund] = useState(false)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [addModalOpen, setAddModalOpen] = useState(false)
+  const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null)
 
   // 初始化应用
   useEffect(() => {
     const init = async () => {
       await useStore.getState().initialize()
     }
-    console.log('Initializing...')
     init()
   }, [])
 
@@ -77,35 +89,75 @@ const App: React.FC = () => {
   }
 
   const handleAddStock = () => {
-    if (!newStock.code || !newStock.name || !newStock.buyPrice || !newStock.quantity) return
+    // 表单验证
+    const errors: Record<string, string> = {}
     
-    //确保有分组
-    let groupId = stockGroups[0]?.id
-    if (!groupId) {
-      // 如果没有分组，创建一个默认分组
-      createStockGroup('默认分组')
+    if (!newStock.code.trim()) {
+      errors.code = '请输入股票代码'
+    }
+    
+    if (!newStock.name.trim()) {
+      errors.name = '请输入股票名称'
+    }
+    
+    // 价格和数量可选，但如果填写了必须大于 0
+    if (newStock.buyPrice < 0) {
+      errors.buyPrice = '买入价格不能为负数'
+    }
+    
+    if (newStock.quantity < 0) {
+      errors.quantity = '持仓数量不能为负数'
+    }
+    
+    // 如果有错误，显示错误并返回
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
       return
     }
     
-    addStock({
-      symbol: newStock.code,
-      name: newStock.name,
-      groupId: groupId,
-      costPrice: newStock.buyPrice,
-      quantity: newStock.quantity
-    })
-    setNewStock({
-      code: '',
-      name: '',
-      buyPrice: 0,
-      quantity: 0,
-      groupId: ''
-    })
+    // 清空错误
+    setFormErrors({})
+    setIsAddingStock(true)
+    
+    try {
+      //确保有分组
+      let groupId = newStock.groupId
+      if (!groupId) {
+        const defaultGroup = stockGroups[0]
+        if (defaultGroup) {
+          groupId = defaultGroup.id
+        } else {
+          // 如果没有分组，创建一个默认分组
+          createStockGroup('默认分组')
+          return
+        }
+      }
+      
+      addStock({
+        symbol: newStock.code,
+        name: newStock.name,
+        groupId: groupId,
+        costPrice: newStock.buyPrice || 0,
+        quantity: newStock.quantity || 0
+      })
+      
+      //清空表单
+      setNewStock({
+        code: '',
+        name: '',
+        buyPrice: 0,
+        quantity: 0,
+        groupId: ''
+      })
+    } catch (error) {
+      console.error('添加股票失败:', error)
+    } finally {
+      setIsAddingStock(false)
+    }
   }
 
   const handleDeleteStock = (id: string) => {
-    // TODO: 实现删除股票功能
-    console.log('删除股票:', id)
+    deleteStock(id)
   }
 
   const handleManualRefresh = () => {
@@ -123,7 +175,7 @@ const App: React.FC = () => {
     setMoveItemId(null)
   }
 
-  const totalProfit = stocks.reduce((acc, stock) => {
+  const stockProfit = stocks.reduce((acc, stock) => {
     const quote = stockQuotes[stock.symbol]
     const currentPrice = quote?.price || 0
     const cost = stock.costPrice * stock.quantity
@@ -131,6 +183,21 @@ const App: React.FC = () => {
     const profit = marketValue - cost
     return acc + profit
   }, 0)
+
+  const fundProfit = funds.reduce((acc, fund) => {
+    const quote = fundQuotes[fund.code]
+    const currentNav = quote?.nav || 0
+    const cost = fund.costNav * fund.shares
+    const marketValue = currentNav * fund.shares
+    const profit = marketValue - cost
+    return acc + profit
+  }, 0)
+
+  const totalProfit = stockProfit + fundProfit
+
+  const visibleStocks = selectedStockGroup 
+    ? stocks.filter(s => s.groupId === selectedStockGroup)
+    : stocks
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -158,13 +225,22 @@ const App: React.FC = () => {
           activeTab={activeTab}
           groups={activeTab === 'stock' ? stockGroups : fundGroups}
           newGroupName={newGroupName}
-          onGroupSelect={() => {}}
+          onGroupSelect={(id) => {
+            if (activeTab === 'stock') {
+              selectStockGroup(id)
+            } else {
+              selectFundGroup(id)
+            }
+          }}
           onGroupCreate={handleCreateGroup}
           onGroupNameChange={setNewGroupName}
           stocksCount={activeTab === 'stock' ? stockGroups.reduce((acc, group) => {
             acc[group.id] = stocks.filter(s => s.groupId === group.id).length
             return acc
-          }, {} as Record<string, number>) : {}}
+          }, {} as Record<string, number>) : fundGroups.reduce((acc, group) => {
+            acc[group.id] = funds.filter(f => f.groupId === group.id).length
+            return acc
+          }, {} as Record<string, number>)}
           onUpdateGroup={(id, newName) => {
             if (activeTab === 'stock') {
               updateStockGroup(id, newName)
@@ -176,7 +252,7 @@ const App: React.FC = () => {
             // 检查分组内是否有内容
             const hasItems = activeTab === 'stock' 
               ? stocks.some(s => s.groupId === id)
-              : false // 基金暂不支持
+              : funds.some(f => f.groupId === id)
             
             if (hasItems) {
               // 分组内有内容，需要确认
@@ -198,14 +274,22 @@ const App: React.FC = () => {
           }}
           onMoveGroup={(groupId, targetGroupId) => {
             // 移动该分组内的所有项目到目标分组
-            const itemsToMove = activeTab === 'stock' 
-              ? stocks.filter(s => s.groupId === groupId)
-              : [] // 基金暂不支持
-            itemsToMove.forEach(item => {
-              if (activeTab === 'stock') {
+            if (activeTab === 'stock') {
+              const itemsToMove = stocks.filter(s => s.groupId === groupId)
+              itemsToMove.forEach(item => {
                 moveStockToGroup(item.id, targetGroupId)
-              }
-            })
+              })
+            } else {
+              const itemsToMove = funds.filter(f => f.groupId === groupId)
+              itemsToMove.forEach(item => {
+                moveFundToGroup(item.id, targetGroupId)
+              })
+            }
+          }}
+          selectedGroupId={activeTab === 'stock' ? selectedStockGroup : selectedFundGroup}
+          onAddToGroup={(groupId) => {
+            setAddTargetGroupId(groupId)
+            setAddModalOpen(true)
           }}
         />
 
@@ -219,30 +303,40 @@ const App: React.FC = () => {
                   <div className="flex items-center space-x-2">
                     <h2 className="text-xl font-bold">股票持仓</h2>
                   </div>
-                  {stocks.length > 0 && (
+                  {visibleStocks.length > 0 && (
                     <div className={`px-3 py-1 rounded-md text-sm ${
                       darkMode ? 'bg-gray-800/50' : 'bg-white/50'
                     } border ${
                       darkMode ? 'border-gray-700' : 'border-gray-200'
                     }`}>
                       <div className="text-xs text-gray-500">持仓数量</div>
-                      <div className="font-bold text-blue-500">{stocks.length}</div>
+                      <div className="font-bold text-blue-500">{visibleStocks.length}</div>
                     </div>
                   )}
                 </div>
                 
-                {/* 添加股票表单 */}
-                <StockForm
-                  darkMode={darkMode}
-                  newStock={newStock}
-                  stockGroups={stockGroups}
-                  onStockChange={(updates) => setNewStock({...newStock, ...updates})}
-                  onAddStock={handleAddStock}
-                />
+                {/* 添加股票表单：当分组为空时显示 */}
+                {!(selectedStockGroup && visibleStocks.length > 0) && (
+                  <StockForm
+                    darkMode={darkMode}
+                    newStock={newStock}
+                    stockGroups={stockGroups}
+                    onStockChange={(updates) => {
+                      setNewStock({...newStock, ...updates})
+                      // 清空对应字段的错误
+                      if (formErrors[Object.keys(updates)[0]]) {
+                        setFormErrors({...formErrors, [Object.keys(updates)[0]]: ''})
+                      }
+                    }}
+                    onAddStock={handleAddStock}
+                    isAdding={isAddingStock}
+                    errors={formErrors}
+                  />
+                )}
 
                 {/* 股票列表 */}
                 <div className="space-y-3">
-                  {stocks.map(stock => (
+                  {visibleStocks.map(stock => (
                     <StockCard
                       key={stock.id}
                       darkMode={darkMode}
@@ -274,6 +368,53 @@ const App: React.FC = () => {
         groups={activeTab === 'stock' ? stockGroups : fundGroups}
         currentGroupId={undefined}
         title={`移动到${activeTab === 'stock' ? '股票' : '基金'}分组`}
+      />
+      
+      {/* 添加持仓模态框 */}
+      <AddStockModal
+        darkMode={darkMode}
+        isOpen={addModalOpen}
+        onClose={() => {
+          setAddModalOpen(false)
+          setAddTargetGroupId(null)
+        }}
+        type={activeTab}
+        group={(activeTab === 'stock' ? stockGroups : fundGroups).find(g => g.id === addTargetGroupId)}
+        isSubmitting={activeTab === 'stock' ? isAddingStock : isAddingFund}
+        onSubmit={async ({ code, name, buyPrice, quantity }) => {
+          if (!addTargetGroupId) return
+          if (activeTab === 'stock') {
+            setIsAddingStock(true)
+            try {
+              await addStock({
+                symbol: code,
+                name,
+                groupId: addTargetGroupId,
+                costPrice: buyPrice || 0,
+                quantity: quantity || 0
+              })
+              setAddModalOpen(false)
+              setAddTargetGroupId(null)
+            } finally {
+              setIsAddingStock(false)
+            }
+          } else {
+            setIsAddingFund(true)
+            try {
+              await addFund({
+                code: code,
+                name,
+                groupId: addTargetGroupId,
+                costNav: buyPrice || 0,
+                shares: quantity || 0
+              })
+              setAddModalOpen(false)
+              setAddTargetGroupId(null)
+            } finally {
+              setIsAddingFund(false)
+            }
+          }
+        }}
       />
     </div>
   );

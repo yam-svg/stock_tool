@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MoreVertical, Edit2, Trash2, FolderInput } from 'lucide-react'
+import { MoreVertical, Edit2, Trash2, FolderInput, Plus } from 'lucide-react'
 
 interface Group {
   id: string
@@ -16,6 +16,7 @@ interface GroupItemProps {
   onDelete: () => void
   onMove?: (targetGroupId: string) => void
   groups?: Group[]
+  onAdd?: () => void
 }
 
 export const GroupItem: React.FC<GroupItemProps> = ({
@@ -27,7 +28,8 @@ export const GroupItem: React.FC<GroupItemProps> = ({
   onEdit,
   onDelete,
   onMove,
-  groups
+  groups,
+  onAdd
 }) => {
   const [showMenu, setShowMenu] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -91,7 +93,9 @@ export const GroupItem: React.FC<GroupItemProps> = ({
   }
 
   return (
-    <div className="relative">
+    <div 
+      className="relative"
+    >
       <div 
         className={`p-2 rounded-md transition-all duration-200 cursor-pointer group ${
           isSelected
@@ -134,7 +138,20 @@ export const GroupItem: React.FC<GroupItemProps> = ({
             }`}>
               {itemCount}
             </span>
-            
+            {onAdd && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onAdd()
+                }}
+                className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                  darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'
+                }`}
+                title="添加"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -150,112 +167,108 @@ export const GroupItem: React.FC<GroupItemProps> = ({
         </div>
       </div>
 
-      {/* 操作菜单 */}
+      {/* 操作菜单 - 点击显示 */}
       {showMenu && (
-        <>
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setShowMenu(false)}
-          />
-          <div className={`absolute right-0 top-full mt-1 w-32 rounded-lg shadow-lg z-20 overflow-hidden border ${
+        <div 
+          className={`absolute right-0 top-full mt-1 w-32 rounded-lg shadow-lg z-20 overflow-hidden border ${
             darkMode 
               ? 'bg-gray-800 border-gray-700' 
               : 'bg-white border-gray-200'
-          }`}>
-            <button
-              onClick={() => {
-                setIsEditing(true)
-                setShowMenu(false)
-              }}
-              className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
-                darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              }`}
-            >
-              <div className="flex items-center space-x-2">
-                <Edit2 className="w-3.5 h-3.5" />
-                <span>编辑</span>
-              </div>
-              <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-                darkMode 
-                  ? 'bg-gray-700 text-gray-400' 
-                  : 'bg-gray-200 text-gray-600'
-              }`}>
-                E
-              </kbd>
-            </button>
-            
-            {onMove && groups && groups.length > 1 && (
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setShowMoveMenu(!showMoveMenu)
-                  }}
-                  className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
-                    darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2">
-                    <FolderInput className="w-3.5 h-3.5" />
-                    <span>移动到</span>
-                  </div>
-                  <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-                    darkMode 
-                      ? 'bg-gray-700 text-gray-400' 
-                      : 'bg-gray-200 text-gray-600'
-                  }`}>
-                    M
-                  </kbd>
-                </button>
-                
-                {showMoveMenu && (
-                  <div className={`ml-32 -mt-8 w-32 rounded-lg shadow-lg z-20 overflow-hidden border absolute left-full top-0 ${
-                    darkMode 
-                      ? 'bg-gray-800 border-gray-700' 
-                      : 'bg-white border-gray-200'
-                  }`}>
-                    {groups.filter(g => g.id !== group.id).map(g => (
-                      <button
-                        key={g.id}
-                        onClick={() => {
-                          onMove(g.id)
-                          setShowMoveMenu(false)
-                          setShowMenu(false)
-                        }}
-                        className={`w-full px-3 py-2 text-sm text-left ${
-                          darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <button
-              onClick={() => {
-                onDelete()
-                setShowMenu(false)
-              }}
-              className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
-                darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              }`}
-            >
-              <div className="flex items-center space-x-2 text-red-500">
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>删除</span>
-              </div>
-              <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-                darkMode 
-                  ? 'bg-gray-700 text-gray-400' 
-                  : 'bg-gray-200 text-gray-600'
-              }`}>
-                D
-              </kbd>
-            </button>
-          </div>
-        </>
+          }`}
+        >
+          <button
+            onClick={() => {
+              setIsEditing(true)
+              setShowMenu(false)
+            }}
+            className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
+              darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center space-x-2">
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>编辑</span>
+            </div>
+            <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+              darkMode 
+                ? 'bg-gray-700 text-gray-400' 
+                : 'bg-gray-200 text-gray-600'
+            }`}>
+              E
+            </kbd>
+          </button>
+          
+          {onMove && groups && groups.length > 1 && (
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowMoveMenu(!showMoveMenu)
+                }}
+                className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
+                  darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <FolderInput className="w-3.5 h-3.5" />
+                  <span>移动到</span>
+                </div>
+                <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                  darkMode 
+                    ? 'bg-gray-700 text-gray-400' 
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  M
+                </kbd>
+              </button>
+              
+              {showMoveMenu && (
+                <div className={`ml-32 -mt-8 w-32 rounded-lg shadow-lg z-20 overflow-hidden border absolute left-full top-0 ${
+                  darkMode 
+                    ? 'bg-gray-800 border-gray-700' 
+                    : 'bg-white border-gray-200'
+                }`}>
+                  {groups.filter(g => g.id !== group.id).map(g => (
+                    <button
+                      key={g.id}
+                      onClick={() => {
+                        onMove(g.id)
+                        setShowMoveMenu(false)
+                        setShowMenu(false)
+                      }}
+                      className={`w-full px-3 py-2 text-sm text-left ${
+                        darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      {g.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          
+          <button
+            onClick={() => {
+              onDelete()
+              setShowMenu(false)
+            }}
+            className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
+              darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+            }`}
+          >
+            <div className="flex items-center space-x-2 text-red-500">
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>删除</span>
+            </div>
+            <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+              darkMode 
+                ? 'bg-gray-700 text-gray-400' 
+                : 'bg-gray-200 text-gray-600'
+            }`}>
+              D
+            </kbd>
+          </button>
+        </div>
       )}
     </div>
   )
