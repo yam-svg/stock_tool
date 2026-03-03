@@ -1,6 +1,7 @@
 import React from 'react'
 import { RefreshCw, Moon, Sun, TrendingUp, PieChart, Activity } from 'lucide-react'
 import { FaChartLine } from 'react-icons/fa'
+import { Tabs } from '../ui'
 
 interface HeaderProps {
   darkMode: boolean
@@ -44,30 +45,15 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           
           {/* Tab 切换 */}
-          <div className="flex space-x-1 bg-black/5 dark:bg-white/5 p-0.5 rounded-lg">
-            <button
-              onClick={() => setActiveTab('stock')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-all duration-200 flex items-center space-x-1 ${
-                activeTab === 'stock'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
-              }`}
-            >
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>股票</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('fund')}
-              className={`px-3 py-1 rounded text-sm font-medium transition-all duration-200 flex items-center space-x-1 ${
-                activeTab === 'fund'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
-              }`}
-            >
-              <PieChart className="w-3.5 h-3.5" />
-              <span>基金</span>
-            </button>
-          </div>
+          <Tabs
+            activeTab={activeTab as string}
+            onChange={(tab) => setActiveTab(tab as 'stock' | 'fund')}
+            tabs={[
+              { id: 'stock', label: '股票', icon: <TrendingUp /> },
+              { id: 'fund', label: '基金', icon: <PieChart /> }
+            ]}
+            size="md"
+          />
         </div>
 
         <div className="flex items-center space-x-3">
