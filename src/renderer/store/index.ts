@@ -101,6 +101,19 @@ export const useStore = create<StoreState>()(
       initialize: async () => {
         set({ loading: true, error: null })
         try {
+          // 加载配置
+          const savedDarkMode = localStorage.getItem('darkMode') === 'true'
+          const savedRefreshConfig = localStorage.getItem('refreshConfig')
+          if (savedRefreshConfig) {
+            try {
+              const config = JSON.parse(savedRefreshConfig)
+              set({ refreshConfig: config })
+            } catch (e) {
+              console.error('Failed to parse saved refresh config', e)
+            }
+          }
+          set({ darkMode: savedDarkMode })
+
           // 加载分组和持仓数据
           const [stockGroups, fundGroups, stocks, funds] = await Promise.all([
             window.electronAPI.db.getStockGroups(),
@@ -120,12 +133,16 @@ export const useStore = create<StoreState>()(
           }
 
           // 初始默认选择第一个分组
-          const initialSelectedStockGroup = stockGroups[0]?.id || null
-          const initialSelectedFundGroup = fundGroups[0]?.id || null
+          const initialSelectedStockGroup = localStorage.getItem('selectedStockGroup')
+          const initialSelectedFundGroup = localStorage.getItem('selectedFundGroup')
 
           set({
-            selectedStockGroup: initialSelectedStockGroup,
-            selectedFundGroup: initialSelectedFundGroup
+            selectedStockGroup: stockGroups.some(g => g.id === initialSelectedStockGroup)
+              ? initialSelectedStockGroup
+              : stockGroups[0]?.id || null,
+            selectedFundGroup: fundGroups.some(g => g.id === initialSelectedFundGroup)
+              ? initialSelectedFundGroup
+              : fundGroups[0]?.id || null
           })
           
           // 加载行情数据
@@ -169,8 +186,22 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      selectStockGroup: (groupId) => set({ selectedStockGroup: groupId }),
-      selectFundGroup: (groupId) => set({ selectedFundGroup: groupId }),
+      selectStockGroup: (groupId) => {
+        set({ selectedStockGroup: groupId })
+        if (groupId) {
+          localStorage.setItem('selectedStockGroup', groupId)
+        } else {
+          localStorage.removeItem('selectedStockGroup')
+        }
+      },
+      selectFundGroup: (groupId) => {
+        set({ selectedFundGroup: groupId })
+        if (groupId) {
+          localStorage.setItem('selectedFundGroup', groupId)
+        } else {
+          localStorage.removeItem('selectedFundGroup')
+        }
+      },
 
       updateStockGroup: async (id, name) => {
         set({ loading: true, error: null })
@@ -394,17 +425,25 @@ export const useStore = create<StoreState>()(
         }
       },
 
-      setRefreshConfig: (config) => set((state: StoreState) => ({
-        refreshConfig: { ...state.refreshConfig, ...config }
-      })),
+      setRefreshConfig: (config) => {
+        const newConfig = { ...get().refreshConfig, ...config }
+        set({ refreshConfig: newConfig })
+        localStorage.setItem('refreshConfig', JSON.stringify(newConfig))
+      },
 
-      toggleRefresh: (enabled) => set((state: StoreState) => ({
-        refreshConfig: { ...state.refreshConfig, enabled }
-      })),
+      toggleRefresh: (enabled) => {
+        const newConfig = { ...get().refreshConfig, enabled }
+        set({ refreshConfig: newConfig })
+        localStorage.setItem('refreshConfig', JSON.stringify(newConfig))
+      },
 
       // UI操作
       setActiveTab: (tab) => set({ activeTab: tab }),
-      toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),
+      toggleDarkMode: () => {
+        const newMode = !get().darkMode
+        set({ darkMode: newMode })
+        localStorage.setItem('darkMode', newMode.toString())
+      },
       clearError: () => set({ error: null })
     }),
     {

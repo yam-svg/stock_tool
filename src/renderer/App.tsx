@@ -267,7 +267,7 @@ const App: React.FC = () => {
                   </div>
                   {visibleStocks.length > 0 && (
                     <div
-                      className={`px-3 py-1 rounded-md text-sm ${
+                      className={`flex gap-2 items-center px-3 py-1 rounded-md text-sm ${
                         darkMode ? "bg-gray-800/50" : "bg-white/50"
                       } border ${
                         darkMode ? "border-gray-700" : "border-gray-200"
