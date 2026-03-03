@@ -36,8 +36,12 @@ export const Tabs: React.FC<TabsProps> = ({
               : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          {tab.icon && <span className="w-3.5 h-3.5">{tab.icon}</span>}
-          <span>{tab.label}</span>
+          {tab.icon && (
+            <span className="flex-shrink-0 w-3.5 h-3.5 flex items-center justify-center">
+              {tab.icon}
+            </span>
+          )}
+          <span className="flex-shrink-0">{tab.label}</span>
         </button>
       ))}
     </div>
