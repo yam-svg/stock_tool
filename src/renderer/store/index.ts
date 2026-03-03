@@ -120,16 +120,12 @@ export const useStore = create<StoreState>()(
           }
 
           // 初始默认选择第一个分组
-          const initialSelectedStockGroup = localStorage.getItem('selectedStockGroup')
-          const initialSelectedFundGroup = localStorage.getItem('selectedFundGroup')
+          const initialSelectedStockGroup = stockGroups[0]?.id || null
+          const initialSelectedFundGroup = fundGroups[0]?.id || null
 
           set({
-            selectedStockGroup: stockGroups.some(g => g.id === initialSelectedStockGroup)
-              ? initialSelectedStockGroup
-              : stockGroups[0]?.id || null,
-            selectedFundGroup: fundGroups.some(g => g.id === initialSelectedFundGroup)
-              ? initialSelectedFundGroup
-              : fundGroups[0]?.id || null
+            selectedStockGroup: initialSelectedStockGroup,
+            selectedFundGroup: initialSelectedFundGroup
           })
           
           // 加载行情数据
@@ -374,7 +370,7 @@ export const useStore = create<StoreState>()(
             const shortSymbol = quote.symbol.replace(/^(sh|sz|hk|us)/i, '')
             quoteMap[shortSymbol] = quote
           })
-          
+          console.log(quotes)
           set({ stockQuotes: quoteMap })
         } catch (error) {
           console.error('刷新股票行情失败:', error)

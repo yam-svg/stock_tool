@@ -36,7 +36,6 @@ const App: React.FC = () => {
     addStock,
     addFund,
     deleteStock,
-    deleteFund,
     moveStockToGroup,
     moveFundToGroup,
     selectedStockGroup,
@@ -46,20 +45,12 @@ const App: React.FC = () => {
     funds,
     fundQuotes,
   } = useStore();
-
+  
   const [newGroupName, setNewGroupName] = useState("");
-  const [newStock, setNewStock] = useState({
-    code: "",
-    name: "",
-    buyPrice: 0,
-    quantity: 0,
-    groupId: "",
-  });
   const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [moveItemId, setMoveItemId] = useState<string | null>(null);
   const [isAddingStock, setIsAddingStock] = useState(false);
   const [isAddingFund, setIsAddingFund] = useState(false);
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null);
   const [searchStockModalOpen, setSearchStockModalOpen] = useState(false);
@@ -102,74 +93,6 @@ const App: React.FC = () => {
       createFundGroup(newGroupName);
     }
     setNewGroupName("");
-  };
-
-  const handleAddStock = () => {
-    // 表单验证
-    const errors: Record<string, string> = {};
-
-    if (!newStock.code.trim()) {
-      errors.code = "请输入股票代码";
-    }
-
-    if (!newStock.name.trim()) {
-      errors.name = "请输入股票名称";
-    }
-
-    // 价格和数量可选，但如果填写了必须大于 0
-    if (newStock.buyPrice < 0) {
-      errors.buyPrice = "买入价格不能为负数";
-    }
-
-    if (newStock.quantity < 0) {
-      errors.quantity = "持仓数量不能为负数";
-    }
-
-    // 如果有错误，显示错误并返回
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-
-    // 清空错误
-    setFormErrors({});
-    setIsAddingStock(true);
-
-    try {
-      //确保有分组
-      let groupId = newStock.groupId;
-      if (!groupId) {
-        const defaultGroup = stockGroups[0];
-        if (defaultGroup) {
-          groupId = defaultGroup.id;
-        } else {
-          // 如果没有分组，创建一个默认分组
-          createStockGroup("默认分组");
-          return;
-        }
-      }
-
-      addStock({
-        symbol: newStock.code,
-        name: newStock.name,
-        groupId: groupId,
-        costPrice: newStock.buyPrice || 0,
-        quantity: newStock.quantity || 0,
-      });
-
-      //清空表单
-      setNewStock({
-        code: "",
-        name: "",
-        buyPrice: 0,
-        quantity: 0,
-        groupId: "",
-      });
-    } catch (error) {
-      console.error("添加股票失败:", error);
-    } finally {
-      setIsAddingStock(false);
-    }
   };
 
   const handleDeleteStock = (id: string) => {
