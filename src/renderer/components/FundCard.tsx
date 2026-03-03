@@ -21,7 +21,27 @@ export const FundCard: React.FC<FundCardProps> = ({
 }) => {
   const [showMenu, setShowMenu] = React.useState(false)
   const [showMoveMenu, setShowMoveMenu] = React.useState(false)
+  const [flashColor, setFlashColor] = React.useState<'red' | 'green' | null>(null)
+  const prevNavRef = React.useRef<number>(quote?.nav || 0)
   const menuRef = React.useRef<HTMLDivElement>(null)
+
+  // 净值更新闪烁效果
+  React.useEffect(() => {
+    const currentNav = quote?.nav || 0
+    if (currentNav !== prevNavRef.current && prevNavRef.current !== 0) {
+      if (currentNav > prevNavRef.current) {
+        setFlashColor('red')
+      } else if (currentNav < prevNavRef.current) {
+        setFlashColor('green')
+      }
+
+      const timer = setTimeout(() => {
+        setFlashColor(null)
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+    prevNavRef.current = currentNav
+  }, [quote?.nav])
 
   // 点击外部关闭菜单
   React.useEffect(() => {
@@ -49,17 +69,23 @@ export const FundCard: React.FC<FundCardProps> = ({
 
   return (
     <div 
-      className={`rounded-lg p-4 shadow-sm relative ${
-        darkMode 
-          ? 'bg-gray-800/50 border border-gray-700/50' 
-          : 'bg-white/50 border border-gray-200/50'
+      className={`rounded-lg p-4 shadow-sm relative transition-colors duration-500 ${
+        flashColor === 'red' 
+          ? 'bg-red-500/20' 
+          : flashColor === 'green' 
+          ? 'bg-green-500/20' 
+          : darkMode 
+          ? 'bg-gray-800/50' 
+          : 'bg-white/50'
+      } border ${
+        darkMode ? 'border-gray-700/50' : 'border-gray-200/50'
       } backdrop-blur-sm`}
     >
       {/* 头部信息 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center space-x-3">
           <div className={`w-3 h-3 rounded-full ${
-            currentNav >= fund.costNav ? 'bg-green-500' : 'bg-red-500'
+            currentNav >= fund.costNav ? 'bg-red-500' : 'bg-green-500'
           }`}></div>
           <div>
             <h3 className="font-semibold">{fund.name}</h3>
@@ -69,7 +95,10 @@ export const FundCard: React.FC<FundCardProps> = ({
         <div className="flex items-center space-x-3">
           <div className="text-right">
             <div className="text-sm text-gray-500">当前净值</div>
-            <div className="font-bold text-lg">{currentNav ? currentNav.toFixed(4) : '-'}
+            <div className={`font-bold text-lg ${
+              (quote?.change || 0) >= 0 ? 'text-red-500' : 'text-green-500'
+            }`}>
+              {currentNav ? currentNav.toFixed(4) : '-'}
             </div>
           </div>
           
@@ -171,7 +200,7 @@ export const FundCard: React.FC<FundCardProps> = ({
           <div className="text-gray-500">收益</div>
           <div
             className={`font-bold ${
-              profit >= 0 ? 'text-green-500' : 'text-red-500'
+              profit >= 0 ? 'text-red-500' : 'text-green-500'
             }`}
           >
             {profit ? '¥' + profit.toFixed(2) : '-'}
@@ -181,7 +210,7 @@ export const FundCard: React.FC<FundCardProps> = ({
           <div className="text-gray-500">收益率</div>
           <div
             className={`font-bold ${
-              profitRate >= 0 ? 'text-green-500' : 'text-red-500'
+              profitRate >= 0 ? 'text-red-500' : 'text-green-500'
             }`}
           >
             {profitRate ? profitRate.toFixed(2) + '%' : '-'}

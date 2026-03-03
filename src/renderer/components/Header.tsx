@@ -66,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}>
               <div className="font-medium">总收益</div>
               <div className={`font-bold text-sm ${
-                totalProfit >= 0 ? 'text-green-500' : 'text-red-500'
+                totalProfit >= 0 ? 'text-red-500' : 'text-green-500'
               }`}>
                 ¥{totalProfit.toFixed(2)}
               </div>

@@ -21,7 +21,27 @@ export const StockCard: React.FC<StockCardProps> = ({
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
   const [showMoveMenu, setShowMoveMenu] = React.useState(false);
+  const [flashColor, setFlashColor] = React.useState<"red" | "green" | null>(null);
+  const prevPriceRef = React.useRef<number>(quote?.price || 0);
   const menuRef = React.useRef<HTMLDivElement>(null);
+
+  // 价格更新闪烁效果
+  React.useEffect(() => {
+    const currentPrice = quote?.price || 0;
+    if (currentPrice !== prevPriceRef.current && prevPriceRef.current !== 0) {
+      if (currentPrice > prevPriceRef.current) {
+        setFlashColor("red");
+      } else if (currentPrice < prevPriceRef.current) {
+        setFlashColor("green");
+      }
+
+      const timer = setTimeout(() => {
+        setFlashColor(null);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+    prevPriceRef.current = currentPrice;
+  }, [quote?.price]);
 
   // 点击外部关闭菜单
   React.useEffect(() => {
@@ -53,10 +73,16 @@ export const StockCard: React.FC<StockCardProps> = ({
 
   return (
     <div
-      className={`rounded-lg p-4 shadow-sm relative ${
-        darkMode
-          ? "bg-gray-800/50 border border-gray-700/50"
-          : "bg-white/50 border border-gray-200/50"
+      className={`rounded-lg p-4 shadow-sm relative transition-colors duration-500 ${
+        flashColor === "red"
+          ? "bg-red-500/20"
+          : flashColor === "green"
+          ? "bg-green-500/20"
+          : darkMode
+          ? "bg-gray-800/50"
+          : "bg-white/50"
+      } border ${
+        darkMode ? "border-gray-700/50" : "border-gray-200/50"
       } backdrop-blur-sm`}
     >
       {/* 头部信息 */}
@@ -64,7 +90,7 @@ export const StockCard: React.FC<StockCardProps> = ({
         <div className="flex items-center space-x-3">
           <div
             className={`w-3 h-3 rounded-full ${
-              currentPrice >= stock.costPrice ? "bg-green-500" : "bg-red-500"
+              currentPrice >= stock.costPrice ? "text-red-500 bg-red-500" : "text-green-500 bg-green-500"
             }`}
           ></div>
           <div>
@@ -75,7 +101,9 @@ export const StockCard: React.FC<StockCardProps> = ({
         <div className="flex items-center space-x-3">
           <div className="text-right">
             <div className="text-sm text-gray-500">当前价</div>
-            <div className="font-bold text-lg">
+            <div className={`font-bold text-lg ${
+              (quote?.change || 0) >= 0 ? "text-red-500" : "text-green-500"
+            }`}>
               ¥{currentPrice?.toFixed(2) || "-"}
             </div>
           </div>
@@ -180,7 +208,7 @@ export const StockCard: React.FC<StockCardProps> = ({
           <div className="text-gray-500">收益</div>
           <div
             className={`font-bold ${
-              profit >= 0 ? "text-green-500" : "text-red-500"
+              profit >= 0 ? "text-red-500" : "text-green-500"
             }`}
           >
             {profit ? "¥" + profit.toFixed(2) : "-"}
@@ -190,7 +218,7 @@ export const StockCard: React.FC<StockCardProps> = ({
           <div className="text-gray-500">收益率</div>
           <div
             className={`font-bold ${
-              profitRate >= 0 ? "text-green-500" : "text-red-500"
+              profitRate >= 0 ? "text-red-500" : "text-green-500"
             }`}
           >
             {profitRate ? profitRate.toFixed(2) + "%" : "-"}
@@ -200,7 +228,7 @@ export const StockCard: React.FC<StockCardProps> = ({
           <div className="text-gray-500">涨跌额</div>
           <div
             className={`font-bold ${
-              (quote?.change || 0) >= 0 ? "text-green-500" : "text-red-500"
+              (quote?.change || 0) >= 0 ? "text-red-500" : "text-green-500"
             }`}
           >
             {quote?.change ? "¥" + quote.change.toFixed(2) : "-"}
@@ -210,7 +238,7 @@ export const StockCard: React.FC<StockCardProps> = ({
           <div className="text-gray-500">涨跌幅</div>
           <div
             className={`font-bold ${
-              (quote?.changePercent || 0) >= 0 ? "text-green-500" : "text-red-500"
+              (quote?.changePercent || 0) >= 0 ? "text-red-500" : "text-green-500"
             }`}
           >
             {quote?.changePercent ? quote.changePercent.toFixed(2) + "%" : "-"}
