@@ -118,6 +118,12 @@ export const useStore = create<StoreState>()(
           if (fundGroups.length === 0) {
             await get().createFundGroup('我的基金')
           }
+
+          // 初始默认选择第一个分组
+          set({
+            selectedStockGroup: stockGroups[0]?.id || null,
+            selectedFundGroup: fundGroups[0]?.id || null
+          })
           
           // 加载行情数据
           await get().refreshStockQuotes()
