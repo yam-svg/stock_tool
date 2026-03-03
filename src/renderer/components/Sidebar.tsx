@@ -1,0 +1,106 @@
+import React from 'react'
+import { FolderPlus, Plus } from 'lucide-react'
+
+interface Group {
+  id: string
+  name: string
+}
+
+interface SidebarProps {
+  darkMode: boolean
+  activeTab: 'stock' | 'fund'
+  groups: Group[]
+  newGroupName: string
+  onGroupSelect: (groupId: string) => void
+  onGroupCreate: () => void
+  onGroupNameChange: (name: string) => void
+  stocksCount?: Record<string, number>
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  darkMode,
+  activeTab,
+  groups,
+  newGroupName,
+  onGroupSelect,
+  onGroupCreate,
+  onGroupNameChange,
+  stocksCount
+}) => {
+  return (
+    <div className={`w-64 ${
+      darkMode 
+        ? 'bg-gray-800/50 border-gray-700/50' 
+        : 'bg-white/50 border-gray-200/50'
+    } border-r backdrop-blur-sm p-4`}>
+      <div className="space-y-4">
+        {/* 标题 */}
+        <div className="flex items-center space-x-2">
+          <FolderPlus className="w-4 h-4 text-blue-500" />
+          <h2 className="text-sm font-semibold">分组管理</h2>
+        </div>
+        
+        {/* 创建分组输入框 */}
+        <div className="space-y-2">
+          <div className={`relative rounded-md overflow-hidden ${
+            darkMode ? 'bg-gray-700/50' : 'bg-white/50'
+          } border ${
+            darkMode ? 'border-gray-600' : 'border-gray-200'
+          }`}>
+            <input
+              type="text"
+              value={newGroupName}
+              onChange={(e) => onGroupNameChange(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && onGroupCreate()}
+              placeholder={`新建${activeTab === 'stock' ? '股票' : '基金'}分组`}
+              className={`w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                darkMode 
+                  ? 'bg-transparent text-white placeholder-gray-400' 
+                  : 'bg-transparent text-gray-800 placeholder-gray-500'
+              }`}
+            />
+          </div>
+          <button
+            onClick={onGroupCreate}
+            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white py-2 text-sm rounded-md font-medium transition-all duration-200 flex items-center justify-center space-x-1 shadow hover:shadow-md"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>创建分组</span>
+          </button>
+        </div>
+
+        {/* 分组列表 */}
+        <div className="space-y-1">
+          <div className="text-xs font-medium text-gray-500 px-2">我的分组</div>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {groups.map(group => (
+              <div 
+                key={group.id} 
+                className={`p-2 rounded-md transition-all duration-200 cursor-pointer group ${
+                  darkMode 
+                    ? 'bg-gray-700/30 hover:bg-gray-700/50 border border-gray-600/30' 
+                    : 'bg-white/30 hover:bg-white/70 border border-gray-200/30'
+                } hover:shadow-sm`}
+                onClick={() => onGroupSelect(group.id)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${
+                      darkMode ? 'bg-blue-400' : 'bg-blue-500'
+                    }`}></div>
+                    <span className="text-sm font-medium truncate">{group.name}</span>
+                  </div>
+                  <div className={`opacity-0 group-hover:opacity-100 transition-opacity text-xs ${
+                    darkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
+                    {stocksCount?.[group.id] || 0} 项
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
