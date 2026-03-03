@@ -31,7 +31,7 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode }) => {
 
   const filteredFunds = selectedFundGroup 
     ? funds.filter(f => f.groupId === selectedFundGroup)
-    : funds
+    : []
 
   const handleAddFund = async () => {
     const newErrors: Record<string, string> = {}
