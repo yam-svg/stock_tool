@@ -218,7 +218,7 @@ const App: React.FC = () => {
       />
 
       {/* 主内容区域 */}
-      <div className="flex h-[calc(100vh-41px)]">
+      <div className="flex">
         {/* Sidebar 分组管理 */}
         <Sidebar
           darkMode={darkMode}

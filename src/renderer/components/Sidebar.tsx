@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ? 'bg-gray-800/50 border-gray-700/50' 
         : 'bg-white/50 border-gray-200/50'
     } border-r backdrop-blur-sm p-4`}>
-      <div className="space-y-4">
+      <div className="space-y-4 h-full">
         {/* 标题 */}
         <div className="flex items-center space-x-2">
           <FolderPlus className="w-4 h-4 text-blue-500" />
@@ -81,9 +81,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* 分组列表 */}
-        <div className="space-y-1">
+        <div className="flex flex-col h-full space-y-1">
           <div className="text-xs font-medium text-gray-500 px-2">我的分组</div>
-          <div className="space-y-1 max-h-80 overflow-y-auto h-full">
+          <div className="h-full space-y-1 max-h-80 overflow-y-auto">
             {groups.map(group => (
               <GroupItem
                 key={group.id}

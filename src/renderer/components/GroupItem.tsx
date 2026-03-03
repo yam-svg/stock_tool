@@ -35,6 +35,27 @@ export const GroupItem: React.FC<GroupItemProps> = ({
   const [isEditing, setIsEditing] = useState(false)
   const [editName, setEditName] = useState(group.name)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+
+  // 点击外部关闭菜单
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+        setShowMoveMenu(false)
+      }
+    }
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showMenu])
 
   // 处理键盘快捷键
   React.useEffect(() => {
@@ -152,124 +173,128 @@ export const GroupItem: React.FC<GroupItemProps> = ({
                 <Plus className="w-3.5 h-3.5" />
               </button>
             )}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setShowMenu(!showMenu)
-              }}
-              className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
-                darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'
-              }`}
-            >
-              <MoreVertical className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 操作菜单 - 点击显示 */}
-      {showMenu && (
-        <div 
-          className={`absolute right-0 top-full mt-1 w-32 rounded-lg shadow-lg z-20 overflow-hidden border ${
-            darkMode 
-              ? 'bg-gray-800 border-gray-700' 
-              : 'bg-white border-gray-200'
-          }`}
-        >
-          <button
-            onClick={() => {
-              setIsEditing(true)
-              setShowMenu(false)
-            }}
-            className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
-              darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            }`}
-          >
-            <div className="flex items-center space-x-2">
-              <Edit2 className="w-3.5 h-3.5" />
-              <span>编辑</span>
-            </div>
-            <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-              darkMode 
-                ? 'bg-gray-700 text-gray-400' 
-                : 'bg-gray-200 text-gray-600'
-            }`}>
-              E
-            </kbd>
-          </button>
-          
-          {onMove && groups && groups.length > 1 && (
-            <div className="relative">
+            <div className="relative" ref={menuRef}>
               <button
-                onClick={() => {
-                  setShowMoveMenu(!showMoveMenu)
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowMenu(!showMenu)
+                  if (showMenu) setShowMoveMenu(false)
                 }}
-                className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
-                  darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                  darkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'
                 }`}
               >
-                <div className="flex items-center space-x-2">
-                  <FolderInput className="w-3.5 h-3.5" />
-                  <span>移动到</span>
-                </div>
-                <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-                  darkMode 
-                    ? 'bg-gray-700 text-gray-400' 
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
-                  M
-                </kbd>
+                <MoreVertical className="w-3.5 h-3.5" />
               </button>
-              
-              {showMoveMenu && (
-                <div className={`ml-32 -mt-8 w-32 rounded-lg shadow-lg z-20 overflow-hidden border absolute left-full top-0 ${
-                  darkMode 
-                    ? 'bg-gray-800 border-gray-700' 
-                    : 'bg-white border-gray-200'
-                }`}>
-                  {groups.filter(g => g.id !== group.id).map(g => (
-                    <button
-                      key={g.id}
-                      onClick={() => {
-                        onMove(g.id)
-                        setShowMoveMenu(false)
-                        setShowMenu(false)
-                      }}
-                      className={`w-full px-3 py-2 text-sm text-left ${
-                        darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      {g.name}
-                    </button>
-                  ))}
+
+              {/* 操作菜单 - 点击显示 */}
+              {showMenu && (
+                <div 
+                  className={`absolute right-0 top-full mt-1 w-32 rounded-lg shadow-lg z-20 overflow-hidden border ${
+                    darkMode 
+                      ? 'bg-gray-800 border-gray-700' 
+                      : 'bg-white border-gray-200'
+                  }`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => {
+                      setIsEditing(true)
+                      setShowMenu(false)
+                    }}
+                    className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
+                      darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Edit2 className="w-3.5 h-3.5" />
+                      <span>编辑</span>
+                    </div>
+                    <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                      darkMode 
+                        ? 'bg-gray-700 text-gray-400' 
+                        : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      E
+                    </kbd>
+                  </button>
+                  
+                  {onMove && groups && groups.length > 1 && (
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setShowMoveMenu(!showMoveMenu)
+                        }}
+                        className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
+                          darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <FolderInput className="w-3.5 h-3.5" />
+                          <span>移动到</span>
+                        </div>
+                        <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                          darkMode 
+                            ? 'bg-gray-700 text-gray-400' 
+                            : 'bg-gray-200 text-gray-600'
+                        }`}>
+                          M
+                        </kbd>
+                      </button>
+                      
+                      {showMoveMenu && (
+                        <div className={`ml-32 -mt-8 w-32 rounded-lg shadow-lg z-20 overflow-hidden border absolute left-full top-0 ${
+                          darkMode 
+                            ? 'bg-gray-800 border-gray-700' 
+                            : 'bg-white border-gray-200'
+                        }`}>
+                          {groups.filter(g => g.id !== group.id).map(g => (
+                            <button
+                              key={g.id}
+                              onClick={() => {
+                                onMove(g.id)
+                                setShowMoveMenu(false)
+                                setShowMenu(false)
+                              }}
+                              className={`w-full px-3 py-2 text-sm text-left ${
+                                darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                              }`}
+                            >
+                              {g.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      onDelete()
+                      setShowMenu(false)
+                    }}
+                    className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
+                      darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2 text-red-500">
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>删除</span>
+                    </div>
+                    <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
+                      darkMode 
+                        ? 'bg-gray-700 text-gray-400' 
+                        : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      D
+                    </kbd>
+                  </button>
                 </div>
               )}
             </div>
-          )}
-          
-          <button
-            onClick={() => {
-              onDelete()
-              setShowMenu(false)
-            }}
-            className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
-              darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            }`}
-          >
-            <div className="flex items-center space-x-2 text-red-500">
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>删除</span>
-            </div>
-            <kbd className={`text-xs px-1.5 py-0.5 rounded font-mono ${
-              darkMode 
-                ? 'bg-gray-700 text-gray-400' 
-                : 'bg-gray-200 text-gray-600'
-            }`}>
-              D
-            </kbd>
-          </button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
