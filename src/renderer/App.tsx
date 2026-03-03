@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useStore } from './store'
-import { Header, Sidebar, StockForm, StockCard, FundView } from './components'
+import { Header, Sidebar, StockForm, StockCard, FundView, MoveModal } from './components'
 
 const App: React.FC = () => {
   const { 
@@ -18,7 +18,13 @@ const App: React.FC = () => {
     stockQuotes,
     createStockGroup,
     createFundGroup,
-    addStock
+    updateStockGroup,
+    updateFundGroup,
+    deleteStockGroup,
+    deleteFundGroup,
+    addStock,
+    moveStockToGroup,
+    moveFundToGroup
   } = useStore()
 
   const [newGroupName, setNewGroupName] = useState('')
@@ -29,6 +35,8 @@ const App: React.FC = () => {
     quantity: 0,
     groupId: ''
   })
+  const [moveModalOpen, setMoveModalOpen] = useState(false)
+  const [moveItemId, setMoveItemId] = useState<string | null>(null)
 
   // 初始化应用
   useEffect(() => {
@@ -107,6 +115,16 @@ const App: React.FC = () => {
     refreshFundQuotes()
   }
 
+  const handleMoveItem = (itemId: string, newGroupId: string) => {
+    if (activeTab === 'stock') {
+      moveStockToGroup(itemId, newGroupId)
+    } else {
+      moveFundToGroup(itemId, newGroupId)
+    }
+    setMoveModalOpen(false)
+    setMoveItemId(null)
+  }
+
   const totalProfit = stocks.reduce((acc, stock) => {
     const quote = stockQuotes[stock.symbol]
     const currentPrice = quote?.price || 0
@@ -149,6 +167,48 @@ const App: React.FC = () => {
             acc[group.id] = stocks.filter(s => s.groupId === group.id).length
             return acc
           }, {} as Record<string, number>) : {}}
+          onUpdateGroup={(id, newName) => {
+            if (activeTab === 'stock') {
+              updateStockGroup(id, newName)
+            } else {
+              updateFundGroup(id, newName)
+            }
+          }}
+          onDeleteGroup={(id) => {
+            // 检查分组内是否有内容
+            const hasItems = activeTab === 'stock' 
+              ? stocks.some(s => s.groupId === id)
+              : false // 基金暂不支持
+            
+            if (hasItems) {
+              // 分组内有内容，需要确认
+              if (confirm('确定要删除该分组吗？这将同时删除组内所有项目。')) {
+                if (activeTab === 'stock') {
+                  deleteStockGroup(id)
+                } else {
+                  deleteFundGroup(id)
+                }
+              }
+            } else {
+              // 分组内没有内容，直接删除
+              if (activeTab === 'stock') {
+                deleteStockGroup(id)
+              } else {
+                deleteFundGroup(id)
+              }
+            }
+          }}
+          onMoveGroup={(groupId, targetGroupId) => {
+            // 移动该分组内的所有项目到目标分组
+            const itemsToMove = activeTab === 'stock' 
+              ? stocks.filter(s => s.groupId === groupId)
+              : [] // 基金暂不支持
+            itemsToMove.forEach(item => {
+              if (activeTab === 'stock') {
+                moveStockToGroup(item.id, targetGroupId)
+              }
+            })
+          }}
         />
 
         {/*右内容区域 */}
@@ -190,7 +250,9 @@ const App: React.FC = () => {
                       darkMode={darkMode}
                       stock={stock}
                       quote={stockQuotes[stock.symbol]}
+                      groups={stockGroups}
                       onDelete={handleDeleteStock}
+                      onMove={(stockId, groupId) => handleMoveItem(stockId, groupId)}
                     />
                   ))}
                 </div>
@@ -201,6 +263,20 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 移动模态框 */}
+      <MoveModal
+        darkMode={darkMode}
+        isOpen={moveModalOpen}
+        onClose={() => {
+          setMoveModalOpen(false)
+          setMoveItemId(null)
+        }}
+        onMove={(groupId) => moveItemId && handleMoveItem(moveItemId, groupId)}
+        groups={activeTab === 'stock' ? stockGroups : fundGroups}
+        currentGroupId={undefined}
+        title={`移动到${activeTab === 'stock' ? '股票' : '基金'}分组`}
+      />
     </div>
   );
 };

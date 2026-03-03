@@ -1,5 +1,6 @@
 import React from 'react'
 import { FolderPlus, Plus } from 'lucide-react'
+import { GroupItem } from './GroupItem'
 
 interface Group {
   id: string
@@ -15,6 +16,9 @@ interface SidebarProps {
   onGroupCreate: () => void
   onGroupNameChange: (name: string) => void
   stocksCount?: Record<string, number>
+  onUpdateGroup?: (id: string, newName: string) => void
+  onDeleteGroup?: (id: string) => void
+  onMoveGroup?: (groupId: string, targetGroupId: string) => void
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -25,7 +29,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onGroupSelect,
   onGroupCreate,
   onGroupNameChange,
-  stocksCount
+  stocksCount,
+  onUpdateGroup,
+  onDeleteGroup,
+  onMoveGroup
 }) => {
   return (
     <div className={`w-64 ${
@@ -74,29 +81,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="text-xs font-medium text-gray-500 px-2">我的分组</div>
           <div className="space-y-1 max-h-80 overflow-y-auto">
             {groups.map(group => (
-              <div 
-                key={group.id} 
-                className={`p-2 rounded-md transition-all duration-200 cursor-pointer group ${
-                  darkMode 
-                    ? 'bg-gray-700/30 hover:bg-gray-700/50 border border-gray-600/30' 
-                    : 'bg-white/30 hover:bg-white/70 border border-gray-200/30'
-                } hover:shadow-sm`}
-                onClick={() => onGroupSelect(group.id)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-1.5 h-1.5 rounded-full ${
-                      darkMode ? 'bg-blue-400' : 'bg-blue-500'
-                    }`}></div>
-                    <span className="text-sm font-medium truncate">{group.name}</span>
-                  </div>
-                  <div className={`opacity-0 group-hover:opacity-100 transition-opacity text-xs ${
-                    darkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>
-                    {stocksCount?.[group.id] || 0} 项
-                  </div>
-                </div>
-              </div>
+              <GroupItem
+                key={group.id}
+                darkMode={darkMode}
+                group={group}
+                isSelected={false}
+                itemCount={stocksCount?.[group.id] || 0}
+                onSelect={() => onGroupSelect(group.id)}
+                onEdit={(newName) => onUpdateGroup?.(group.id, newName)}
+                onDelete={() => onDeleteGroup?.(group.id)}
+                onMove={(targetId) => onMoveGroup?.(group.id, targetId)}
+                groups={groups}
+              />
             ))}
           </div>
         </div>

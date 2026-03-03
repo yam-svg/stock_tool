@@ -55,11 +55,13 @@ interface StoreState {
   addStock: (stock: Omit<Stock, 'id' | 'createdAt'>) => Promise<void>
   updateStock: (id: string, updates: Partial<Omit<Stock, 'id' | 'createdAt'>>) => Promise<void>
   deleteStock: (id: string) => Promise<void>
+  moveStockToGroup: (stockId: string, newGroupId: string) => Promise<void>
   
   //基金操作
   addFund: (fund: Omit<Fund, 'id' | 'createdAt'>) => Promise<void>
   updateFund: (id: string, updates: Partial<Omit<Fund, 'id' | 'createdAt'>>) => Promise<void>
   deleteFund: (id: string) => Promise<void>
+  moveFundToGroup: (fundId: string, newGroupId: string) => Promise<void>
   
   // 数据刷新
   refreshStockQuotes: () => Promise<void>
@@ -259,6 +261,22 @@ export const useStore = create<StoreState>()(
         }
       },
 
+      moveStockToGroup: async (stockId, newGroupId) => {
+        set({ loading: true, error: null })
+        try {
+          await window.electronAPI.db.updateStock(stockId, { groupId: newGroupId })
+          set(state => ({
+            stocks: state.stocks.map(stock =>
+              stock.id === stockId ? { ...stock, groupId: newGroupId } : stock
+            )
+          }))
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : '移动股票失败' })
+        } finally {
+          set({ loading: false })
+        }
+      },
+
       //基金操作
       addFund: async (fundData) => {
         set({ loading: true, error: null })
@@ -298,6 +316,22 @@ export const useStore = create<StoreState>()(
           }))
         } catch (error) {
           set({ error: error instanceof Error ? error.message : '删除基金失败' })
+        } finally {
+          set({ loading: false })
+        }
+      },
+
+      moveFundToGroup: async (fundId, newGroupId) => {
+        set({ loading: true, error: null })
+        try {
+          await window.electronAPI.db.updateFund(fundId, { groupId: newGroupId })
+          set(state => ({
+            funds: state.funds.map(fund =>
+              fund.id === fundId ? { ...fund, groupId: newGroupId } : fund
+            )
+          }))
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : '移动基金失败' })
         } finally {
           set({ loading: false })
         }
