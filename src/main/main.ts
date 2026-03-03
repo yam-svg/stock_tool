@@ -196,13 +196,13 @@ ipcMain.handle('db-create-stock', async (_event, stock: any) => {
 
 ipcMain.handle('db-get-stocks', async (_event, groupId?: string) => {
   if (!db) throw new Error('Database not initialized')
-
+  
   let stmt
   if (groupId) {
-    stmt = db.prepare('SELECT * FROM stocks WHERE group_id = ? ORDER BY created_at')
+    stmt = db.prepare('SELECT id, symbol, name, group_id AS groupId, cost_price AS costPrice, quantity, created_at AS createdAt FROM stocks WHERE group_id = ? ORDER BY created_at')
     return stmt.all(groupId)
   } else {
-    stmt = db.prepare('SELECT * FROM stocks ORDER BY created_at')
+    stmt = db.prepare('SELECT id, symbol, name, group_id AS groupId, cost_price AS costPrice, quantity, created_at AS createdAt FROM stocks ORDER BY created_at')
     return stmt.all()
   }
 })
@@ -210,14 +210,16 @@ ipcMain.handle('db-get-stocks', async (_event, groupId?: string) => {
 ipcMain.handle('db-update-stock', async (_event, id: string, updates: any) => {
   if (!db) throw new Error('Database not initialized')
 
-  const fields = Object.keys(updates)
-    .map(key => `${key} = ?`)
-    .join(', ')
+  const updateFields = Object.keys(updates).map(key => {
+    if (key === 'groupId') return 'group_id = ?'
+    if (key === 'costPrice') return 'cost_price = ?'
+    return `${key} = ?`
+  }).join(', ')
 
-  const values = Object.values(updates)
+  const values = Object.keys(updates).map(key => updates[key])
   values.push(id)
 
-  const stmt = db.prepare(`UPDATE stocks SET ${fields} WHERE id = ?`)
+  const stmt = db.prepare(`UPDATE stocks SET ${updateFields} WHERE id = ?`)
   stmt.run(...values)
 })
 
@@ -231,43 +233,45 @@ ipcMain.handle('db-delete-stock', async (_event, id: string) => {
 //基操作IPC handlers
 ipcMain.handle('db-create-fund', async (_event, fund: any) => {
   if (!db) throw new Error('Database not initialized')
-
+  
   const id = generateId()
   const createdAt = Date.now()
-
+  
   const stmt = db.prepare(`
     INSERT INTO funds (id, code, name, group_id, cost_nav, shares, created_at) 
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(id, fund.code, fund.name, fund.groupId, fund.costNav, fund.shares, createdAt)
-
+  
   return { id, ...fund, createdAt }
 })
 
 ipcMain.handle('db-get-funds', async (_event, groupId?: string) => {
   if (!db) throw new Error('Database not initialized')
-
+  
   let stmt
   if (groupId) {
-    stmt = db.prepare('SELECT * FROM funds WHERE group_id = ? ORDER BY created_at')
+    stmt = db.prepare('SELECT id, code, name, group_id AS groupId, cost_nav AS costNav, shares, created_at AS createdAt FROM funds WHERE group_id = ? ORDER BY created_at')
     return stmt.all(groupId)
   } else {
-    stmt = db.prepare('SELECT * FROM funds ORDER BY created_at')
+    stmt = db.prepare('SELECT id, code, name, group_id AS groupId, cost_nav AS costNav, shares, created_at AS createdAt FROM funds ORDER BY created_at')
     return stmt.all()
   }
 })
 
 ipcMain.handle('db-update-fund', async (_event, id: string, updates: any) => {
   if (!db) throw new Error('Database not initialized')
-
-  const fields = Object.keys(updates)
-    .map(key => `${key} = ?`)
-    .join(', ')
-
-  const values = Object.values(updates)
+  
+  const updateFields = Object.keys(updates).map(key => {
+    if (key === 'groupId') return 'group_id = ?'
+    if (key === 'costNav') return 'cost_nav = ?'
+    return `${key} = ?`
+  }).join(', ')
+  
+  const values = Object.keys(updates).map(key => updates[key])
   values.push(id)
-
-  const stmt = db.prepare(`UPDATE funds SET ${fields} WHERE id = ?`)
+  
+  const stmt = db.prepare(`UPDATE funds SET ${updateFields} WHERE id = ?`)
   stmt.run(...values)
 })
 
