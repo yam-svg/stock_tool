@@ -30,7 +30,7 @@ function initializeDatabase() {
   try {
     const dbPath = path.join(app.getPath('userData'), 'stocklite.db')
     db = new Database(dbPath)
-    
+
     //创建分组表
     db.exec(`
       CREATE TABLE IF NOT EXISTS stock_groups (
@@ -39,7 +39,7 @@ function initializeDatabase() {
         created_at INTEGER NOT NULL
       )
     `)
-    
+
     // 创建股票表
     db.exec(`
       CREATE TABLE IF NOT EXISTS stocks (
@@ -53,7 +53,7 @@ function initializeDatabase() {
         FOREIGN KEY (group_id) REFERENCES stock_groups (id)
       )
     `)
-    
+
     //创建基金分组表
     db.exec(`
       CREATE TABLE IF NOT EXISTS fund_groups (
@@ -62,7 +62,7 @@ function initializeDatabase() {
         created_at INTEGER NOT NULL
       )
     `)
-    
+
     // 创建基金表
     db.exec(`
       CREATE TABLE IF NOT EXISTS funds (
@@ -76,7 +76,7 @@ function initializeDatabase() {
         FOREIGN KEY (group_id) REFERENCES fund_groups (id)
       )
     `)
-    
+
     console.log('Database initialized successfully')
   } catch (error) {
     console.error('Database initialization failed:', error)
@@ -104,63 +104,63 @@ app.on('window-all-closed', function () {
 // 分组操作IPC handlers
 ipcMain.handle('db-create-stock-group', async (_event, name: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const id = generateId()
   const createdAt = Date.now()
-  
+
   const stmt = db.prepare('INSERT INTO stock_groups (id, name, created_at) VALUES (?, ?, ?)')
   stmt.run(id, name, createdAt)
-  
+
   return { id, name, createdAt }
 })
 
 ipcMain.handle('db-create-fund-group', async (_event, name: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const id = generateId()
   const createdAt = Date.now()
-  
+
   const stmt = db.prepare('INSERT INTO fund_groups (id, name, created_at) VALUES (?, ?, ?)')
   stmt.run(id, name, createdAt)
-  
+
   return { id, name, createdAt }
 })
 
 ipcMain.handle('db-get-stock-groups', async () => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const stmt = db.prepare('SELECT * FROM stock_groups ORDER BY created_at')
   return stmt.all()
 })
 
 ipcMain.handle('db-get-fund-groups', async () => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const stmt = db.prepare('SELECT * FROM fund_groups ORDER BY created_at')
   return stmt.all()
 })
 
 ipcMain.handle('db-update-stock-group', async (_event, id: string, name: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const stmt = db.prepare('UPDATE stock_groups SET name = ? WHERE id = ?')
   stmt.run(name, id)
 })
 
 ipcMain.handle('db-update-fund-group', async (_event, id: string, name: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const stmt = db.prepare('UPDATE fund_groups SET name = ? WHERE id = ?')
   stmt.run(name, id)
 })
 
 ipcMain.handle('db-delete-stock-group', async (_event, id: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   //先删除组内股票
   const deleteStocksStmt = db.prepare('DELETE FROM stocks WHERE group_id = ?')
   deleteStocksStmt.run(id)
-  
+
   //再分组
   const stmt = db.prepare('DELETE FROM stock_groups WHERE id = ?')
   stmt.run(id)
@@ -168,11 +168,11 @@ ipcMain.handle('db-delete-stock-group', async (_event, id: string) => {
 
 ipcMain.handle('db-delete-fund-group', async (_event, id: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   //先删除组内基金
   const deleteFundsStmt = db.prepare('DELETE FROM funds WHERE group_id = ?')
   deleteFundsStmt.run(id)
-  
+
   // 再删除分组
   const stmt = db.prepare('DELETE FROM fund_groups WHERE id = ?')
   stmt.run(id)
@@ -181,22 +181,22 @@ ipcMain.handle('db-delete-fund-group', async (_event, id: string) => {
 //操作IPC handlers
 ipcMain.handle('db-create-stock', async (_event, stock: any) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const id = generateId()
   const createdAt = Date.now()
-  
+
   const stmt = db.prepare(`
     INSERT INTO stocks (id, symbol, name, group_id, cost_price, quantity, created_at) 
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(id, stock.symbol, stock.name, stock.groupId, stock.costPrice, stock.quantity, createdAt)
-  
+
   return { id, ...stock, createdAt }
 })
 
 ipcMain.handle('db-get-stocks', async (_event, groupId?: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   let stmt
   if (groupId) {
     stmt = db.prepare('SELECT * FROM stocks WHERE group_id = ? ORDER BY created_at')
@@ -209,21 +209,21 @@ ipcMain.handle('db-get-stocks', async (_event, groupId?: string) => {
 
 ipcMain.handle('db-update-stock', async (_event, id: string, updates: any) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const fields = Object.keys(updates)
     .map(key => `${key} = ?`)
     .join(', ')
-  
+
   const values = Object.values(updates)
   values.push(id)
-  
+
   const stmt = db.prepare(`UPDATE stocks SET ${fields} WHERE id = ?`)
   stmt.run(...values)
 })
 
 ipcMain.handle('db-delete-stock', async (_event, id: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const stmt = db.prepare('DELETE FROM stocks WHERE id = ?')
   stmt.run(id)
 })
@@ -231,22 +231,22 @@ ipcMain.handle('db-delete-stock', async (_event, id: string) => {
 //基操作IPC handlers
 ipcMain.handle('db-create-fund', async (_event, fund: any) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const id = generateId()
   const createdAt = Date.now()
-  
+
   const stmt = db.prepare(`
     INSERT INTO funds (id, code, name, group_id, cost_nav, shares, created_at) 
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(id, fund.code, fund.name, fund.groupId, fund.costNav, fund.shares, createdAt)
-  
+
   return { id, ...fund, createdAt }
 })
 
 ipcMain.handle('db-get-funds', async (_event, groupId?: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   let stmt
   if (groupId) {
     stmt = db.prepare('SELECT * FROM funds WHERE group_id = ? ORDER BY created_at')
@@ -259,21 +259,21 @@ ipcMain.handle('db-get-funds', async (_event, groupId?: string) => {
 
 ipcMain.handle('db-update-fund', async (_event, id: string, updates: any) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const fields = Object.keys(updates)
     .map(key => `${key} = ?`)
     .join(', ')
-  
+
   const values = Object.values(updates)
   values.push(id)
-  
+
   const stmt = db.prepare(`UPDATE funds SET ${fields} WHERE id = ?`)
   stmt.run(...values)
 })
 
 ipcMain.handle('db-delete-fund', async (_event, id: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const stmt = db.prepare('DELETE FROM funds WHERE id = ?')
   stmt.run(id)
 })
@@ -281,7 +281,7 @@ ipcMain.handle('db-delete-fund', async (_event, id: string) => {
 //行情数据IPC handlers
 ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
   if (symbols.length === 0) return []
-  
+
   try {
     const fullSymbols = symbols.map(s => {
       if (/^[0-9]{6}$/.test(s)) {
@@ -290,23 +290,23 @@ ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
       }
       return s.toLowerCase()
     })
-    
+
     const q = fullSymbols.join(',')
     const response = await axios.get(`https://qt.gtimg.cn/q=${q}`, {
       responseType: 'arraybuffer'
     })
-    
+
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
     const lines = text.split(';').filter(line => line.trim())
-    
+
     return lines.map(line => {
       const match = line.match(/v_([^=]+)="([^"]+)"/)
       if (!match) return null
 
       const symbol = match[1]
       const data = match[2].split('~')
-      
+
       return {
         symbol,
         name: data[1],
@@ -324,24 +324,24 @@ ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
 
 ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
   if (codes.length === 0) return []
-  
+
   try {
     const q = codes.map(c => `f_${c}`).join(',')
     const response = await axios.get(`https://qt.gtimg.cn/q=${q}`, {
       responseType: 'arraybuffer'
     })
-    
+
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
     const lines = text.split(';').filter(line => line.trim())
-    
+
     return lines.map(line => {
       const match = line.match(/v_([^=]+)="([^"]+)"/)
       if (!match) return null
 
       const code = match[1].replace('f_', '')
       const data = match[2].split('~')
-      
+
       return {
         code,
         name: data[1],
@@ -359,27 +359,56 @@ ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
 
 ipcMain.handle('stock-search', async (_event, keyword: string) => {
   if (!keyword.trim()) return []
-  
+
   try {
     const response = await axios.get(`https://smartbox.gtimg.cn/s3/?v=2&q=${encodeURIComponent(keyword)}&t=all`, {
       responseType: 'arraybuffer'
     })
-    
+
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
     const match = text.match(/v_hint="([^"]+)"/)
     if (!match) return []
 
-    const items = match[1].split(';')
-    return items.map(item => {
-      const parts = item.split('~')
+    const clean = text
+      .replace(/^v_hint="/, '')
+      .replace(/"$/, '')
+
+    return clean.split('^').map(item => {
+      const [market, code, name, pinyin, type] = item.split('~')
+
       return {
-        symbol: parts[0],
-        name: parts[1]
+        market: marketMap[market.toUpperCase() as keyof typeof marketMap],
+        symbol: code,
+        name: decodeUnicode(name),
+        pinyin,
+        type
       }
-    }).filter(item => item.symbol && item.name)
+    })
   } catch (error) {
     console.error('Main process stock search failed:', error)
     return []
   }
 })
+
+function decodeUnicode(str: string) {
+  return JSON.parse('"' + str.replace(/"/g, '\\"') + '"')
+}
+
+export const marketMap = {
+  US: '美国',
+  CN: '中国',
+  HK: '中国香港',
+  TW: '中国台湾',
+  JP: '日本',
+  KR: '韩国',
+  SG: '新加坡',
+  UK: '英国',
+  DE: '德国',
+  FR: '法国',
+  AU: '澳大利亚',
+  CA: '加拿大',
+  IN: '印度',
+  BR: '巴西',
+  RU: '俄罗斯',
+};

@@ -46,6 +46,7 @@ export const SearchStockModal: React.FC<SearchStockModalProps> = ({
         setIsSearching(true)
         try {
           const results = await StockService.searchStocks(keyword)
+          console.log(results)
           setSearchResults(results)
         } catch (error) {
           console.error('搜索股票失败:', error)
@@ -66,8 +67,8 @@ export const SearchStockModal: React.FC<SearchStockModalProps> = ({
   const handleSubmit = () => {
     const newErrors: Record<string, string> = {}
     if (!selectedStock) newErrors.stock = '请选择一支股票'
-    if (buyPrice <= 0) newErrors.buyPrice = '买入价格必须大于0'
-    if (quantity <= 0) newErrors.quantity = '持仓数量必须大于0'
+    if (buyPrice && buyPrice <= 0) newErrors.buyPrice = '买入价格必须大于0'
+    if (quantity && quantity <= 0) newErrors.quantity = '持仓数量必须大于0'
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length > 0) return
@@ -131,10 +132,10 @@ export const SearchStockModal: React.FC<SearchStockModalProps> = ({
             }`}>
               {searchResults.map(stock => (
                 <button
-                  key={stock.symbol}
+                  key={stock.symbol + stock.name}
                   onClick={() => {
                     setSelectedStock(stock)
-                    setKeyword(`${stock.name} (${stock.symbol})`)
+                    setKeyword(stock.symbol)
                     setSearchResults([])
                   }}
                   className={`w-full text-left px-3 py-2 text-sm ${
