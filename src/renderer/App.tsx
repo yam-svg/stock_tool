@@ -7,6 +7,7 @@ const App: React.FC = () => {
     activeTab, 
     darkMode, 
     refreshConfig,
+    loading,
     toggleDarkMode,
     setActiveTab,
     refreshStockQuotes,
@@ -42,11 +43,8 @@ const App: React.FC = () => {
   useEffect(() => {
     const init = async () => {
       await useStore.getState().initialize()
-      // 如果没有分组，创建默认分组
-      if (stockGroups.length === 0) {
-        createStockGroup('我的股票')
-      }
     }
+    console.log('Initializing...')
     init()
   }, [])
 

@@ -108,6 +108,14 @@ export const useStore = create<StoreState>()(
           ])
           
           set({ stockGroups, fundGroups })
+
+          // 如果没有分组，则创建默认分组
+          if (stockGroups.length === 0) {
+            await get().createStockGroup('我的股票')
+          }
+          if (fundGroups.length === 0) {
+            await get().createFundGroup('我的基金')
+          }
           
           // 加载持仓数据
           await get().refreshStockQuotes()
