@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import * as path from 'path'
 import Database from 'better-sqlite3'
 import { generateId } from '../shared/utils'
+import axios from 'axios'
 
 // 数据库实例
 let db: Database.Database | null = null
@@ -277,27 +278,108 @@ ipcMain.handle('db-delete-fund', async (_event, id: string) => {
   stmt.run(id)
 })
 
-//行数据IPC handlers（模拟数据）
+//行情数据IPC handlers
 ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
-  //模拟股票行情数据
-  return symbols.map(symbol => ({
-    symbol,
-    name: `股票${symbol}`,
-    price: Math.random() * 100 + 10,
-    change: (Math.random() - 0.5) * 5,
-    changePercent: (Math.random() - 0.5) * 0.1,
-    updateTime: Date.now()
-  }))
+  if (symbols.length === 0) return []
+  
+  try {
+    const fullSymbols = symbols.map(s => {
+      if (/^[0-9]{6}$/.test(s)) {
+        if (s.startsWith('6')) return `sh${s}`
+        if (s.startsWith('0') || s.startsWith('3')) return `sz${s}`
+      }
+      return s.toLowerCase()
+    })
+    
+    const q = fullSymbols.join(',')
+    const response = await axios.get(`https://qt.gtimg.cn/q=${q}`, {
+      responseType: 'arraybuffer'
+    })
+    
+    const decoder = new TextDecoder('gbk')
+    const text = decoder.decode(response.data)
+    const lines = text.split(';').filter(line => line.trim())
+    
+    return lines.map(line => {
+      const match = line.match(/v_([^=]+)="([^"]+)"/)
+      if (!match) return null
+
+      const symbol = match[1]
+      const data = match[2].split('~')
+      
+      return {
+        symbol,
+        name: data[1],
+        price: parseFloat(data[3]) || 0,
+        change: parseFloat(data[31]) || 0,
+        changePercent: parseFloat(data[32]) || 0,
+        updateTime: Date.now()
+      }
+    }).filter(quote => quote !== null)
+  } catch (error) {
+    console.error('Main process fetch stock quotes failed:', error)
+    return []
+  }
 })
 
 ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
-  //模拟基金行情数据
-  return codes.map(code => ({
-    code,
-    name: `基金${code}`,
-    nav: Math.random() * 2 + 0.5,
-    change: (Math.random() - 0.5) * 0.1,
-    changePercent: (Math.random() - 0.5) * 0.05,
-    date: new Date().toISOString().split('T')[0]
-  }))
+  if (codes.length === 0) return []
+  
+  try {
+    const q = codes.map(c => `f_${c}`).join(',')
+    const response = await axios.get(`https://qt.gtimg.cn/q=${q}`, {
+      responseType: 'arraybuffer'
+    })
+    
+    const decoder = new TextDecoder('gbk')
+    const text = decoder.decode(response.data)
+    const lines = text.split(';').filter(line => line.trim())
+    
+    return lines.map(line => {
+      const match = line.match(/v_([^=]+)="([^"]+)"/)
+      if (!match) return null
+
+      const code = match[1].replace('f_', '')
+      const data = match[2].split('~')
+      
+      return {
+        code,
+        name: data[1],
+        nav: parseFloat(data[3]) || 0,
+        change: parseFloat(data[31]) || 0,
+        changePercent: parseFloat(data[32]) || 0,
+        date: data[30]
+      }
+    }).filter(quote => quote !== null)
+  } catch (error) {
+    console.error('Main process fetch fund quotes failed:', error)
+    return []
+  }
+})
+
+ipcMain.handle('stock-search', async (_event, keyword: string) => {
+  if (!keyword.trim()) return []
+  
+  try {
+    const response = await axios.get(`https://smartbox.gtimg.cn/s3/?v=2&q=${encodeURIComponent(keyword)}&t=all`, {
+      responseType: 'arraybuffer'
+    })
+    
+    const decoder = new TextDecoder('gbk')
+    const text = decoder.decode(response.data)
+    const match = text.match(/v_hint="([^"]+)"/)
+    if (!match) return []
+
+    const items = match[1].split(';')
+    return items.map(item => {
+      const parts = item.split('~')
+      return {
+        symbol: parts[0],
+        name: parts[1]
+      }
+    }).filter(item => item.symbol && item.name)
+  } catch (error) {
+    console.error('Main process stock search failed:', error)
+    return []
+  }
 })

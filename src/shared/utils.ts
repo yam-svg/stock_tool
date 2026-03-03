@@ -71,8 +71,8 @@ export function generateId(): string {
 
 //验证股票代码格式
 export function isValidStockSymbol(symbol: string): boolean {
-  //支持A股代码格式（如：000001, 600000, 300001等）
-  return /^[0-9]{6}$/.test(symbol)
+  //支持A股代码格式（如：000001, 600000, 300001等）或带前缀的格式（如：sh600519, sz000001）
+  return /^[0-9]{6}$/.test(symbol) || /^(sh|sz|hk|us)[0-9a-zA-Z.]+$/.test(symbol.toLowerCase())
 }
 
 //验证基金代码格式

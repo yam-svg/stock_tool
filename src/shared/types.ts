@@ -26,6 +26,12 @@ export interface StockQuote {
   updateTime: number
 }
 
+// 股票搜索结果接口
+export interface StockSearchResult {
+  symbol: string
+  name: string
+}
+
 //基金分组接口
 export interface FundGroup {
   id: string
@@ -103,6 +109,9 @@ export interface DatabaseAPI {
   //行数据
   getStockQuotes: (symbols: string[]) => Promise<StockQuote[]>
   getFundQuotes: (codes: string[]) => Promise<FundQuote[]>
+  
+  // 搜索
+  searchStocks: (keyword: string) => Promise<StockSearchResult[]>
 }
 
 // Electron API声明

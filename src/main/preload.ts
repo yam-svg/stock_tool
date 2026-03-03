@@ -29,6 +29,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     //行数据
     getStockQuotes: (symbols: string[]) => ipcRenderer.invoke('db-get-stock-quotes', symbols),
     getFundQuotes: (codes: string[]) => ipcRenderer.invoke('db-get-fund-quotes', codes),
+    
+    //搜索
+    searchStocks: (keyword: string) => ipcRenderer.invoke('stock-search', keyword),
   } as DatabaseAPI,
   platform: process.platform,
 })

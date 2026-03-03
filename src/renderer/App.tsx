@@ -8,7 +8,10 @@ import {
   FundView,
   MoveModal,
   AddStockModal,
+  SearchStockModal,
 } from "./components";
+import { Button } from "./ui";
+import { Search } from "lucide-react";
 
 const App: React.FC = () => {
   const {
@@ -59,6 +62,7 @@ const App: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null);
+  const [searchStockModalOpen, setSearchStockModalOpen] = useState(false);
 
   // 初始化应用
   useEffect(() => {
@@ -320,7 +324,11 @@ const App: React.FC = () => {
           }
           onAddToGroup={(groupId) => {
             setAddTargetGroupId(groupId);
-            setAddModalOpen(true);
+            if (activeTab === 'stock') {
+              setSearchStockModalOpen(true);
+            } else {
+              setAddModalOpen(true);
+            }
           }}
         />
 
@@ -352,24 +360,22 @@ const App: React.FC = () => {
 
                 {/* 添加股票表单：当分组为空时显示 */}
                 {!(selectedStockGroup && visibleStocks.length > 0) && (
-                  <StockForm
-                    darkMode={darkMode}
-                    newStock={newStock}
-                    stockGroups={stockGroups}
-                    onStockChange={(updates) => {
-                      setNewStock({ ...newStock, ...updates });
-                      // 清空对应字段的错误
-                      if (formErrors[Object.keys(updates)[0]]) {
-                        setFormErrors({
-                          ...formErrors,
-                          [Object.keys(updates)[0]]: "",
-                        });
-                      }
-                    }}
-                    onAddStock={handleAddStock}
-                    isAdding={isAddingStock}
-                    errors={formErrors}
-                  />
+                  <div className="p-4 rounded-xl border">
+                    <h3 className="text-sm font-semibold mb-4 flex items-center space-x-2">
+                      <Search className="w-4 h-4 text-blue-500" />
+                      <span>搜索并添加股票</span>
+                    </h3>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setAddTargetGroupId(selectedStockGroup || stockGroups[0]?.id || null);
+                        setSearchStockModalOpen(true);
+                      }}
+                      leftIcon={<Search className="w-3.5 h-3.5" />}
+                    >
+                      搜索添加股票
+                    </Button>
+                  </div>
                 )}
 
                 {/* 股票列表 */}
@@ -410,54 +416,68 @@ const App: React.FC = () => {
         title={`移动到${activeTab === "stock" ? "股票" : "基金"}分组`}
       />
 
-      {/* 添加持仓模态框 */}
-      <AddStockModal
-        darkMode={darkMode}
-        isOpen={addModalOpen}
-        onClose={() => {
-          setAddModalOpen(false);
-          setAddTargetGroupId(null);
-        }}
-        type={activeTab}
-        group={(activeTab === "stock" ? stockGroups : fundGroups).find(
-          (g) => g.id === addTargetGroupId,
-        )}
-        isSubmitting={activeTab === "stock" ? isAddingStock : isAddingFund}
-        onSubmit={async ({ code, name, buyPrice, quantity }) => {
-          if (!addTargetGroupId) return;
-          if (activeTab === "stock") {
-            setIsAddingStock(true);
+      {/* 添加股票模态框 */}
+      {activeTab === 'stock' && (
+        <SearchStockModal
+          darkMode={darkMode}
+          isOpen={searchStockModalOpen}
+          onClose={() => {
+            setSearchStockModalOpen(false)
+            setAddTargetGroupId(null)
+          }}
+          group={stockGroups.find(g => g.id === addTargetGroupId)}
+          isSubmitting={isAddingStock}
+          onSubmit={async ({ code, name, buyPrice, quantity, groupId }) => {
+            if (!groupId) return
+            setIsAddingStock(true)
             try {
               await addStock({
                 symbol: code,
                 name,
-                groupId: addTargetGroupId,
+                groupId: groupId,
                 costPrice: buyPrice || 0,
-                quantity: quantity || 0,
-              });
-              setAddModalOpen(false);
-              setAddTargetGroupId(null);
+                quantity: quantity || 0
+              })
+              setSearchStockModalOpen(false)
+              setAddTargetGroupId(null)
             } finally {
-              setIsAddingStock(false);
+              setIsAddingStock(false)
             }
-          } else {
-            setIsAddingFund(true);
+          }}
+        />
+      )}
+
+      {/* 添加基金模态框 */}
+      {activeTab === 'fund' && (
+        <AddStockModal
+          darkMode={darkMode}
+          isOpen={addModalOpen}
+          onClose={() => {
+            setAddModalOpen(false)
+            setAddTargetGroupId(null)
+          }}
+          type={activeTab}
+          group={fundGroups.find(g => g.id === addTargetGroupId)}
+          isSubmitting={isAddingFund}
+          onSubmit={async ({ code, name, buyPrice, quantity }) => {
+            if (!addTargetGroupId) return
+            setIsAddingFund(true)
             try {
               await addFund({
                 code: code,
                 name,
                 groupId: addTargetGroupId,
                 costNav: buyPrice || 0,
-                shares: quantity || 0,
-              });
-              setAddModalOpen(false);
-              setAddTargetGroupId(null);
+                shares: quantity || 0
+              })
+              setAddModalOpen(false)
+              setAddTargetGroupId(null)
             } finally {
-              setIsAddingFund(false);
+              setIsAddingFund(false)
             }
-          }
-        }}
-      />
+          }}
+        />
+      )}
     </div>
   );
 };

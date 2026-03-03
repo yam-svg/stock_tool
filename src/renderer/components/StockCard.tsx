@@ -1,28 +1,12 @@
 import React from "react";
 import { Trash2, MoreVertical, FolderInput } from "lucide-react";
-
-interface Stock {
-  id: string;
-  symbol: string;
-  name: string;
-  costPrice: number;
-  quantity: number;
-}
-
-interface StockQuote {
-  price?: number;
-}
-
-interface Group {
-  id: string;
-  name: string;
-}
+import { Stock, StockQuote, StockGroup } from "../../shared/types";
 
 interface StockCardProps {
   darkMode: boolean;
   stock: Stock;
   quote?: StockQuote;
-  groups: Group[];
+  groups: StockGroup[];
   onDelete: (id: string) => void;
   onMove: (stockId: string, groupId: string) => void;
 }
@@ -210,6 +194,26 @@ export const StockCard: React.FC<StockCardProps> = ({
             }`}
           >
             {profitRate ? profitRate.toFixed(2) + "%" : "-"}
+          </div>
+        </div>
+        <div>
+          <div className="text-gray-500">涨跌额</div>
+          <div
+            className={`font-bold ${
+              (quote?.change || 0) >= 0 ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {quote?.change ? "¥" + quote.change.toFixed(2) : "-"}
+          </div>
+        </div>
+        <div>
+          <div className="text-gray-500">涨跌幅</div>
+          <div
+            className={`font-bold ${
+              (quote?.changePercent || 0) >= 0 ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {quote?.changePercent ? quote.changePercent.toFixed(2) + "%" : "-"}
           </div>
         </div>
       </div>

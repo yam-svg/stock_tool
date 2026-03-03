@@ -120,9 +120,16 @@ export const useStore = create<StoreState>()(
           }
 
           // 初始默认选择第一个分组
+          const initialSelectedStockGroup = localStorage.getItem('selectedStockGroup')
+          const initialSelectedFundGroup = localStorage.getItem('selectedFundGroup')
+
           set({
-            selectedStockGroup: stockGroups[0]?.id || null,
-            selectedFundGroup: fundGroups[0]?.id || null
+            selectedStockGroup: stockGroups.some(g => g.id === initialSelectedStockGroup)
+              ? initialSelectedStockGroup
+              : stockGroups[0]?.id || null,
+            selectedFundGroup: fundGroups.some(g => g.id === initialSelectedFundGroup)
+              ? initialSelectedFundGroup
+              : fundGroups[0]?.id || null
           })
           
           // 加载行情数据
@@ -363,6 +370,9 @@ export const useStore = create<StoreState>()(
           const quoteMap: Record<string, StockQuote> = {}
           quotes.forEach((quote: StockQuote) => {
             quoteMap[quote.symbol] = quote
+            // 也通过去除前缀后的代码作为 key，以兼容旧数据或无前缀请求
+            const shortSymbol = quote.symbol.replace(/^(sh|sz|hk|us)/i, '')
+            quoteMap[shortSymbol] = quote
           })
           
           set({ stockQuotes: quoteMap })
