@@ -43,24 +43,30 @@ class FundService {
         })
       } catch (error) {
         console.error('获取基金数据失败:', error)
-        // 返回缓存数据或默认数据
-        uncachedCodes.forEach(code => {
-          const cached = this.cache.get(code)
-          if (cached) {
-            results.push(cached.data)
-          } else {
-            results.push({
-              code,
-              name: `基金${code}`,
-              nav: 0,
-              change: 0,
-              changePercent: 0,
-              date: new Date().toISOString().split('T')[0]
-            })
-          }
-        })
       }
     }
+
+    // 确保每个请求的 code 至少有一条行情（避免接口返回空字符串的情况）
+    const existingCodes = new Set(results.map(q => q.code))
+    codes.forEach(code => {
+      if (!existingCodes.has(code)) {
+        const cached = this.cache.get(code)
+        if (cached && (now - cached.timestamp) < this.cacheTimeout) {
+          results.push(cached.data)
+        } else {
+          const fallback: FundQuote = {
+            code,
+            name: `基金${code}`,
+            nav: 0,
+            change: 0,
+            changePercent: 0,
+            date: new Date().toISOString().split('T')[0]
+          }
+          this.cache.set(code, { data: fallback, timestamp: now })
+          results.push(fallback)
+        }
+      }
+    })
 
     return results
   }

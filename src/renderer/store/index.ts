@@ -412,6 +412,7 @@ export const useStore = create<StoreState>()(
           if (codes.length === 0) return
           
           const quotes = await FundService.getFundQuotes(codes)
+          console.log(quotes)
           const quoteMap: Record<string, FundQuote> = {}
           quotes.forEach((quote: FundQuote) => {
             quoteMap[quote.code] = quote

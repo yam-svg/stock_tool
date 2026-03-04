@@ -48,6 +48,10 @@ export interface Fund {
   costNav: number
   shares: number
   createdAt: number
+  // 下面字段来自基金搜索结果中的基础信息，仅在当前会话中使用，不一定持久化
+  fundType?: string        // 基金类型，如 混合型、债券型 等
+  company?: string         // 基金公司
+  manager?: string         // 基金经理
 }
 
 //基金行情数据接口

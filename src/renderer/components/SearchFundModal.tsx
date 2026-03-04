@@ -9,7 +9,16 @@ interface SearchFundModalProps {
   isOpen: boolean
   onClose: () => void
   group?: FundGroup
-  onSubmit: (data: { code: string; name: string; buyPrice: number; quantity: number; groupId: string }) => void
+  onSubmit: (data: {
+    code: string
+    name: string
+    buyPrice: number
+    quantity: number
+    groupId: string
+    fundType?: string
+    company?: string
+    manager?: string
+  }) => void
   isSubmitting?: boolean
 }
 
@@ -74,12 +83,16 @@ export const SearchFundModal: React.FC<SearchFundModalProps> = ({
     if (Object.keys(newErrors).length > 0) return
 
     if (selectedFund && group) {
+      const base = selectedFund.FundBaseInfo
       onSubmit({
         code: selectedFund.code,
         name: selectedFund.name,
         buyPrice,
         quantity,
-        groupId: group.id
+        groupId: group.id,
+        fundType: base?.FUNDTYPE,
+        company: base?.JJGS,
+        manager: base?.JJJL,
       })
     }
   }

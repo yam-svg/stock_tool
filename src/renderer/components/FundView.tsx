@@ -34,7 +34,7 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
           <h3 className="text-lg font-medium mb-2">暂无基金持仓</h3>
           <p className={`text-sm ${
             darkMode ? 'text-gray-400' : 'text-gray-600'
-          }`}>点击上方表单或左侧分组添加您的第一支基金</p>
+          }`}>请先在左侧创建并选择一个基金分组，然后通过“搜索并添加基金”功能添加您的第一支基金，买入净值为持仓成本价，数量为持有份额。</p>
         </div>
       </div>
     )

@@ -196,7 +196,7 @@ ipcMain.handle('db-create-stock', async (_event, stock: any) => {
 
 ipcMain.handle('db-get-stocks', async (_event, groupId?: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   let stmt
   if (groupId) {
     stmt = db.prepare('SELECT id, symbol, name, group_id AS groupId, cost_price AS costPrice, quantity, created_at AS createdAt FROM stocks WHERE group_id = ? ORDER BY created_at')
@@ -233,22 +233,22 @@ ipcMain.handle('db-delete-stock', async (_event, id: string) => {
 //基操作IPC handlers
 ipcMain.handle('db-create-fund', async (_event, fund: any) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const id = generateId()
   const createdAt = Date.now()
-  
+
   const stmt = db.prepare(`
     INSERT INTO funds (id, code, name, group_id, cost_nav, shares, created_at) 
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `)
   stmt.run(id, fund.code, fund.name, fund.groupId, fund.costNav, fund.shares, createdAt)
-  
+
   return { id, ...fund, createdAt }
 })
 
 ipcMain.handle('db-get-funds', async (_event, groupId?: string) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   let stmt
   if (groupId) {
     stmt = db.prepare('SELECT id, code, name, group_id AS groupId, cost_nav AS costNav, shares, created_at AS createdAt FROM funds WHERE group_id = ? ORDER BY created_at')
@@ -261,16 +261,16 @@ ipcMain.handle('db-get-funds', async (_event, groupId?: string) => {
 
 ipcMain.handle('db-update-fund', async (_event, id: string, updates: any) => {
   if (!db) throw new Error('Database not initialized')
-  
+
   const updateFields = Object.keys(updates).map(key => {
     if (key === 'groupId') return 'group_id = ?'
     if (key === 'costNav') return 'cost_nav = ?'
     return `${key} = ?`
   }).join(', ')
-  
+
   const values = Object.keys(updates).map(key => updates[key])
   values.push(id)
-  
+
   const stmt = db.prepare(`UPDATE funds SET ${updateFields} WHERE id = ?`)
   stmt.run(...values)
 })
@@ -285,7 +285,7 @@ ipcMain.handle('db-delete-fund', async (_event, id: string) => {
 //行情数据IPC handlers
 ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
   if (symbols.length === 0) return []
-  
+
   try {
     const fullSymbols = symbols.map(s => {
       // 如果已经有前缀则保持原样
@@ -297,7 +297,7 @@ ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
       }
       return s.toLowerCase()
     })
-    
+
     const q = fullSymbols.join(',')
     const response = await axios.get(`http://hq.sinajs.cn/list=${q}`, {
       headers: {
@@ -305,11 +305,11 @@ ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
       },
       responseType: 'arraybuffer'
     })
-    
+
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
     const lines = text.split('\n').filter(line => line.trim())
-    
+
     return lines.map(line => {
       // var hq_str_sh600519="贵州茅台,1710.00,1711.00,1710.00,1715.00,1700.00,1710.00,1710.05,..."
       const match = line.match(/var hq_str_([^=]+)="([^"]+)"/)
@@ -318,14 +318,14 @@ ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
       const symbol = match[1]
       const data = match[2].split(',')
       if (data.length < 4) return null;
-      
+
       const name = data[0]
       const preClose = parseFloat(data[2])
       const price = parseFloat(data[3])
-      
+
       const change = price !== 0 ? price - preClose : 0
       const changePercent = preClose !== 0 ? (change / preClose) * 100 : 0
-      
+
       return {
         symbol,
         name,
@@ -343,50 +343,99 @@ ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
 
 ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
   if (codes.length === 0) return []
-  
-  try {
-    // 新浪场外基金前缀为 fund_
-    const q = codes.map(c => `fund_${c}`).join(',')
-    const response = await axios.get(`http://hq.sinajs.cn/list=${q}`, {
-      headers: {
-        'Referer': 'http://finance.sina.com.cn'
-      },
-      responseType: 'arraybuffer'
-    })
-    
-    const decoder = new TextDecoder('gbk')
-    const text = decoder.decode(response.data)
-    const lines = text.split('\n').filter(line => line.trim())
-    
-    return lines.map(line => {
-      // var hq_str_fund_000001="华夏成长混合,1.2356,1.2356,1.2356,2024-01-01,..."
-      const match = line.match(/var hq_str_fund_([^=]+)="([^"]+)"/)
-      if (!match) return null
 
-      const code = match[1]
-      const data = match[2].split(',')
-      if (data.length < 4) return null;
-      
-      const name = data[0]
-      const nav = parseFloat(data[1]) // 当前净值
-      const preNav = parseFloat(data[2]) // 昨日净值
-      
-      const change = nav !== 0 ? nav - preNav : 0
-      const changePercent = preNav !== 0 ? (change / preNav) * 100 : 0
-      
-      return {
-        code,
-        name,
-        nav: nav || preNav || 0,
-        change,
-        changePercent,
-        date: data[4]
+  const uniqueCodes = Array.from(new Set(codes))
+  const results: Record<string, any> = {}
+
+  // 1. 优先使用东方财富 fundgz 接口
+  await Promise.all(
+    uniqueCodes.map(async (code) => {
+      try {
+        const resp = await axios.get(`https://fundgz.1234567.com.cn/js/${code}.js`, {
+          timeout: 5000
+        })
+        const text: string = typeof resp.data === 'string' ? resp.data : resp.data.toString()
+        const match = text.match(/jsonpgz\((.*)\);?/)
+        if (!match) return
+
+        const json = JSON.parse(match[1])
+        const fundCode = json.fundcode || code
+        const name = json.name as string
+        const dwjz = parseFloat(json.dwjz) || 0 // 单位净值（昨日净值）
+        const gsz = parseFloat(json.gsz) || dwjz // 估算净值
+        const nav = gsz || dwjz
+        const preNav = dwjz
+        const change = nav !== 0 && preNav !== 0 ? nav - preNav : 0
+        const changePercent = preNav !== 0 ? (change / preNav) * 100 : 0
+        const date = (json.jzrq as string) || (json.gztime as string) || ''
+
+        results[fundCode] = {
+          code: fundCode,
+          name,
+          nav,
+          change,
+          changePercent,
+          date
+        }
+      } catch (error) {
+        console.error('EastMoney fundgz fetch failed for', code, error)
       }
-    }).filter(quote => quote !== null)
-  } catch (error) {
-    console.error('Main process fetch fund quotes failed:', error)
-    return []
+    })
+  )
+
+  // 2. 剩余的代码回退到新浪接口
+  const remainingCodes = uniqueCodes.filter(code => !results[code])
+
+  if (remainingCodes.length > 0) {
+    try {
+      const q = remainingCodes.map(c => `fund_${c}`).join(',')
+      const response = await axios.get(`http://hq.sinajs.cn/list=${q}`, {
+        headers: {
+          'Referer': 'http://finance.sina.com.cn'
+        },
+        responseType: 'arraybuffer'
+      })
+
+      const decoder = new TextDecoder('gbk')
+      const text = decoder.decode(response.data)
+      const lines = text.split('\n').filter(line => line.trim())
+
+      lines.forEach(line => {
+        const match = line.match(/var hq_str_fund_([^=]+)="([^"]*)"/)
+        if (!match) return
+
+        const code = match[1]
+        const raw = match[2]
+        if (!raw) return
+
+        const data = raw.split(',')
+        if (data.length < 4) return
+
+        const name = data[0]
+        const nav = parseFloat(data[1]) // 当前净值
+        const preNav = parseFloat(data[2]) // 昨日净值
+
+        const change = nav !== 0 ? nav - preNav : 0
+        const changePercent = preNav !== 0 ? (change / preNav) * 100 : 0
+
+        results[code] = {
+          code,
+          name,
+          nav: nav || preNav || 0,
+          change,
+          changePercent,
+          date: data[4]
+        }
+      })
+    } catch (error) {
+      console.error('Main process fetch fund quotes from Sina failed:', error)
+    }
   }
+
+  // 3. 按请求顺序返回已有结果
+  return uniqueCodes
+    .map(code => results[code])
+    .filter(quote => !!quote)
 })
 
 ipcMain.handle('fund-search', async (_event, keyword: string) => {
@@ -416,15 +465,15 @@ ipcMain.handle('fund-search', async (_event, keyword: string) => {
 
 ipcMain.handle('stock-search', async (_event, keyword: string) => {
   if (!keyword.trim()) return []
-  
+
   try {
     const response = await axios.get(`https://suggest3.sinajs.cn/suggest/key=${encodeURIComponent(keyword)}`, {
       responseType: 'arraybuffer'
     })
-    
+
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
-    
+
     // var suggestdata_1710000000000 = "贵州茅台,11,600519,sh600519,贵州茅台,,贵州茅台,99;..."
     const match = text.match(/"([^"]+)"/)
     if (!match) return []

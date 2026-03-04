@@ -441,12 +441,18 @@ const App: React.FC = () => {
             buyPrice,
             quantity,
             groupId,
+            fundType,
+            company,
+            manager,
           }: {
             code: string
             name: string
             buyPrice: number
             quantity: number
             groupId: string
+            fundType?: string
+            company?: string
+            manager?: string
           }) => {
             if (!groupId) return
             setIsAddingFund(true)
@@ -456,7 +462,10 @@ const App: React.FC = () => {
                 name,
                 groupId,
                 costNav: buyPrice || 0,
-                shares: quantity || 0
+                shares: quantity || 0,
+                fundType,
+                company,
+                manager,
               })
               setSearchFundModalOpen(false)
               setAddTargetGroupId(null)

@@ -68,6 +68,7 @@ export const FundCard: React.FC<FundCardProps> = ({
   const currentNav = quote?.nav || 0
   const profit = currentNav * fund.shares - fund.costNav * fund.shares
   const profitRate = fund.costNav !== 0 ? ((currentNav - fund.costNav) / fund.costNav) * 100 : 0
+  const previousNav = currentNav ? currentNav - (quote?.change || 0) : 0
 
   return (
     <div 
@@ -91,7 +92,16 @@ export const FundCard: React.FC<FundCardProps> = ({
           }`}></div>
           <div>
             <h3 className="font-semibold">{fund.name}</h3>
-            <p className="text-sm text-gray-500">{fund.code}</p>
+            <p className="text-sm text-gray-500">
+              {fund.code}
+              {fund.fundType && ` · ${fund.fundType}`}
+            </p>
+            {fund.company && (
+              <p className="text-xs text-gray-500 mt-0.5">
+                {fund.company}
+                {fund.manager && ` · 经理：${fund.manager}`}
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center space-x-3">
@@ -230,6 +240,22 @@ export const FundCard: React.FC<FundCardProps> = ({
             }`}
           >
             {profitRate ? profitRate.toFixed(2) + '%' : '-'}
+          </div>
+        </div>
+        <div>
+          <div className="text-gray-500">昨日净值</div>
+          <div className="font-medium">
+            {previousNav ? previousNav.toFixed(4) : '-'}
+          </div>
+        </div>
+        <div>
+          <div className="text-gray-500">当日涨跌幅</div>
+          <div
+            className={`font-bold ${
+              (quote?.changePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'
+            }`}
+          >
+            {quote?.changePercent ? quote.changePercent.toFixed(2) + '%' : '-'}
           </div>
         </div>
       </div>
