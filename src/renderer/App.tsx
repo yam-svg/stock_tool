@@ -194,7 +194,7 @@ const App: React.FC = () => {
 
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [sidebarCollapsed, toggleSidebar])
+  }, [toggleSidebar])
   
   return (
     <div
@@ -222,7 +222,9 @@ const App: React.FC = () => {
         {/* 侧边栏切换按钮 - 展开按钮 */}
         {sidebarCollapsed && (
           <button
-            onClick={() => toggleSidebar()}
+            onClick={() => {
+              toggleSidebar()
+            }}
             className={`fixed left-0 top-12 z-50 p-2 rounded-r-lg transition-all duration-300 shadow-lg pointer-events-auto ${
               darkMode
                 ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
