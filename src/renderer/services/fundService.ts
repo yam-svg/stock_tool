@@ -1,4 +1,4 @@
-import { FundQuote } from '../../shared/types'
+import { FundQuote, FundSearchResult } from '../../shared/types'
 
 //基金服务类
 class FundService {
@@ -63,6 +63,12 @@ class FundService {
     }
 
     return results
+  }
+
+  // 搜索基金（调用主进程接口）
+  async searchFunds(keyword: string): Promise<FundSearchResult[]> {
+    if (!keyword.trim()) return []
+    return window.electronAPI.db.searchFunds(keyword)
   }
 
   //清理过期缓存

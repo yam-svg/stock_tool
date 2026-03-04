@@ -3,13 +3,12 @@ import { useStore } from "./store";
 import {
   Header,
   Sidebar,
-  StockForm,
   StockCard,
   FundView,
   MoveModal,
-  AddStockModal,
   SearchStockModal,
   EditModal,
+  SearchFundModal,
 } from "./components";
 import { Button } from "./ui";
 import { Search } from "lucide-react";
@@ -39,7 +38,6 @@ const App: React.FC = () => {
     updateStock,
     updateFund,
     deleteStock,
-    deleteFund,
     moveStockToGroup,
     moveFundToGroup,
     selectedStockGroup,
@@ -55,9 +53,9 @@ const App: React.FC = () => {
   const [moveItemId, setMoveItemId] = useState<string | null>(null);
   const [isAddingStock, setIsAddingStock] = useState(false);
   const [isAddingFund, setIsAddingFund] = useState(false);
-  const [addModalOpen, setAddModalOpen] = useState(false);
   const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null);
   const [searchStockModalOpen, setSearchStockModalOpen] = useState(false);
+  const [searchFundModalOpen, setSearchFundModalOpen] = useState(false);
 
   // 编辑状态
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -288,7 +286,7 @@ const App: React.FC = () => {
             if (activeTab === 'stock') {
               setSearchStockModalOpen(true);
             } else {
-              setAddModalOpen(true);
+              setSearchFundModalOpen(true);
             }
           }}
         />
@@ -428,28 +426,39 @@ const App: React.FC = () => {
 
       {/* 添加基金模态框 */}
       {activeTab === 'fund' && (
-        <AddStockModal
+        <SearchFundModal
           darkMode={darkMode}
-          isOpen={addModalOpen}
+          isOpen={searchFundModalOpen}
           onClose={() => {
-            setAddModalOpen(false)
+            setSearchFundModalOpen(false)
             setAddTargetGroupId(null)
           }}
-          type={activeTab}
           group={fundGroups.find(g => g.id === addTargetGroupId)}
           isSubmitting={isAddingFund}
-          onSubmit={async ({ code, name, buyPrice, quantity }) => {
-            if (!addTargetGroupId) return
+          onSubmit={async ({
+            code,
+            name,
+            buyPrice,
+            quantity,
+            groupId,
+          }: {
+            code: string
+            name: string
+            buyPrice: number
+            quantity: number
+            groupId: string
+          }) => {
+            if (!groupId) return
             setIsAddingFund(true)
             try {
               await addFund({
-                code: code,
+                code,
                 name,
-                groupId: addTargetGroupId,
+                groupId,
                 costNav: buyPrice || 0,
                 shares: quantity || 0
               })
-              setAddModalOpen(false)
+              setSearchFundModalOpen(false)
               setAddTargetGroupId(null)
             } finally {
               setIsAddingFund(false)

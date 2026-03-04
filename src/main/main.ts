@@ -389,6 +389,31 @@ ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
   }
 })
 
+ipcMain.handle('fund-search', async (_event, keyword: string) => {
+  if (!keyword.trim()) return []
+
+  try {
+    const response = await axios.get('https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx', {
+      params: {
+        m: 1,
+        key: keyword
+      }
+    })
+
+    const data = response.data as { Datas?: Array<{ CODE: string; NAME: string }> }
+    const list = data?.Datas || []
+
+    return list.map(item => ({
+      code: item.CODE,
+      name: item.NAME,
+      ...item
+    }))
+  } catch (error) {
+    console.error('Main process fund search failed:', error)
+    return []
+  }
+})
+
 ipcMain.handle('stock-search', async (_event, keyword: string) => {
   if (!keyword.trim()) return []
   

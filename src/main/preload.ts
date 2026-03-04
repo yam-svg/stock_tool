@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     
     //搜索
     searchStocks: (keyword: string) => ipcRenderer.invoke('stock-search', keyword),
+    searchFunds: (keyword: string) => ipcRenderer.invoke('fund-search', keyword),
   } as DatabaseAPI,
   platform: process.platform,
 })

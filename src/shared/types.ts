@@ -60,6 +60,47 @@ export interface FundQuote {
   date: string
 }
 
+// 基金搜索结果接口
+export interface FundSearchResult {
+  code: string
+  name: string
+  _id: string
+  CODE: string
+  NAME: string
+  JP: string
+  CATEGORY: number
+  CATEGORYDESC: string
+  STOCKMARKET: string | null
+  BACKCODE: string
+  MatchCount: number
+
+  FundBaseInfo: FundBaseInfo | null
+  StockHolder: unknown | null
+  ZTJJInfo: unknown[]
+  SEARCHWEIGHT: number
+  NEWTEXCH: string
+}
+
+export interface FundBaseInfo {
+  _id: string
+  FCODE: string
+  SHORTNAME: string
+  JJGSID: string
+  JJGS: string
+  JJJLID: string
+  JJJL: string
+  FUNDTYPE: string
+  ISBUY: string
+  FTYPE: string
+  MINSG: number
+  JJGSBID: number
+  OTHERNAME: string
+  DWJZ: number
+  FSRQ: string
+  RSFUNDTYPE: string
+  NAVURL: string
+}
+
 //持仓收益计算结果接口
 export interface PositionProfit {
   cost: number
@@ -112,6 +153,7 @@ export interface DatabaseAPI {
   
   // 搜索
   searchStocks: (keyword: string) => Promise<StockSearchResult[]>
+  searchFunds: (keyword: string) => Promise<FundSearchResult[]>
 }
 
 // Electron API声明

@@ -1,8 +1,7 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { PieChart } from 'lucide-react'
 import { useStore } from '../store'
 import { FundCard } from './FundCard'
-import { FundForm } from './FundForm'
 
 interface FundViewProps {
   darkMode: boolean;
@@ -17,80 +16,15 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
     selectedFundGroup,
     deleteFund,
     moveFundToGroup,
-    addFund
   } = useStore()
-
-  const [newFund, setNewFund] = useState({
-    code: '',
-    name: '',
-    costNav: 0,
-    shares: 0,
-    groupId: ''
-  })
-  const [isAdding, setIsAdding] = useState(false)
-  const [errors, setErrors] = useState<Record<string, string>>({})
 
   const filteredFunds = selectedFundGroup 
     ? funds.filter(f => f.groupId === selectedFundGroup)
     : []
 
-  const handleAddFund = async () => {
-    const newErrors: Record<string, string> = {}
-    if (!newFund.code.trim()) newErrors.code = '请输入基金代码'
-    if (!newFund.name.trim()) newErrors.name = '请输入基金名称'
-    if (newFund.costNav < 0) newErrors.costNav = '单位成本不能为负数'
-    if (newFund.shares < 0) newErrors.shares = '持有份额不能为负数'
-    
-    setErrors(newErrors)
-    if (Object.keys(newErrors).length > 0) return
-
-    setIsAdding(true)
-    try {
-      let groupId = newFund.groupId || selectedFundGroup
-      if (!groupId && fundGroups.length > 0) {
-        groupId = fundGroups[0].id
-      }
-      
-      if (!groupId) {
-        alert('请先选择或创建一个分组')
-        return
-      }
-
-      await addFund({
-        code: newFund.code.trim(),
-        name: newFund.name.trim(),
-        costNav: newFund.costNav,
-        shares: newFund.shares,
-        groupId: groupId
-      })
-
-      setNewFund({
-        code: '',
-        name: '',
-        costNav: 0,
-        shares: 0,
-        groupId: ''
-      })
-      setErrors({})
-    } catch (error) {
-      console.error('添加基金失败:', error)
-    } finally {
-      setIsAdding(false)
-    }
-  }
-
   if (funds.length === 0) {
     return (
       <div className="space-y-6">
-        <FundForm
-          darkMode={darkMode}
-          newFund={newFund}
-          fundGroups={fundGroups}
-          onFundChange={(updates) => setNewFund({ ...newFund, ...updates })}
-          onAddFund={handleAddFund}
-          isAdding={isAdding}
-          errors={errors}
-        />
         <div className="text-center py-12">
           <div className={`inline-flex p-4 rounded-full mb-4 ${
             darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'

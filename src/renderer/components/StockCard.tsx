@@ -103,7 +103,7 @@ export const StockCard: React.FC<StockCardProps> = ({
         <div className="flex items-center space-x-3">
           <div className="text-right">
             <div className="text-sm text-gray-500">当前价</div>
-            <div className={`font-bold text-lg text-white`}>
+            <div className={`font-bold text-lg text-blue-500`}>
               ¥{currentPrice || "-"}
             </div>
           </div>
