@@ -53,6 +53,7 @@ const App: React.FC = () => {
     toggleSidebar,
   } = useStore()
   
+  console.log(process.env.NODE_ENV)
   const [newGroupName, setNewGroupName] = useState('')
   const [moveModalOpen, setMoveModalOpen] = useState(false)
   const [moveItemId, setMoveItemId] = useState<string | null>(null)

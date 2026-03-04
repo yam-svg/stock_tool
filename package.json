@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "start": "electron .",
     "start:dev": "cross-env NODE_ENV=development electron .",
-    "package": "npm run build && electron-builder",
+    "package": "cross-env NODE_ENV=production npm run build && electron-builder --win",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "build": {
