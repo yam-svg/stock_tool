@@ -285,38 +285,53 @@ ipcMain.handle('db-delete-fund', async (_event, id: string) => {
 //行情数据IPC handlers
 ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
   if (symbols.length === 0) return []
-
+  
   try {
     const fullSymbols = symbols.map(s => {
+      // 如果已经有前缀则保持原样
+      if (/^[a-z]{2}[0-9]+/.test(s)) return s.toLowerCase();
+      // 否则根据数字开头猜测
       if (/^[0-9]{6}$/.test(s)) {
-        if (s.startsWith('6')) return `sh${s}`
-        if (s.startsWith('0') || s.startsWith('3')) return `sz${s}`
+        if (s.startsWith('6') || s.startsWith('5')) return `sh${s}`
+        if (s.startsWith('0') || s.startsWith('3') || s.startsWith('1')) return `sz${s}`
       }
       return s.toLowerCase()
     })
-
+    
     const q = fullSymbols.join(',')
-    const response = await axios.get(`https://qt.gtimg.cn/q=${q}`, {
+    const response = await axios.get(`http://hq.sinajs.cn/list=${q}`, {
+      headers: {
+        'Referer': 'http://finance.sina.com.cn'
+      },
       responseType: 'arraybuffer'
     })
-
+    
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
-    const lines = text.split(';').filter(line => line.trim())
-
+    const lines = text.split('\n').filter(line => line.trim())
+    
     return lines.map(line => {
-      const match = line.match(/v_([^=]+)="([^"]+)"/)
+      // var hq_str_sh600519="贵州茅台,1710.00,1711.00,1710.00,1715.00,1700.00,1710.00,1710.05,..."
+      const match = line.match(/var hq_str_([^=]+)="([^"]+)"/)
       if (!match) return null
 
       const symbol = match[1]
-      const data = match[2].split('~')
-
+      const data = match[2].split(',')
+      if (data.length < 4) return null;
+      
+      const name = data[0]
+      const preClose = parseFloat(data[2])
+      const price = parseFloat(data[3])
+      
+      const change = price !== 0 ? price - preClose : 0
+      const changePercent = preClose !== 0 ? (change / preClose) * 100 : 0
+      
       return {
         symbol,
-        name: data[1],
-        price: parseFloat(data[3]) || 0,
-        change: parseFloat(data[31]) || 0,
-        changePercent: parseFloat(data[32]) || 0,
+        name,
+        price: price || preClose || 0,
+        change,
+        changePercent,
         updateTime: Date.now()
       }
     }).filter(quote => quote !== null)
@@ -328,31 +343,44 @@ ipcMain.handle('db-get-stock-quotes', async (_event, symbols: string[]) => {
 
 ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
   if (codes.length === 0) return []
-
+  
   try {
-    const q = codes.map(c => `f_${c}`).join(',')
-    const response = await axios.get(`https://qt.gtimg.cn/q=${q}`, {
+    // 新浪场外基金前缀为 fund_
+    const q = codes.map(c => `fund_${c}`).join(',')
+    const response = await axios.get(`http://hq.sinajs.cn/list=${q}`, {
+      headers: {
+        'Referer': 'http://finance.sina.com.cn'
+      },
       responseType: 'arraybuffer'
     })
-
+    
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
-    const lines = text.split(';').filter(line => line.trim())
-
+    const lines = text.split('\n').filter(line => line.trim())
+    
     return lines.map(line => {
-      const match = line.match(/v_([^=]+)="([^"]+)"/)
+      // var hq_str_fund_000001="华夏成长混合,1.2356,1.2356,1.2356,2024-01-01,..."
+      const match = line.match(/var hq_str_fund_([^=]+)="([^"]+)"/)
       if (!match) return null
 
-      const code = match[1].replace('f_', '')
-      const data = match[2].split('~')
-
+      const code = match[1]
+      const data = match[2].split(',')
+      if (data.length < 4) return null;
+      
+      const name = data[0]
+      const nav = parseFloat(data[1]) // 当前净值
+      const preNav = parseFloat(data[2]) // 昨日净值
+      
+      const change = nav !== 0 ? nav - preNav : 0
+      const changePercent = preNav !== 0 ? (change / preNav) * 100 : 0
+      
       return {
         code,
-        name: data[1],
-        nav: parseFloat(data[3]) || 0,
-        change: parseFloat(data[31]) || 0,
-        changePercent: parseFloat(data[32]) || 0,
-        date: data[30]
+        name,
+        nav: nav || preNav || 0,
+        change,
+        changePercent,
+        date: data[4]
       }
     }).filter(quote => quote !== null)
   } catch (error) {
@@ -363,32 +391,28 @@ ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
 
 ipcMain.handle('stock-search', async (_event, keyword: string) => {
   if (!keyword.trim()) return []
-
+  
   try {
-    const response = await axios.get(`https://smartbox.gtimg.cn/s3/?v=2&q=${encodeURIComponent(keyword)}&t=all`, {
+    const response = await axios.get(`https://suggest3.sinajs.cn/suggest/key=${encodeURIComponent(keyword)}`, {
       responseType: 'arraybuffer'
     })
-
+    
     const decoder = new TextDecoder('gbk')
     const text = decoder.decode(response.data)
-    const match = text.match(/v_hint="([^"]+)"/)
+    
+    // var suggestdata_1710000000000 = "贵州茅台,11,600519,sh600519,贵州茅台,,贵州茅台,99;..."
+    const match = text.match(/"([^"]+)"/)
     if (!match) return []
 
-    const clean = text
-      .replace(/^v_hint="/, '')
-      .replace(/"$/, '')
-
-    return clean.split('^').map(item => {
-      const [market, code, name, pinyin, type] = item.split('~')
-
+    const items = match[1].split(';')
+    return items.map(item => {
+      const parts = item.split(',')
+      // parts[0]: name, parts[2]: code, parts[3]: fullSymbol
       return {
-        market: marketMap[market.toUpperCase() as keyof typeof marketMap],
-        symbol: code,
-        name: decodeUnicode(name),
-        pinyin,
-        type
+        symbol: parts[3] || parts[2],
+        name: parts[0]
       }
-    })
+    }).filter(item => item.symbol && item.name)
   } catch (error) {
     console.error('Main process stock search failed:', error)
     return []

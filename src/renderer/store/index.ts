@@ -392,7 +392,6 @@ export const useStore = create<StoreState>()(
         try {
           const symbols = [...new Set(get().stocks.map(s => s.symbol))]
           if (symbols.length === 0) return
-          
           const quotes = await StockService.getStockQuotes(symbols)
           const quoteMap: Record<string, StockQuote> = {}
           quotes.forEach((quote: StockQuote) => {
