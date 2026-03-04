@@ -1,6 +1,6 @@
 ﻿import React from "react";
-import { Trash2, Edit2, FolderInput, MoreVertical } from "lucide-react";
 import { Stock, StockQuote, StockGroup } from "../../shared/types";
+import { StockActionMenu } from "./StockActionMenu";
 interface StockListProps {
   darkMode: boolean;
   stocks: Stock[];
@@ -20,10 +20,8 @@ export const StockList: React.FC<StockListProps> = ({
   onMove,
 }) => {
   const [showMenuId, setShowMenuId] = React.useState<string | null>(null);
-  const [showMoveMenuId, setShowMoveMenuId] = React.useState<string | null>(null);
   const [flashColors, setFlashColors] = React.useState<Record<string, "red" | "green">>({});
   const prevPricesRef = React.useRef<Record<string, number>>({});
-  const menuRef = React.useRef<HTMLDivElement>(null);
   // 价格更新闪烁效果
   React.useEffect(() => {
     const newFlashColors: Record<string, "red" | "green"> = {};
@@ -47,26 +45,10 @@ export const StockList: React.FC<StockListProps> = ({
       return () => clearTimeout(timer);
     }
   }, [stocks, quotes]);
-  // 点击外部关闭菜单
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowMenuId(null);
-        setShowMoveMenuId(null);
-      }
-    };
-    if (showMenuId) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showMenuId]);
+
   return (
     <div
-      className={`rounded-lg overflow-hidden border ${
+      className={`rounded-lg border ${
         darkMode ? "border-gray-700/50 bg-gray-800/50" : "border-gray-200/50 bg-white/50"
       } backdrop-blur-sm`}
     >
@@ -88,7 +70,6 @@ export const StockList: React.FC<StockListProps> = ({
         <div className="text-right">涨跌幅</div>
         <div className="text-right">市值</div>
         <div className="text-right">收益</div>
-        <div className="text-center">操作</div>
         <div className="text-center">操作</div>
       </div>
       {/* 表格内容 */}
@@ -168,96 +149,20 @@ export const StockList: React.FC<StockListProps> = ({
                 </div>
               </div>
               <div className="flex justify-center items-center">
-                <div ref={menuRef}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMenuId(showMenuId === stock.id ? null : stock.id);
-                      if (showMenuId !== stock.id) setShowMoveMenuId(null);
-                    }}
-                    className={`p-1.5 rounded-lg transition-colors ${
-                      darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                    }`}
-                  >
-                    <MoreVertical className="w-4 h-4" />
-                  </button>
-                  {showMenuId === stock.id && (
-                    <div
-                      className={`fixed w-40 rounded-lg shadow-lg z-50 overflow-hidden border ${
-                        darkMode
-                          ? "bg-gray-800 border-gray-700"
-                          : "bg-white border-gray-200"
-                      }`}
-                      onClick={(e) => e.stopPropagation()}
-                      ref={menuRef}
-                    >
-                      <button
-                        onClick={() => {
-                          onEdit(stock);
-                          setShowMenuId(null);
-                        }}
-                        className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 ${
-                          darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>编辑</span>
-                      </button>
-                      <div>
-                        <button
-                          onClick={() => setShowMoveMenuId(showMoveMenuId === stock.id ? null : stock.id)}
-                          className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
-                            darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <FolderInput className="w-3.5 h-3.5" />
-                            <span>移动到</span>
-                          </div>
-                        </button>
-                        {showMoveMenuId === stock.id && (
-                          <div
-                            className={`fixed w-40 rounded-lg shadow-lg z-50 overflow-hidden border ${
-                              darkMode
-                                ? "bg-gray-800 border-gray-700"
-                                : "bg-white border-gray-200"
-                            }`}
-                          >
-                            {groups.map((group) => (
-                              <button
-                                key={group.id}
-                                onClick={() => {
-                                  onMove(stock.id, group.id);
-                                  setShowMenuId(null);
-                                  setShowMoveMenuId(null);
-                                }}
-                                className={`w-full px-3 py-2 text-sm text-left ${
-                                  darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                                }`}
-                              >
-                                {group.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (confirm(`确定要删除${stock.name}吗？`)) {
-                            onDelete(stock.id);
-                            setShowMenuId(null);
-                          }
-                        }}
-                        className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 text-red-500 ${
-                          darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                        }`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>删除</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <StockActionMenu
+                  darkMode={darkMode}
+                  stock={stock}
+                  groups={groups}
+                  isOpen={showMenuId === stock.id}
+                  onToggle={(e) => {
+                    e.stopPropagation?.();
+                    setShowMenuId(showMenuId === stock.id ? null : stock.id);
+                  }}
+                  onEdit={onEdit}
+                  onMove={onMove}
+                  onDelete={onDelete}
+                  menuPosition="absolute"
+                />
               </div>
             </div>
           );
