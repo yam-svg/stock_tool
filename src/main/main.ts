@@ -493,10 +493,6 @@ ipcMain.handle('stock-search', async (_event, keyword: string) => {
   }
 })
 
-function decodeUnicode(str: string) {
-  return JSON.parse('"' + str.replace(/"/g, '\\"') + '"')
-}
-
 export const marketMap = {
   US: '美国',
   CN: '中国',

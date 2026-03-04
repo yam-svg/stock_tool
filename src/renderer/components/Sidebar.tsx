@@ -1,5 +1,5 @@
 import React from 'react'
-import { FolderPlus, Plus } from 'lucide-react'
+import { FolderPlus, Plus, ChevronLeft } from 'lucide-react'
 import { GroupItem } from './GroupItem'
 
 interface Group {
@@ -31,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   groups,
   newGroupName,
   collapsed,
+  onToggleCollapse,
   onGroupSelect,
   onGroupCreate,
   onGroupNameChange,
@@ -48,10 +49,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
         : 'bg-white/50 border-gray-200/50'
     } border-r backdrop-blur-sm`}>
       <div className="w-64 sticky top-16 h-[calc(100vh-4rem)] flex flex-col p-4">
-        {/* 标题 */}
-        <div className="flex items-center space-x-2 mb-4">
-          <FolderPlus className="w-4 h-4 text-blue-500" />
-          <h2 className="text-sm font-semibold">分组管理</h2>
+        {/* 头部：标题和收起按钮 */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <FolderPlus className="w-4 h-4 text-blue-500" />
+            <h2 className="text-sm font-semibold">分组管理</h2>
+          </div>
+          {!collapsed && onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              className={`p-1 rounded transition-colors ${
+                darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
+              title="收起侧边栏"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
         </div>
         
         {/* 创建分组输入框 */}
@@ -108,3 +122,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </div>
   )
 }
+

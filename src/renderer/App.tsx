@@ -218,16 +218,16 @@ const App: React.FC = () => {
       />
       
       {/* 主内容区域 */}
-      <div className="flex relative">
-        {/* 侧边栏切换按钮 - 位置优化 */}
+      <div className="flex relative w-full">
+        {/* 侧边栏切换按钮 - 展开按钮 */}
         {sidebarCollapsed && (
           <button
-            onClick={toggleSidebar}
-            className={`fixed left-0 top-20 z-40 p-2 rounded-r-lg transition-all duration-300 shadow-lg ${
+            onClick={() => toggleSidebar()}
+            className={`fixed left-0 top-12 z-50 p-2 rounded-r-lg transition-all duration-300 shadow-lg pointer-events-auto ${
               darkMode
                 ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
                 : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200'
-            } border border-l-0`}
+            } border border-l-0 hover:shadow-xl`}
             title="展开侧边栏"
           >
             <Menu className="w-4 h-4" />
@@ -332,8 +332,8 @@ const App: React.FC = () => {
         />
         
         {/*右内容区域 */}
-        <div className="flex-1 p-4 overflow-auto">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-1 p-4 overflow-auto w-full">
+          <div className="w-full">
             {activeTab === 'stock' ? (
               <div className="space-y-6">
                 {/* 股票列表标题 */}
