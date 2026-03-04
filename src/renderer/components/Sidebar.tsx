@@ -12,6 +12,8 @@ interface SidebarProps {
   activeTab: 'stock' | 'fund'
   groups: Group[]
   newGroupName: string
+  collapsed: boolean
+  onToggleCollapse?: () => void
   onGroupSelect: (groupId: string) => void
   onGroupCreate: () => void
   onGroupNameChange: (name: string) => void
@@ -28,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   groups,
   newGroupName,
+  collapsed,
   onGroupSelect,
   onGroupCreate,
   onGroupNameChange,
@@ -39,12 +42,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onAddToGroup
 }) => {
   return (
-    <div className={`w-64 ${
-      darkMode 
+    <div className={`${collapsed ? 'w-0' : 'w-64'} transition-all duration-300 overflow-hidden ${
+      darkMode
         ? 'bg-gray-800/50 border-gray-700/50' 
         : 'bg-white/50 border-gray-200/50'
     } border-r backdrop-blur-sm`}>
-      <div className="sticky top-16 h-[calc(100vh-4rem)] flex flex-col p-4">
+      <div className="w-64 sticky top-16 h-[calc(100vh-4rem)] flex flex-col p-4">
         {/* 标题 */}
         <div className="flex items-center space-x-2 mb-4">
           <FolderPlus className="w-4 h-4 text-blue-500" />
@@ -62,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               type="text"
               value={newGroupName}
               onChange={(e) => onGroupNameChange(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && onGroupCreate()}
+              onKeyDown={(e) => e.key === 'Enter' && onGroupCreate()}
               placeholder={`新建${activeTab === 'stock' ? '股票' : '基金'}分组`}
               className={`w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 darkMode 

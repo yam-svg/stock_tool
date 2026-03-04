@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Search } from 'lucide-react'
+import { LayoutGrid, List, Search, Menu } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import {
   EditModal,
@@ -49,6 +49,8 @@ const App: React.FC = () => {
     fundQuotes,
     stockViewMode,
     setStockViewMode,
+    sidebarCollapsed,
+    toggleSidebar,
   } = useStore()
   
   const [newGroupName, setNewGroupName] = useState('')
@@ -175,6 +177,25 @@ const App: React.FC = () => {
     ? stocks.filter((s) => s.groupId === selectedStockGroup)
     : []
   
+  // 响应式处理：监听窗口宽度变化
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth
+      // 当窗口宽度小于 1024px 时自动收起，大于 1280px 时自动展开
+      if (width < 1024 && !sidebarCollapsed) {
+        toggleSidebar()
+      } else if (width >= 1280 && sidebarCollapsed) {
+        toggleSidebar()
+      }
+    }
+
+    // 初始检查
+    handleResize()
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [sidebarCollapsed, toggleSidebar])
+  
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
@@ -197,7 +218,22 @@ const App: React.FC = () => {
       />
       
       {/* 主内容区域 */}
-      <div className="flex">
+      <div className="flex relative">
+        {/* 侧边栏切换按钮 - 位置优化 */}
+        {sidebarCollapsed && (
+          <button
+            onClick={toggleSidebar}
+            className={`fixed left-0 top-20 z-40 p-2 rounded-r-lg transition-all duration-300 shadow-lg ${
+              darkMode
+                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
+                : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200'
+            } border border-l-0`}
+            title="展开侧边栏"
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+        )}
+
         {/* Sidebar 分组管理 */}
         <Sidebar
           darkMode={darkMode}
@@ -291,6 +327,8 @@ const App: React.FC = () => {
               setSearchFundModalOpen(true)
             }
           }}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
         />
         
         {/*右内容区域 */}

@@ -18,6 +18,7 @@ interface StoreState {
   darkMode: boolean
   stockViewMode: 'card' | 'list'
   fundViewMode: 'card' | 'list'
+  sidebarCollapsed: boolean
   
   //刷新配置
   refreshConfig: RefreshConfig
@@ -76,6 +77,8 @@ interface StoreState {
   toggleDarkMode: () => void
   setStockViewMode: (mode: 'card' | 'list') => void
   setFundViewMode: (mode: 'card' | 'list') => void
+  toggleSidebar: () => void
+  setSidebarCollapsed: (collapsed: boolean) => void
   clearError: () => void
 }
 
@@ -112,6 +115,7 @@ export const useStore = create<StoreState>()(
           const savedRefreshConfig = localStorage.getItem('refreshConfig')
           const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
           const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
+          const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
           if (savedRefreshConfig) {
             try {
               const config = JSON.parse(savedRefreshConfig)
@@ -123,7 +127,8 @@ export const useStore = create<StoreState>()(
           set({
             darkMode: savedDarkMode,
             stockViewMode: savedStockViewMode || 'card',
-            fundViewMode: savedFundViewMode || 'card'
+            fundViewMode: savedFundViewMode || 'card',
+            sidebarCollapsed: savedSidebarCollapsed
           })
 
           // 加载分组和持仓数据
@@ -462,6 +467,15 @@ export const useStore = create<StoreState>()(
       setFundViewMode: (mode: 'card' | 'list') => {
         set({ fundViewMode: mode })
         localStorage.setItem('fundViewMode', mode)
+      },
+      toggleSidebar: () => {
+        const newState = !get().sidebarCollapsed
+        set({ sidebarCollapsed: newState })
+        localStorage.setItem('sidebarCollapsed', newState.toString())
+      },
+      setSidebarCollapsed: (collapsed: boolean) => {
+        set({ sidebarCollapsed: collapsed })
+        localStorage.setItem('sidebarCollapsed', collapsed.toString())
       },
       clearError: () => set({ error: null })
     }),
