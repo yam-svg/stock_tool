@@ -6,7 +6,8 @@ import { Tabs } from '../ui'
 interface HeaderProps {
   darkMode: boolean
   activeTab: 'stock' | 'fund'
-  totalProfit?: number
+  stockProfit?: number
+  fundProfit?: number
   refreshConfig: { enabled: boolean }
   setActiveTab: (tab: 'stock' | 'fund') => void
   toggleDarkMode: () => void
@@ -17,7 +18,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   darkMode,
   activeTab,
-  totalProfit,
+  stockProfit,
+  fundProfit,
   refreshConfig,
   setActiveTab,
   toggleDarkMode,
@@ -26,8 +28,8 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className={`${
-      darkMode 
-        ? 'bg-gray-800/80 backdrop-blur-md border-gray-700/50' 
+      darkMode
+        ? 'bg-gray-800/80 backdrop-blur-md border-gray-700/50'
         : 'bg-white/80 backdrop-blur-md border-gray-200/50'
     } border-b sticky top-0 z-50 px-4 py-2 shadow-sm`}>
       <div className="flex items-center justify-between max-w-6xl mx-auto">
@@ -57,18 +59,34 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
-          {/* 收益概览 */}
-          {activeTab === 'stock' && totalProfit !== undefined && (
+          {/* 股票收益概览 */}
+          {stockProfit !== undefined && (
             <div className={`px-3 py-1 rounded-md text-sm ${
               darkMode ? 'bg-gray-800/50' : 'bg-white/50'
             } border ${
               darkMode ? 'border-gray-700' : 'border-gray-200'
             }`}>
-              <div className="font-medium">总收益</div>
+              <div className="font-medium text-xs text-gray-500">股票收益</div>
               <div className={`font-bold text-sm ${
-                totalProfit >= 0 ? 'text-red-500' : 'text-green-500'
+                stockProfit >= 0 ? 'text-red-500' : 'text-green-500'
               }`}>
-                ¥{totalProfit.toFixed(2)}
+                ¥{stockProfit.toFixed(2)}
+              </div>
+            </div>
+          )}
+
+          {/* 基金收益概览 */}
+          {fundProfit !== undefined && (
+            <div className={`px-3 py-1 rounded-md text-sm ${
+              darkMode ? 'bg-gray-800/50' : 'bg-white/50'
+            } border ${
+              darkMode ? 'border-gray-700' : 'border-gray-200'
+            }`}>
+              <div className="font-medium text-xs text-gray-500">基金收益</div>
+              <div className={`font-bold text-sm ${
+                fundProfit >= 0 ? 'text-red-500' : 'text-green-500'
+              }`}>
+                ¥{fundProfit.toFixed(2)}
               </div>
             </div>
           )}
@@ -77,8 +95,8 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={onManualRefresh}
             className={`p-2 rounded-lg transition-all duration-200 ${
-              darkMode 
-                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white' 
+              darkMode
+                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white'
                 : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900'
             } border ${
               darkMode ? 'border-gray-700' : 'border-gray-200'
@@ -110,8 +128,8 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             onClick={toggleDarkMode}
             className={`p-2 rounded-lg transition-all duration-200 ${
-              darkMode 
-                ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400' 
+              darkMode
+                ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
                 : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900'
             } border ${
               darkMode ? 'border-gray-700' : 'border-gray-200'
@@ -125,3 +143,4 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   )
 }
+

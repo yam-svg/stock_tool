@@ -125,6 +125,8 @@ export interface AppState {
   activeTab: 'stock' | 'fund'
   refreshConfig: RefreshConfig
   darkMode: boolean
+  stockViewMode?: 'card' | 'list'
+  fundViewMode?: 'card' | 'list'
 }
 
 // 数据库API接口

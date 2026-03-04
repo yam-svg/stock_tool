@@ -16,6 +16,8 @@ interface StoreState {
   // UI状态
   activeTab: 'stock' | 'fund'
   darkMode: boolean
+  stockViewMode: 'card' | 'list'
+  fundViewMode: 'card' | 'list'
   
   //刷新配置
   refreshConfig: RefreshConfig
@@ -72,6 +74,8 @@ interface StoreState {
   // UI操作
   setActiveTab: (tab: 'stock' | 'fund') => void
   toggleDarkMode: () => void
+  setStockViewMode: (mode: 'card' | 'list') => void
+  setFundViewMode: (mode: 'card' | 'list') => void
   clearError: () => void
 }
 
@@ -86,6 +90,8 @@ export const useStore = create<StoreState>()(
         enabled: true
       },
       darkMode: false,
+      stockViewMode: 'card',
+      fundViewMode: 'card',
       stockGroups: [],
       fundGroups: [],
       selectedStockGroup: null,
@@ -104,6 +110,8 @@ export const useStore = create<StoreState>()(
           // 加载配置
           const savedDarkMode = localStorage.getItem('darkMode') === 'true'
           const savedRefreshConfig = localStorage.getItem('refreshConfig')
+          const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
+          const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
           if (savedRefreshConfig) {
             try {
               const config = JSON.parse(savedRefreshConfig)
@@ -112,7 +120,11 @@ export const useStore = create<StoreState>()(
               console.error('Failed to parse saved refresh config', e)
             }
           }
-          set({ darkMode: savedDarkMode })
+          set({
+            darkMode: savedDarkMode,
+            stockViewMode: savedStockViewMode || 'card',
+            fundViewMode: savedFundViewMode || 'card'
+          })
 
           // 加载分组和持仓数据
           const [stockGroups, fundGroups, stocks, funds] = await Promise.all([
@@ -442,6 +454,14 @@ export const useStore = create<StoreState>()(
         const newMode = !get().darkMode
         set({ darkMode: newMode })
         localStorage.setItem('darkMode', newMode.toString())
+      },
+      setStockViewMode: (mode: 'card' | 'list') => {
+        set({ stockViewMode: mode })
+        localStorage.setItem('stockViewMode', mode)
+      },
+      setFundViewMode: (mode: 'card' | 'list') => {
+        set({ fundViewMode: mode })
+        localStorage.setItem('fundViewMode', mode)
       },
       clearError: () => set({ error: null })
     }),

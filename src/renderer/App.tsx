@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from "react";
-import { useStore } from "./store";
+import { LayoutGrid, List, Search } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 import {
+  EditModal,
+  FundView,
   Header,
+  MoveModal,
+  SearchFundModal,
+  SearchStockModal,
   Sidebar,
   StockCard,
-  FundView,
-  MoveModal,
-  SearchStockModal,
-  EditModal,
-  SearchFundModal,
-} from "./components";
-import { Button } from "./ui";
-import { Search } from "lucide-react";
+  StockList,
+} from './components'
+import { useStore } from './store'
+import { Button } from './ui'
 
 const App: React.FC = () => {
   const {
@@ -46,277 +47,318 @@ const App: React.FC = () => {
     selectFundGroup,
     funds,
     fundQuotes,
-  } = useStore();
+    stockViewMode,
+    setStockViewMode,
+  } = useStore()
   
-  const [newGroupName, setNewGroupName] = useState("");
-  const [moveModalOpen, setMoveModalOpen] = useState(false);
-  const [moveItemId, setMoveItemId] = useState<string | null>(null);
-  const [isAddingStock, setIsAddingStock] = useState(false);
-  const [isAddingFund, setIsAddingFund] = useState(false);
-  const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null);
-  const [searchStockModalOpen, setSearchStockModalOpen] = useState(false);
-  const [searchFundModalOpen, setSearchFundModalOpen] = useState(false);
-
+  const [newGroupName, setNewGroupName] = useState('')
+  const [moveModalOpen, setMoveModalOpen] = useState(false)
+  const [moveItemId, setMoveItemId] = useState<string | null>(null)
+  const [isAddingStock, setIsAddingStock] = useState(false)
+  const [isAddingFund, setIsAddingFund] = useState(false)
+  const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null)
+  const [searchStockModalOpen, setSearchStockModalOpen] = useState(false)
+  const [searchFundModalOpen, setSearchFundModalOpen] = useState(false)
+  
   // 编辑状态
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingItem, setEditItem] = useState<any>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingItem, setEditItem] = useState<any>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+  
   // 初始化应用
   useEffect(() => {
     const init = async () => {
-      await useStore.getState().initialize();
-    };
-    init();
-  }, []);
-
+      await useStore.getState().initialize()
+    }
+    init()
+  }, [])
+  
   // 设置刷新定时器
   useEffect(() => {
-    if (!refreshConfig.enabled) return;
-
+    if (!refreshConfig.enabled) return
+    
     const stockTimer = setInterval(() => {
-      refreshStockQuotes();
-    }, refreshConfig.stockInterval);
-
+      refreshStockQuotes()
+    }, refreshConfig.stockInterval)
+    
     const fundTimer = setInterval(() => {
-      refreshFundQuotes();
-    }, refreshConfig.fundInterval);
-
+      refreshFundQuotes()
+    }, refreshConfig.fundInterval)
+    
     return () => {
-      clearInterval(stockTimer);
-      clearInterval(fundTimer);
-    };
+      clearInterval(stockTimer)
+      clearInterval(fundTimer)
+    }
   }, [
     refreshConfig.enabled,
     refreshConfig.stockInterval,
     refreshConfig.fundInterval,
-  ]);
-
+  ])
+  
   const handleCreateGroup = () => {
-    if (!newGroupName.trim()) return;
-    if (activeTab === "stock") {
-      createStockGroup(newGroupName);
+    if (!newGroupName.trim()) return
+    if (activeTab === 'stock') {
+      createStockGroup(newGroupName)
     } else {
-      createFundGroup(newGroupName);
+      createFundGroup(newGroupName)
     }
-    setNewGroupName("");
-  };
-
+    setNewGroupName('')
+  }
+  
   const handleDeleteStock = (id: string) => {
-    deleteStock(id);
-  };
-
+    deleteStock(id)
+  }
+  
   const handleManualRefresh = () => {
-    refreshStockQuotes();
-    refreshFundQuotes();
-  };
-
+    refreshStockQuotes()
+    refreshFundQuotes()
+  }
+  
   const handleMoveItem = (itemId: string, newGroupId: string) => {
-    if (activeTab === "stock") {
-      moveStockToGroup(itemId, newGroupId);
+    if (activeTab === 'stock') {
+      moveStockToGroup(itemId, newGroupId)
     } else {
-      moveFundToGroup(itemId, newGroupId);
+      moveFundToGroup(itemId, newGroupId)
     }
-    setMoveModalOpen(false);
-    setMoveItemId(null);
-  };
-
+    setMoveModalOpen(false)
+    setMoveItemId(null)
+  }
+  
   const stockProfit = stocks.reduce((acc, stock) => {
-    const quote = stockQuotes[stock.symbol];
-    const currentPrice = quote?.price || 0;
-    const cost = stock.costPrice * stock.quantity;
-    const marketValue = currentPrice * stock.quantity;
-    const profit = marketValue - cost;
-    return acc + profit;
-  }, 0);
-
+    const quote = stockQuotes[stock.symbol]
+    const currentPrice = quote?.price || 0
+    const cost = stock.costPrice * stock.quantity
+    const marketValue = currentPrice * stock.quantity
+    const profit = marketValue - cost
+    return acc + profit
+  }, 0)
+  
   const fundProfit = funds.reduce((acc, fund) => {
-    const quote = fundQuotes[fund.code];
-    const currentNav = quote?.nav || 0;
-    const cost = fund.costNav * fund.shares;
-    const marketValue = currentNav * fund.shares;
-    const profit = marketValue - cost;
-    return acc + profit;
-  }, 0);
-
-  const totalProfit = stockProfit + fundProfit;
-
+    const quote = fundQuotes[fund.code]
+    const currentNav = quote?.nav || 0
+    const cost = fund.costNav * fund.shares
+    const marketValue = currentNav * fund.shares
+    const profit = marketValue - cost
+    return acc + profit
+  }, 0)
+  
   const handleEditItem = (item: any) => {
-    setEditItem(item);
-    setEditModalOpen(true);
-  };
-
+    setEditItem(item)
+    setEditModalOpen(true)
+  }
+  
   const handleUpdateItem = async (data: { name: string; price: number; quantity: number }) => {
-    if (!editingItem) return;
-    setIsUpdating(true);
+    if (!editingItem) return
+    setIsUpdating(true)
     try {
       if (activeTab === 'stock') {
         await updateStock(editingItem.id, {
           name: data.name,
           costPrice: data.price,
-          quantity: data.quantity
-        });
+          quantity: data.quantity,
+        })
       } else {
         await updateFund(editingItem.id, {
           name: data.name,
           costNav: data.price,
-          shares: data.quantity
-        });
+          shares: data.quantity,
+        })
       }
-      setEditModalOpen(false);
-      setEditItem(null);
+      setEditModalOpen(false)
+      setEditItem(null)
     } finally {
-      setIsUpdating(false);
+      setIsUpdating(false)
     }
-  };
-
+  }
+  
   const visibleStocks = selectedStockGroup
     ? stocks.filter((s) => s.groupId === selectedStockGroup)
-    : [];
-
+    : []
+  
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
         darkMode
-          ? "dark bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100"
-          : "bg-gradient-to-br from-blue-50 via-white to-indigo-50 text-gray-800"
+          ? 'dark bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100'
+          : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50 text-gray-800'
       }`}
     >
       {/* Header 导航栏 */}
       <Header
         darkMode={darkMode}
         activeTab={activeTab}
-        totalProfit={totalProfit}
+        stockProfit={stockProfit}
+        fundProfit={fundProfit}
         refreshConfig={refreshConfig}
         setActiveTab={setActiveTab}
         toggleDarkMode={toggleDarkMode}
         toggleRefresh={toggleRefresh}
         onManualRefresh={handleManualRefresh}
       />
-
+      
       {/* 主内容区域 */}
       <div className="flex">
         {/* Sidebar 分组管理 */}
         <Sidebar
           darkMode={darkMode}
           activeTab={activeTab}
-          groups={activeTab === "stock" ? stockGroups : fundGroups}
+          groups={activeTab === 'stock' ? stockGroups : fundGroups}
           newGroupName={newGroupName}
           onGroupSelect={(id) => {
-            if (activeTab === "stock") {
-              selectStockGroup(id);
+            if (activeTab === 'stock') {
+              selectStockGroup(id)
             } else {
-              selectFundGroup(id);
+              selectFundGroup(id)
             }
           }}
           onGroupCreate={handleCreateGroup}
           onGroupNameChange={setNewGroupName}
           stocksCount={
-            activeTab === "stock"
+            activeTab === 'stock'
               ? stockGroups.reduce(
-                  (acc, group) => {
-                    acc[group.id] = stocks.filter(
-                      (s) => s.groupId === group.id,
-                    ).length;
-                    return acc;
-                  },
-                  {} as Record<string, number>,
-                )
+                (acc, group) => {
+                  acc[group.id] = stocks.filter(
+                    (s) => s.groupId === group.id,
+                  ).length
+                  return acc
+                },
+                {} as Record<string, number>,
+              )
               : fundGroups.reduce(
-                  (acc, group) => {
-                    acc[group.id] = funds.filter(
-                      (f) => f.groupId === group.id,
-                    ).length;
-                    return acc;
-                  },
-                  {} as Record<string, number>,
-                )
+                (acc, group) => {
+                  acc[group.id] = funds.filter(
+                    (f) => f.groupId === group.id,
+                  ).length
+                  return acc
+                },
+                {} as Record<string, number>,
+              )
           }
           onUpdateGroup={(id, newName) => {
-            if (activeTab === "stock") {
-              updateStockGroup(id, newName);
+            if (activeTab === 'stock') {
+              updateStockGroup(id, newName)
             } else {
-              updateFundGroup(id, newName);
+              updateFundGroup(id, newName)
             }
           }}
           onDeleteGroup={(id) => {
             // 检查分组内是否有内容
             const hasItems =
-              activeTab === "stock"
+              activeTab === 'stock'
                 ? stocks.some((s) => s.groupId === id)
-                : funds.some((f) => f.groupId === id);
-
+                : funds.some((f) => f.groupId === id)
+            
             if (hasItems) {
               // 分组内有内容，需要确认
-              if (confirm("确定要删除该分组吗？这将同时删除组内所有项目。")) {
-                if (activeTab === "stock") {
-                  deleteStockGroup(id);
+              if (confirm('确定要删除该分组吗？这将同时删除组内所有项目。')) {
+                if (activeTab === 'stock') {
+                  deleteStockGroup(id)
                 } else {
-                  deleteFundGroup(id);
+                  deleteFundGroup(id)
                 }
               }
             } else {
               // 分组内没有内容，直接删除
-              if (activeTab === "stock") {
-                deleteStockGroup(id);
+              if (activeTab === 'stock') {
+                deleteStockGroup(id)
               } else {
-                deleteFundGroup(id);
+                deleteFundGroup(id)
               }
             }
           }}
           onMoveGroup={(groupId, targetGroupId) => {
             // 移动该分组内的所有项目到目标分组
-            if (activeTab === "stock") {
-              const itemsToMove = stocks.filter((s) => s.groupId === groupId);
+            if (activeTab === 'stock') {
+              const itemsToMove = stocks.filter((s) => s.groupId === groupId)
               itemsToMove.forEach((item) => {
-                moveStockToGroup(item.id, targetGroupId);
-              });
+                moveStockToGroup(item.id, targetGroupId)
+              })
             } else {
-              const itemsToMove = funds.filter((f) => f.groupId === groupId);
+              const itemsToMove = funds.filter((f) => f.groupId === groupId)
               itemsToMove.forEach((item) => {
-                moveFundToGroup(item.id, targetGroupId);
-              });
+                moveFundToGroup(item.id, targetGroupId)
+              })
             }
           }}
           selectedGroupId={
-            activeTab === "stock" ? selectedStockGroup : selectedFundGroup
+            activeTab === 'stock' ? selectedStockGroup : selectedFundGroup
           }
           onAddToGroup={(groupId) => {
-            setAddTargetGroupId(groupId);
+            setAddTargetGroupId(groupId)
             if (activeTab === 'stock') {
-              setSearchStockModalOpen(true);
+              setSearchStockModalOpen(true)
             } else {
-              setSearchFundModalOpen(true);
+              setSearchFundModalOpen(true)
             }
           }}
         />
-
+        
         {/*右内容区域 */}
         <div className="flex-1 p-4 overflow-auto">
           <div className="max-w-4xl mx-auto">
-            {activeTab === "stock" ? (
+            {activeTab === 'stock' ? (
               <div className="space-y-6">
                 {/* 股票列表标题 */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <h2 className="text-xl font-bold">股票持仓</h2>
                   </div>
-                  {visibleStocks.length > 0 && (
-                    <div
-                      className={`flex gap-2 items-center px-3 py-1 rounded-md text-sm ${
-                        darkMode ? "bg-gray-800/50" : "bg-white/50"
-                      } border ${
-                        darkMode ? "border-gray-700" : "border-gray-200"
-                      }`}
-                    >
-                      <div className="text-xs text-gray-500">持仓数量</div>
-                      <div className="font-bold text-blue-500">
-                        {visibleStocks.length}
-                      </div>
+                  <div className="flex items-center gap-3">
+                    {/* 视图模式切换 */}
+                    <div className={`flex items-center rounded-md overflow-hidden border ${
+                      darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white/50'
+                    }`}>
+                      <button
+                        onClick={() => setStockViewMode('card')}
+                        className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${
+                          stockViewMode === 'card'
+                            ? darkMode
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-blue-500 text-white'
+                            : darkMode
+                              ? 'text-gray-400 hover:text-gray-200'
+                              : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                        title="卡片视图"
+                      >
+                        <LayoutGrid className="w-4 h-4" />
+                        <span>卡片</span>
+                      </button>
+                      <button
+                        onClick={() => setStockViewMode('list')}
+                        className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${
+                          stockViewMode === 'list'
+                            ? darkMode
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-blue-500 text-white'
+                            : darkMode
+                              ? 'text-gray-400 hover:text-gray-200'
+                              : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                        title="列表视图"
+                      >
+                        <List className="w-4 h-4" />
+                        <span>列表</span>
+                      </button>
                     </div>
-                  )}
+                    
+                    {visibleStocks.length > 0 && (
+                      <div
+                        className={`flex gap-2 items-center px-3 py-1 rounded-md text-sm ${
+                          darkMode ? 'bg-gray-800/50' : 'bg-white/50'
+                        } border ${
+                          darkMode ? 'border-gray-700' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="text-xs text-gray-500">持仓数量</div>
+                        <div className="font-bold text-blue-500">
+                          {visibleStocks.length}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-
+                
                 {/* 添加股票表单：当分组为空时显示 */}
                 {!(selectedStockGroup && visibleStocks.length > 0) && (
                   <div className="p-4 rounded-xl border">
@@ -327,8 +369,8 @@ const App: React.FC = () => {
                     <Button
                       variant="primary"
                       onClick={() => {
-                        setAddTargetGroupId(selectedStockGroup || stockGroups[0]?.id || null);
-                        setSearchStockModalOpen(true);
+                        setAddTargetGroupId(selectedStockGroup || stockGroups[0]?.id || null)
+                        setSearchStockModalOpen(true)
                       }}
                       leftIcon={<Search className="w-3.5 h-3.5" />}
                     >
@@ -336,24 +378,38 @@ const App: React.FC = () => {
                     </Button>
                   </div>
                 )}
-
-                {/* 股票列表 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  {visibleStocks.map((stock) => (
-                    <StockCard
-                      key={stock.id}
+                
+                {/* 股票列表 - 卡片或列表视图 */}
+                {stockViewMode === 'card' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {visibleStocks.map((stock) => (
+                      <StockCard
+                        key={stock.id}
+                        darkMode={darkMode}
+                        stock={stock}
+                        quote={stockQuotes[stock.symbol]}
+                        groups={stockGroups}
+                        onDelete={handleDeleteStock}
+                        onEdit={handleEditItem}
+                        onMove={(stockId, groupId) =>
+                          handleMoveItem(stockId, groupId)
+                        }
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  visibleStocks.length > 0 && (
+                    <StockList
                       darkMode={darkMode}
-                      stock={stock}
-                      quote={stockQuotes[stock.symbol]}
+                      stocks={visibleStocks}
+                      quotes={stockQuotes}
                       groups={stockGroups}
                       onDelete={handleDeleteStock}
                       onEdit={handleEditItem}
-                      onMove={(stockId, groupId) =>
-                        handleMoveItem(stockId, groupId)
-                      }
+                      onMove={(stockId: string, groupId: string) => handleMoveItem(stockId, groupId)}
                     />
-                  ))}
-                </div>
+                  )
+                )}
               </div>
             ) : (
               <FundView darkMode={darkMode} onEditFund={handleEditItem} />
@@ -361,38 +417,38 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
-
+      
       <EditModal
         darkMode={darkMode}
         isOpen={editModalOpen}
         onClose={() => {
-          setEditModalOpen(false);
-          setEditItem(null);
+          setEditModalOpen(false)
+          setEditItem(null)
         }}
         title={`编辑${activeTab === 'stock' ? '股票' : '基金'}`}
         initialData={{
           name: editingItem?.name || '',
           price: activeTab === 'stock' ? editingItem?.costPrice : editingItem?.costNav || 0,
-          quantity: activeTab === 'stock' ? editingItem?.quantity : editingItem?.shares || 0
+          quantity: activeTab === 'stock' ? editingItem?.quantity : editingItem?.shares || 0,
         }}
         onSubmit={handleUpdateItem}
         isSubmitting={isUpdating}
       />
-
+      
       {/* 移动模态框 */}
       <MoveModal
         darkMode={darkMode}
         isOpen={moveModalOpen}
         onClose={() => {
-          setMoveModalOpen(false);
-          setMoveItemId(null);
+          setMoveModalOpen(false)
+          setMoveItemId(null)
         }}
         onMove={(groupId) => moveItemId && handleMoveItem(moveItemId, groupId)}
-        groups={activeTab === "stock" ? stockGroups : fundGroups}
+        groups={activeTab === 'stock' ? stockGroups : fundGroups}
         currentGroupId={undefined}
-        title={`移动到${activeTab === "stock" ? "股票" : "基金"}分组`}
+        title={`移动到${activeTab === 'stock' ? '股票' : '基金'}分组`}
       />
-
+      
       {/* 添加股票模态框 */}
       {activeTab === 'stock' && (
         <SearchStockModal
@@ -413,7 +469,7 @@ const App: React.FC = () => {
                 name,
                 groupId: groupId,
                 costPrice: buyPrice || 0,
-                quantity: quantity || 0
+                quantity: quantity || 0,
               })
               setSearchStockModalOpen(false)
               setAddTargetGroupId(null)
@@ -423,7 +479,7 @@ const App: React.FC = () => {
           }}
         />
       )}
-
+      
       {/* 添加基金模态框 */}
       {activeTab === 'fund' && (
         <SearchFundModal
@@ -476,7 +532,7 @@ const App: React.FC = () => {
         />
       )}
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App

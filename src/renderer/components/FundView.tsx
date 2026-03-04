@@ -1,7 +1,8 @@
 import React from 'react'
-import { PieChart } from 'lucide-react'
+import { PieChart, LayoutGrid, List } from 'lucide-react'
 import { useStore } from '../store'
 import { FundCard } from './FundCard'
+import { FundList } from './FundList'
 
 interface FundViewProps {
   darkMode: boolean;
@@ -16,6 +17,8 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
     selectedFundGroup,
     deleteFund,
     moveFundToGroup,
+    fundViewMode,
+    setFundViewMode,
   } = useStore()
 
   const filteredFunds = selectedFundGroup 
@@ -46,30 +49,85 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
         <div className="flex items-center space-x-2">
           <h2 className="text-xl font-bold">基金持仓</h2>
         </div>
-        <div className={`px-3 py-1 rounded-md text-sm ${
-          darkMode ? 'bg-gray-800/50' : 'bg-white/50'
-        } border ${
-          darkMode ? 'border-gray-700' : 'border-gray-200'
-        }`}>
-          <div className="text-xs text-gray-500">持仓数量</div>
-          <div className="font-bold text-blue-500">{filteredFunds.length}</div>
+        <div className="flex items-center gap-3">
+          {/* 视图模式切换 */}
+          <div className={`flex items-center rounded-md overflow-hidden border ${
+            darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white/50'
+          }`}>
+            <button
+              onClick={() => setFundViewMode('card')}
+              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${
+                fundViewMode === 'card'
+                  ? darkMode
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-blue-500 text-white'
+                  : darkMode
+                    ? 'text-gray-400 hover:text-gray-200'
+                    : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="卡片视图"
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span>卡片</span>
+            </button>
+            <button
+              onClick={() => setFundViewMode('list')}
+              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${
+                fundViewMode === 'list'
+                  ? darkMode
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-blue-500 text-white'
+                  : darkMode
+                    ? 'text-gray-400 hover:text-gray-200'
+                    : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="列表视图"
+            >
+              <List className="w-4 h-4" />
+              <span>列表</span>
+            </button>
+          </div>
+          
+          <div className={`px-3 py-1 rounded-md text-sm ${
+            darkMode ? 'bg-gray-800/50' : 'bg-white/50'
+          } border ${
+            darkMode ? 'border-gray-700' : 'border-gray-200'
+          }`}>
+            <div className="text-xs text-gray-500">持仓数量</div>
+            <div className="font-bold text-blue-500">{filteredFunds.length}</div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-        {filteredFunds.map(fund => (
-              <FundCard
-                key={fund.id}
-                darkMode={darkMode}
-                fund={fund}
-                quote={fundQuotes[fund.code]}
-                groups={fundGroups}
-                onDelete={deleteFund}
-                onEdit={onEditFund}
-                onMove={moveFundToGroup}
-              />
-            ))}
-      </div>
+      {/* 基金列表 - 卡片或列表视图 */}
+      {fundViewMode === 'card' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+          {filteredFunds.map(fund => (
+            <FundCard
+              key={fund.id}
+              darkMode={darkMode}
+              fund={fund}
+              quote={fundQuotes[fund.code]}
+              groups={fundGroups}
+              onDelete={deleteFund}
+              onEdit={onEditFund}
+              onMove={moveFundToGroup}
+            />
+          ))}
+        </div>
+      ) : (
+        filteredFunds.length > 0 && (
+          <FundList
+            darkMode={darkMode}
+            funds={filteredFunds}
+            quotes={fundQuotes}
+            groups={fundGroups}
+            onDelete={deleteFund}
+            onEdit={onEditFund}
+            onMove={moveFundToGroup}
+          />
+        )
+      )}
     </div>
   )
 }

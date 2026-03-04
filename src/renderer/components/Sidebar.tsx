@@ -43,16 +43,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
       darkMode 
         ? 'bg-gray-800/50 border-gray-700/50' 
         : 'bg-white/50 border-gray-200/50'
-    } border-r backdrop-blur-sm p-4`}>
-      <div className="space-y-4 h-full">
+    } border-r backdrop-blur-sm`}>
+      <div className="sticky top-16 h-[calc(100vh-4rem)] flex flex-col p-4">
         {/* 标题 */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 mb-4">
           <FolderPlus className="w-4 h-4 text-blue-500" />
           <h2 className="text-sm font-semibold">分组管理</h2>
         </div>
         
         {/* 创建分组输入框 */}
-        <div className="space-y-2">
+        <div className="space-y-2 mb-4 flex-shrink-0">
           <div className={`relative rounded-md overflow-hidden ${
             darkMode ? 'bg-gray-700/50' : 'bg-white/50'
           } border ${
@@ -81,9 +81,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* 分组列表 */}
-        <div className="flex flex-col h-full space-y-1">
-          <div className="text-xs font-medium text-gray-500 px-2">我的分组</div>
-          <div className="h-full space-y-1 max-h-80 overflow-y-auto">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="text-xs font-medium text-gray-500 px-2 mb-2 flex-shrink-0">我的分组</div>
+          <div className="flex-1 space-y-1 overflow-y-auto">
             {groups.map(group => (
               <GroupItem
                 key={group.id}
