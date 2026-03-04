@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { X, Search, Plus } from 'lucide-react'
-import { Input, Button } from '../ui'
-import StockService from '../services/stockService'
-import { StockSearchResult, StockGroup } from '../../shared/types'
+import { Input, Button } from '../../ui'
+import StockService from '../../services/stockService'
+import { StockSearchResult, StockGroup } from '../../../shared/types'
 
 interface SearchStockModalProps {
   darkMode: boolean

@@ -1,7 +1,7 @@
 import React from 'react'
 import { RefreshCw, Moon, Sun, TrendingUp, PieChart, Activity } from 'lucide-react'
 import { FaChartLine } from 'react-icons/fa'
-import { Tabs } from '../ui'
+import { Tabs } from '../../ui'
 
 interface HeaderProps {
   darkMode: boolean

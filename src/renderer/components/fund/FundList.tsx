@@ -1,6 +1,6 @@
 import React from "react";
 import { Trash2, Edit2, FolderInput, MoreVertical } from "lucide-react";
-import { Fund, FundQuote, FundGroup } from "../../shared/types";
+import { Fund, FundQuote, FundGroup } from "../../../shared/types";
 
 interface FundListProps {
   darkMode: boolean;

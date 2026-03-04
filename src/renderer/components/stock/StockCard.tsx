@@ -1,5 +1,5 @@
 import React from "react";
-import { Stock, StockQuote, StockGroup } from "../../shared/types";
+import { Stock, StockQuote, StockGroup } from "../../../shared/types";
 import { StockActionMenu } from "./StockActionMenu";
 
 interface StockCardProps {

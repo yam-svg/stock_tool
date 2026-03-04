@@ -1,6 +1,6 @@
 import React from 'react'
 import { Plus } from 'lucide-react'
-import { Button, Input } from '../ui'
+import { Button, Input } from '../../ui'
 
 interface StockGroup {
   id: string

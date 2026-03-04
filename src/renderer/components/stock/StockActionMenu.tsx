@@ -1,7 +1,7 @@
 ﻿import React from "react";
 import { Trash2, Edit2, FolderInput, MoreVertical } from "lucide-react";
-import { Stock, StockGroup } from "../../shared/types";
-import { MoveModal } from "./MoveModal";
+import { Stock, StockGroup } from "../../../shared/types";
+import { MoveModal } from "../modals/MoveModal";
 interface StockActionMenuProps {
   darkMode: boolean;
   stock: Stock;

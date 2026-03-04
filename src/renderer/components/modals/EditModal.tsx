@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
-import { Input, Button } from '../ui';
+import { Input, Button } from '../../ui';
 
 interface EditModalProps {
   darkMode: boolean;

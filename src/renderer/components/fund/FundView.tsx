@@ -1,6 +1,6 @@
 import React from 'react'
 import { PieChart, LayoutGrid, List } from 'lucide-react'
-import { useStore } from '../store'
+import { useStore } from '../../store'
 import { FundCard } from './FundCard'
 import { FundList } from './FundList'
 

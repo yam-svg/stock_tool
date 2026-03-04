@@ -1,6 +1,6 @@
 import React from 'react'
 import { FolderPlus, Plus, ChevronLeft } from 'lucide-react'
-import { GroupItem } from './GroupItem'
+import { GroupItem } from '../group'
 
 interface Group {
   id: string

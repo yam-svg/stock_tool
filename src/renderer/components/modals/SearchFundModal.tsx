@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { X, Search, Plus } from 'lucide-react'
-import { Input, Button } from '../ui'
-import FundService from '../services/fundService'
-import { FundSearchResult, FundGroup } from '../../shared/types'
+import { Input, Button } from '../../ui'
+import FundService from '../../services/fundService'
+import { FundSearchResult, FundGroup } from '../../../shared/types'
 
 interface SearchFundModalProps {
   darkMode: boolean
