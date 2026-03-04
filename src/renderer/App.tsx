@@ -9,6 +9,7 @@ import {
   MoveModal,
   AddStockModal,
   SearchStockModal,
+  EditModal,
 } from "./components";
 import { Button } from "./ui";
 import { Search } from "lucide-react";
@@ -35,7 +36,10 @@ const App: React.FC = () => {
     deleteFundGroup,
     addStock,
     addFund,
+    updateStock,
+    updateFund,
     deleteStock,
+    deleteFund,
     moveStockToGroup,
     moveFundToGroup,
     selectedStockGroup,
@@ -54,6 +58,11 @@ const App: React.FC = () => {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null);
   const [searchStockModalOpen, setSearchStockModalOpen] = useState(false);
+
+  // 编辑状态
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingItem, setEditItem] = useState<any>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // 初始化应用
   useEffect(() => {
@@ -133,6 +142,35 @@ const App: React.FC = () => {
   }, 0);
 
   const totalProfit = stockProfit + fundProfit;
+
+  const handleEditItem = (item: any) => {
+    setEditItem(item);
+    setEditModalOpen(true);
+  };
+
+  const handleUpdateItem = async (data: { name: string; price: number; quantity: number }) => {
+    if (!editingItem) return;
+    setIsUpdating(true);
+    try {
+      if (activeTab === 'stock') {
+        await updateStock(editingItem.id, {
+          name: data.name,
+          costPrice: data.price,
+          quantity: data.quantity
+        });
+      } else {
+        await updateFund(editingItem.id, {
+          name: data.name,
+          costNav: data.price,
+          shares: data.quantity
+        });
+      }
+      setEditModalOpen(false);
+      setEditItem(null);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const visibleStocks = selectedStockGroup
     ? stocks.filter((s) => s.groupId === selectedStockGroup)
@@ -311,6 +349,7 @@ const App: React.FC = () => {
                       quote={stockQuotes[stock.symbol]}
                       groups={stockGroups}
                       onDelete={handleDeleteStock}
+                      onEdit={handleEditItem}
                       onMove={(stockId, groupId) =>
                         handleMoveItem(stockId, groupId)
                       }
@@ -319,11 +358,28 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <FundView darkMode={darkMode} />
+              <FundView darkMode={darkMode} onEditFund={handleEditItem} />
             )}
           </div>
         </div>
       </div>
+
+      <EditModal
+        darkMode={darkMode}
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditItem(null);
+        }}
+        title={`编辑${activeTab === 'stock' ? '股票' : '基金'}`}
+        initialData={{
+          name: editingItem?.name || '',
+          price: activeTab === 'stock' ? editingItem?.costPrice : editingItem?.costNav || 0,
+          quantity: activeTab === 'stock' ? editingItem?.quantity : editingItem?.shares || 0
+        }}
+        onSubmit={handleUpdateItem}
+        isSubmitting={isUpdating}
+      />
 
       {/* 移动模态框 */}
       <MoveModal

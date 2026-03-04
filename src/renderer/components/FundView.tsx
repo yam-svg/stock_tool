@@ -5,10 +5,11 @@ import { FundCard } from './FundCard'
 import { FundForm } from './FundForm'
 
 interface FundViewProps {
-  darkMode: boolean
+  darkMode: boolean;
+  onEditFund: (fund: any) => void;
 }
 
-export const FundView: React.FC<FundViewProps> = ({ darkMode }) => {
+export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
   const { 
     funds, 
     fundQuotes, 
@@ -136,16 +137,17 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode }) => {
 
       <div className="space-y-3">
         {filteredFunds.map(fund => (
-          <FundCard
-            key={fund.id}
-            darkMode={darkMode}
-            fund={fund}
-            quote={fundQuotes[fund.code]}
-            groups={fundGroups}
-            onDelete={deleteFund}
-            onMove={moveFundToGroup}
-          />
-        ))}
+              <FundCard
+                key={fund.id}
+                darkMode={darkMode}
+                fund={fund}
+                quote={fundQuotes[fund.code]}
+                groups={fundGroups}
+                onDelete={deleteFund}
+                onEdit={onEditFund}
+                onMove={moveFundToGroup}
+              />
+            ))}
       </div>
     </div>
   )

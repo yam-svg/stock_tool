@@ -81,7 +81,7 @@ export const useStore = create<StoreState>()(
       //初始状态
       activeTab: 'stock',
       refreshConfig: {
-        stockInterval: 5000,
+        stockInterval: 3000,
         fundInterval: 60000,
         enabled: true
       },

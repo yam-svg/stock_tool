@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, MoreVertical, FolderInput } from "lucide-react";
+import { Trash2, MoreVertical, FolderInput, Edit2 } from "lucide-react";
 import { Stock, StockQuote, StockGroup } from "../../shared/types";
 
 interface StockCardProps {
@@ -8,6 +8,7 @@ interface StockCardProps {
   quote?: StockQuote;
   groups: StockGroup[];
   onDelete: (id: string) => void;
+  onEdit: (stock: Stock) => void;
   onMove: (stockId: string, groupId: string) => void;
 }
 
@@ -17,6 +18,7 @@ export const StockCard: React.FC<StockCardProps> = ({
   quote,
   groups,
   onDelete,
+  onEdit,
   onMove,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
@@ -133,6 +135,20 @@ export const StockCard: React.FC<StockCardProps> = ({
                 }`}
                 onClick={(e) => e.stopPropagation()}
               >
+                {/* 编辑 */}
+                <button
+                  onClick={() => {
+                    onEdit(stock);
+                    setShowMenu(false);
+                  }}
+                  className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 ${
+                    darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+                  }`}
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>编辑</span>
+                </button>
+
                 {/* 移动到分组 */}
                 <div className="relative">
                   <button
