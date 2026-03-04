@@ -103,10 +103,8 @@ export const StockCard: React.FC<StockCardProps> = ({
         <div className="flex items-center space-x-3">
           <div className="text-right">
             <div className="text-sm text-gray-500">当前价</div>
-            <div className={`font-bold text-lg ${
-              (quote?.change || 0) >= 0 ? "text-red-500" : "text-green-500"
-            }`}>
-              ¥{currentPrice?.toFixed(2) || "-"}
+            <div className={`font-bold text-lg text-white`}>
+              ¥{currentPrice || "-"}
             </div>
           </div>
 
@@ -214,7 +212,7 @@ export const StockCard: React.FC<StockCardProps> = ({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
         <div>
           <div className="text-gray-500">买入价</div>
-          <div className="font-medium">¥{stock.costPrice?.toFixed(2) || "-"}</div>
+          <div className="font-medium">¥{stock.costPrice || "-"}</div>
         </div>
         <div>
           <div className="text-gray-500">数量</div>
@@ -247,7 +245,7 @@ export const StockCard: React.FC<StockCardProps> = ({
               (quote?.change || 0) >= 0 ? "text-red-500" : "text-green-500"
             }`}
           >
-            {quote?.change ? "¥" + quote.change.toFixed(2) : "-"}
+            {quote?.change ? "¥" + quote.change.toFixed(4) : "-"}
           </div>
         </div>
         <div>

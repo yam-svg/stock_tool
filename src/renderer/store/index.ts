@@ -400,7 +400,6 @@ export const useStore = create<StoreState>()(
             const shortSymbol = quote.symbol.replace(/^(sh|sz|hk|us)/i, '')
             quoteMap[shortSymbol] = quote
           })
-          console.log(quotes)
           set({ stockQuotes: quoteMap })
         } catch (error) {
           console.error('刷新股票行情失败:', error)
