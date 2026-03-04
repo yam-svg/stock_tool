@@ -88,7 +88,7 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
             </button>
           </div>
           
-          <div className={`px-3 py-1 rounded-md text-sm ${
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
             darkMode ? 'bg-gray-800/50' : 'bg-white/50'
           } border ${
             darkMode ? 'border-gray-700' : 'border-gray-200'

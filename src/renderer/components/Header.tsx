@@ -61,7 +61,7 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center space-x-3">
           {/* 股票收益概览 */}
           {stockProfit !== undefined && (
-            <div className={`px-3 py-1 rounded-md text-sm ${
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
               darkMode ? 'bg-gray-800/50' : 'bg-white/50'
             } border ${
               darkMode ? 'border-gray-700' : 'border-gray-200'
@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* 基金收益概览 */}
           {fundProfit !== undefined && (
-            <div className={`px-3 py-1 rounded-md text-sm ${
+            <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
               darkMode ? 'bg-gray-800/50' : 'bg-white/50'
             } border ${
               darkMode ? 'border-gray-700' : 'border-gray-200'
