@@ -56,20 +56,7 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
         </div>
       </div>
 
-      {/* 当分组为空时显示表单 */}
-      {!(selectedFundGroup && filteredFunds.length > 0) && (
-        <FundForm
-          darkMode={darkMode}
-          newFund={newFund}
-          fundGroups={fundGroups}
-          onFundChange={(updates) => setNewFund({ ...newFund, ...updates })}
-          onAddFund={handleAddFund}
-          isAdding={isAdding}
-          errors={errors}
-        />
-      )}
-
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {filteredFunds.map(fund => (
               <FundCard
                 key={fund.id}
