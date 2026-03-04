@@ -1,7 +1,7 @@
-import React from "react";
+﻿import React from "react";
 import { Trash2, Edit2, FolderInput, MoreVertical } from "lucide-react";
 import { Stock, StockGroup } from "../../shared/types";
-
+import { MoveModal } from "./MoveModal";
 interface StockActionMenuProps {
   darkMode: boolean;
   stock: Stock;
@@ -11,10 +11,9 @@ interface StockActionMenuProps {
   onEdit: (stock: Stock) => void;
   onMove: (stockId: string, groupId: string) => void;
   onDelete: (id: string) => void;
-  menuPosition?: "absolute" | "fixed"; // absolute for card, fixed for list
+  menuPosition?: "absolute" | "fixed";
   buttonClassName?: string;
 }
-
 export const StockActionMenu: React.FC<StockActionMenuProps> = ({
   darkMode,
   stock,
@@ -27,9 +26,8 @@ export const StockActionMenu: React.FC<StockActionMenuProps> = ({
   menuPosition = "absolute",
   buttonClassName,
 }) => {
-  const [showMoveMenu, setShowMoveMenu] = React.useState(false);
+  const [showMoveModal, setShowMoveModal] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
-
   // 点击外部关闭菜单
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,131 +35,103 @@ export const StockActionMenu: React.FC<StockActionMenuProps> = ({
         if (isOpen) {
           onToggle(event as any);
         }
-        setShowMoveMenu(false);
       }
     };
-
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     } else {
       document.removeEventListener("mousedown", handleClickOutside);
     }
-
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onToggle]);
-
   return (
-    <div className="relative" ref={menuRef}>
-      {/* 操作按钮 */}
-      <button
-        onClick={onToggle}
-        className={
-          buttonClassName ||
-          `p-1.5 rounded-lg transition-colors ${
-            darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-          }`
-        }
-      >
-        <MoreVertical className="w-4 h-4" />
-      </button>
-
-      {/* 操作菜单 */}
-      {isOpen && (
-        <div
-          className={`${menuPosition} w-40 rounded-lg shadow-lg z-50 overflow-hidden border ${
-            darkMode
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-200"
-          } ${
-            menuPosition === "absolute"
-              ? "right-0 top-full mt-2"
-              : ""
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* 编辑 */}
-          <button
-            onClick={() => {
-              onEdit(stock);
-              onToggle({} as any);
-            }}
-            className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 ${
+    <>
+      <div className="relative" ref={menuRef}>
+        {/* 操作按钮 */}
+        <button
+          onClick={onToggle}
+          className={
+            buttonClassName ||
+            `p-1.5 rounded-lg transition-colors ${
               darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+            }`
+          }
+        >
+          <MoreVertical className="w-4 h-4" />
+        </button>
+        {/* 操作菜单 */}
+        {isOpen && (
+          <div
+            className={`${menuPosition} w-40 rounded-lg shadow-lg z-50 overflow-hidden border ${
+              darkMode
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-200"
+            } ${
+              menuPosition === "absolute"
+                ? "right-0 top-full mt-2"
+                : ""
             }`}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Edit2 className="w-3.5 h-3.5" />
-            <span>编辑</span>
-          </button>
-
-          {/* 移动到分组 */}
-          <div className="relative">
+            {/* 编辑 */}
             <button
-              onClick={() => setShowMoveMenu(!showMoveMenu)}
-              className={`w-full px-3 py-2 text-sm text-left flex items-center justify-between ${
+              onClick={() => {
+                onEdit(stock);
+                onToggle({} as any);
+              }}
+              className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 ${
                 darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
               }`}
             >
-              <div className="flex items-center space-x-2">
-                <FolderInput className="w-3.5 h-3.5" />
-                <span>移动到</span>
-              </div>
+              <Edit2 className="w-3.5 h-3.5" />
+              <span>编辑</span>
             </button>
-
-            {showMoveMenu && (
-              <div
-                className={`${
-                  menuPosition === "fixed"
-                    ? "fixed"
-                    : "absolute"
-                } w-40 rounded-lg shadow-lg z-50 overflow-hidden border ${
-                  darkMode
-                    ? "bg-gray-800 border-gray-700"
-                    : "bg-white border-gray-200"
-                } ${
-                  menuPosition === "absolute"
-                    ? "left-full top-0 ml-1"
-                    : ""
-                }`}
-              >
-                {groups.map((group) => (
-                  <button
-                    key={group.id}
-                    onClick={() => {
-                      onMove(stock.id, group.id);
-                      onToggle({} as any);
-                      setShowMoveMenu(false);
-                    }}
-                    className={`w-full px-3 py-2 text-sm text-left ${
-                      darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-                    }`}
-                  >
-                    {group.name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* 删除 */}
-          <button
-            onClick={() => {
-              if (confirm(`确定要删除${stock.name}吗？`)) {
-                onDelete(stock.id);
+            {/* 移动到分组 */}
+            <button
+              onClick={() => {
+                setShowMoveModal(true);
                 onToggle({} as any);
-              }
-            }}
-            className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 text-red-500 ${
-              darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
-            }`}
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span>删除</span>
-          </button>
-        </div>
-      )}
-    </div>
+              }}
+              className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 ${
+                darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+              }`}
+            >
+              <FolderInput className="w-3.5 h-3.5" />
+              <span>移动到</span>
+            </button>
+            {/* 删除 */}
+            <button
+              onClick={() => {
+                if (confirm(`确定要删除${stock.name}吗？`)) {
+                  onDelete(stock.id);
+                  onToggle({} as any);
+                }
+              }}
+              className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 text-red-500 ${
+                darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
+              }`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>删除</span>
+            </button>
+          </div>
+        )}
+      </div>
+      {/* 移动分组模态框 */}
+      <MoveModal
+        darkMode={darkMode}
+        isOpen={showMoveModal}
+        onClose={() => setShowMoveModal(false)}
+        onMove={(groupId) => {
+          onMove(stock.id, groupId);
+          setShowMoveModal(false);
+        }}
+        groups={groups}
+        currentGroupId={stock.groupId}
+        title={`移动 ${stock.name}`}
+      />
+    </>
   );
 };
-
