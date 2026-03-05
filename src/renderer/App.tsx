@@ -19,6 +19,8 @@ const App: React.FC = () => {
     fundGroups,
     stocks,
     stockQuotes,
+    stockRefreshing,
+    fundRefreshing,
     createStockGroup,
     createFundGroup,
     updateStockGroup,
@@ -170,6 +172,8 @@ const App: React.FC = () => {
         stockProfit={stockProfit}
         fundProfit={fundProfit}
         refreshConfig={refreshConfig}
+        stockRefreshing={stockRefreshing}
+        fundRefreshing={fundRefreshing}
         setActiveTab={setActiveTab}
         toggleDarkMode={toggleDarkMode}
         toggleRefresh={toggleRefresh}

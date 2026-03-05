@@ -1,5 +1,5 @@
+import { Activity, Moon, PieChart, RefreshCw, Sun, TrendingUp } from 'lucide-react'
 import React from 'react'
-import { RefreshCw, Moon, Sun, TrendingUp, PieChart, Activity } from 'lucide-react'
 import { FaChartLine } from 'react-icons/fa'
 import { Tabs } from '../../ui'
 
@@ -9,6 +9,8 @@ interface HeaderProps {
   stockProfit?: number
   fundProfit?: number
   refreshConfig: { enabled: boolean }
+  stockRefreshing?: boolean
+  fundRefreshing?: boolean
   setActiveTab: (tab: 'stock' | 'fund') => void
   toggleDarkMode: () => void
   toggleRefresh: (enabled: boolean) => void
@@ -21,13 +23,18 @@ export const Header: React.FC<HeaderProps> = ({
   stockProfit,
   fundProfit,
   refreshConfig,
+  stockRefreshing = false,
+  fundRefreshing = false,
   setActiveTab,
   toggleDarkMode,
   toggleRefresh,
-  onManualRefresh
+  onManualRefresh,
 }) => {
+  const isRefreshing = stockRefreshing || fundRefreshing
+  
   return (
     <header className={`${
+      
       darkMode
         ? 'bg-gray-800/80 backdrop-blur-md border-gray-700/50'
         : 'bg-white/80 backdrop-blur-md border-gray-200/50'
@@ -41,7 +48,8 @@ export const Header: React.FC<HeaderProps> = ({
             }`}>
               <FaChartLine className={`w-5 h-5 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`} />
             </div>
-            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <h1
+              className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               StockLite
             </h1>
           </div>
@@ -52,12 +60,12 @@ export const Header: React.FC<HeaderProps> = ({
             onChange={(tab) => setActiveTab(tab as 'stock' | 'fund')}
             tabs={[
               { id: 'stock', label: '股票', icon: <TrendingUp /> },
-              { id: 'fund', label: '基金', icon: <PieChart /> }
+              { id: 'fund', label: '基金', icon: <PieChart /> },
             ]}
             size="md"
           />
         </div>
-
+        
         <div className="flex items-center space-x-3">
           {/* 股票收益概览 */}
           {stockProfit !== undefined && (
@@ -74,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
           )}
-
+          
           {/* 基金收益概览 */}
           {fundProfit !== undefined && (
             <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
@@ -90,40 +98,27 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
           )}
-
+          
           {/* 手动刷新按钮 */}
           <button
             onClick={onManualRefresh}
+            disabled={isRefreshing}
             className={`p-2 rounded-lg transition-all duration-200 ${
+              isRefreshing
+                ? 'cursor-not-allowed opacity-50'
+                : ''
+            } ${
               darkMode
                 ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white'
                 : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900'
             } border ${
               darkMode ? 'border-gray-700' : 'border-gray-200'
             } hover:shadow-md`}
-            title="手动刷新"
+            title={isRefreshing ? '正在刷新...' : '手动刷新'}
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
-
-          {/* 刷新开关 */}
-          <div className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-black/5 dark:bg-white/5">
-            <Activity className="w-3.5 h-3.5 text-gray-500" />
-            <span className="text-xs font-medium">自动刷新</span>
-            <button
-              onClick={() => toggleRefresh(!refreshConfig.enabled)}
-              className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 ${
-                refreshConfig.enabled ? 'bg-green-500' : 'bg-gray-300'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
-                  refreshConfig.enabled ? 'translate-x-3' : 'translate-x-0.5'
-                } shadow-sm`}
-              />
-            </button>
-          </div>
-
+          
           {/* 深色模式切换 */}
           <button
             onClick={toggleDarkMode}
@@ -138,9 +133,31 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
+          
+          {/* 刷新开关 */}
+          <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg ${
+            darkMode ? 'bg-black/10' : 'bg-black/5'
+          } transition-all duration-300`}>
+            <Activity className={`w-3.5 h-3.5 transition-colors duration-300 ${
+              isRefreshing ? 'text-green-500' : 'text-gray-500'
+            }`} />
+            <span className="text-xs font-medium">自动刷新</span>
+            <button
+              onClick={() => toggleRefresh(!refreshConfig.enabled)}
+              className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 ${
+                refreshConfig.enabled ? 'bg-green-500' : 'bg-gray-300'
+              }`}
+              title={refreshConfig.enabled ? '点击关闭自动刷新' : '点击开启自动刷新'}
+            >
+              <span
+                className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${
+                  refreshConfig.enabled ? 'translate-x-3' : 'translate-x-0.5'
+                } shadow-sm`}
+              />
+            </button>
+          </div>
         </div>
       </div>
     </header>
   )
 }
-

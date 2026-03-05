@@ -14,6 +14,7 @@ interface StockState {
   // 状态
   loading: boolean
   error: string | null
+  refreshing: boolean
 
   // 分组操作
   createStockGroup: (name: string) => Promise<void>
@@ -49,6 +50,7 @@ export const useStockStore = create<StockState>()(
       selectedStockGroup: null,
       loading: false,
       error: null,
+      refreshing: false,
 
       // 初始化
       initialize: async () => {
@@ -202,6 +204,8 @@ export const useStockStore = create<StockState>()(
 
       // 数据刷新
       refreshStockQuotes: async () => {
+        const startTime = Date.now()
+        set({ refreshing: true })
         try {
           const symbols = [...new Set(get().stocks.map(s => s.symbol))]
           if (symbols.length === 0) return
@@ -215,6 +219,14 @@ export const useStockStore = create<StockState>()(
           set({ stockQuotes: quoteMap })
         } catch (error) {
           console.error('刷新股票行情失败:', error)
+        } finally {
+          // 确保刷新状态至少显示 600ms，让用户能看到反馈
+          const elapsed = Date.now() - startTime
+          const minDisplayTime = 600
+          if (elapsed < minDisplayTime) {
+            await new Promise(resolve => setTimeout(resolve, minDisplayTime - elapsed))
+          }
+          set({ refreshing: false })
         }
       },
 
