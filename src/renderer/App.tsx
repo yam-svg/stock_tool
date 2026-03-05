@@ -4,6 +4,7 @@ import { EditModal, FundView, Header, MoveModal, SearchFundModal, SearchStockMod
 import { useStore } from './store'
 import { useAppLifecycle, useGroupActions, useHoldingActions, usePortfolioMetrics } from './hooks'
 import { EditableHolding } from './types/hooks'
+import { IconButton } from './ui'
 
 const App: React.FC = () => {
   const {
@@ -184,19 +185,14 @@ const App: React.FC = () => {
       <div className="flex relative w-full">
         {/* 侧边栏切换按钮 - 展开按钮 */}
         {sidebarCollapsed && (
-          <button
-            onClick={() => {
-              toggleSidebar()
-            }}
-            className={`fixed left-0 top-12 z-50 p-2 rounded-r-lg transition-all duration-300 shadow-lg pointer-events-auto ${
-              darkMode
-                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
-                : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200'
-            } border border-l-0 hover:shadow-xl`}
-            title="展开侧边栏"
-          >
-            <Menu className="w-2 h-2" />
-          </button>
+          <IconButton
+            onClick={toggleSidebar}
+            darkMode={darkMode}
+            icon={<Menu />}
+            tooltip="展开侧边栏"
+            className="fixed left-0 top-12 z-50 rounded-r-lg rounded-l-none shadow-lg pointer-events-auto"
+            size="sm"
+          />
         )}
 
         {/* Sidebar 分组管理 */}

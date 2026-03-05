@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X, Search, Plus } from 'lucide-react'
-import { Input, Button } from '../../ui'
+import { Input, Button, IconButton } from '../../ui'
 import StockService from '../../services/stockService'
 import { StockSearchResult, StockGroup } from '../../../shared/types'
 
@@ -96,13 +96,14 @@ export const SearchStockModal: React.FC<SearchStockModalProps> = ({
               <Search className="w-4 h-4 text-blue-500" />
               <h3 className="text-base font-semibold">搜索并添加股票</h3>
             </div>
-            <button
+            <IconButton
               onClick={onClose}
-              className={`p-1.5 rounded-lg ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
-              aria-label="关闭"
-            >
-              <X className="w-4 h-4" />
-            </button>
+              darkMode={darkMode}
+              variant="ghost"
+              icon={<X />}
+              size="sm"
+              tooltip="关闭"
+            />
           </div>
           {group && (
             <div className={`mt-2 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>

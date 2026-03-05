@@ -1,7 +1,7 @@
 import { Activity, Moon, PieChart, RefreshCw, Sun, TrendingUp } from 'lucide-react'
 import React from 'react'
 import { FaChartLine } from 'react-icons/fa'
-import { Tabs } from '../../ui'
+import { Tabs, IconButton } from '../../ui'
 
 interface HeaderProps {
   darkMode: boolean
@@ -100,39 +100,22 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           
           {/* 手动刷新按钮 */}
-          <button
+          <IconButton
             onClick={onManualRefresh}
             disabled={isRefreshing}
-            className={`p-2 rounded-lg transition-all duration-200 ${
-              isRefreshing
-                ? 'cursor-not-allowed opacity-50'
-                : ''
-            } ${
-              darkMode
-                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white'
-                : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900'
-            } border ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
-            } hover:shadow-md`}
-            title={isRefreshing ? '正在刷新...' : '手动刷新'}
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
+            darkMode={darkMode}
+            icon={<RefreshCw className={isRefreshing ? 'animate-spin' : ''} />}
+            tooltip={isRefreshing ? '正在刷新...' : '手动刷新'}
+          />
           
           {/* 深色模式切换 */}
-          <button
+          <IconButton
             onClick={toggleDarkMode}
-            className={`p-2 rounded-lg transition-all duration-200 ${
-              darkMode
-                ? 'bg-gray-800 hover:bg-gray-700 text-yellow-400'
-                : 'bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900'
-            } border ${
-              darkMode ? 'border-gray-700' : 'border-gray-200'
-            } hover:shadow-md`}
-            title={darkMode ? '切换到浅色模式' : '切换到深色模式'}
-          >
-            {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
+            darkMode={darkMode}
+            icon={darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            tooltip={darkMode ? '切换到浅色模式' : '切换到深色模式'}
+            className={darkMode ? 'text-yellow-400' : ''}
+          />
           
           {/* 刷新开关 */}
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg ${

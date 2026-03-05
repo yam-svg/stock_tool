@@ -1,5 +1,6 @@
 import React from 'react'
 import { X, FolderInput } from 'lucide-react'
+import { Button, IconButton } from '../../ui'
 
 interface Group {
   id: string
@@ -51,14 +52,14 @@ export const MoveModal: React.FC<MoveModalProps> = ({
             <FolderInput className="w-5 h-5 text-blue-500" />
             <span>{title}</span>
           </h3>
-          <button
+          <IconButton
             onClick={onClose}
-            className={`p-1 rounded-lg transition-colors ${
-              darkMode ? 'hover:bg-gray-700 text-gray-400' : 'hover:bg-gray-100 text-gray-500'
-            }`}
-          >
-            <X className="w-5 h-5" />
-          </button>
+            darkMode={darkMode}
+            variant="ghost"
+            icon={<X />}
+            size="sm"
+            tooltip="关闭"
+          />
         </div>
 
         {/* 内容区域 */}
@@ -109,16 +110,13 @@ export const MoveModal: React.FC<MoveModalProps> = ({
         <div className={`px-6 py-4 border-t ${
           darkMode ? 'border-gray-700' : 'border-gray-200'
         }`}>
-          <button
+          <Button
             onClick={onClose}
-            className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
-              darkMode 
-                ? 'bg-gray-700 hover:bg-gray-600 text-white' 
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-            }`}
+            variant="secondary"
+            className="w-full"
           >
-           取消
-          </button>
+            取消
+          </Button>
         </div>
       </div>
     </>
