@@ -1,486 +1,113 @@
-import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
-import { 
-  StockGroup, 
-  FundGroup, 
-  Stock, 
-  Fund, 
-  StockQuote, 
-  FundQuote,
-  RefreshConfig
-} from '../../shared/types'
-import StockService from '../services/stockService'
-import FundService from '../services/fundService'
+/**
+ * 根Store - 组合所有子Store
+ * 为了向后兼容性，这里提供了统一的useStore接口
+ */
+import { useUIStore } from './uiStore'
+import { useStockStore } from './stockStore'
+import { useFundStore } from './fundStore'
+import { useRefreshStore } from './refreshStore'
 
-interface StoreState {
-  // UI状态
-  activeTab: 'stock' | 'fund'
-  darkMode: boolean
-  stockViewMode: 'card' | 'list'
-  fundViewMode: 'card' | 'list'
-  sidebarCollapsed: boolean
-  
-  //刷新配置
-  refreshConfig: RefreshConfig
-  
-  // 分组状态
-  stockGroups: StockGroup[]
-  fundGroups: FundGroup[]
-  selectedStockGroup: string | null
-  selectedFundGroup: string | null
-  
-  //持状态
-  stocks: Stock[]
-  funds: Fund[]
-  
-  //行数据
-  stockQuotes: Record<string, StockQuote>
-  fundQuotes: Record<string, FundQuote>
-  
-  // 加载状态
-  loading: boolean
-  error: string | null
-  
-  // 初始化
-  initialize: () => Promise<void>
-  
-  // 分组操作
-  createStockGroup: (name: string) => Promise<void>
-  createFundGroup: (name: string) => Promise<void>
-  selectStockGroup: (groupId: string | null) => void
-  selectFundGroup: (groupId: string | null) => void
-  updateStockGroup: (id: string, name: string) => Promise<void>
-  updateFundGroup: (id: string, name: string) => Promise<void>
-  deleteStockGroup: (id: string) => Promise<void>
-  deleteFundGroup: (id: string) => Promise<void>
-  
-  //操作
-  addStock: (stock: Omit<Stock, 'id' | 'createdAt'>) => Promise<void>
-  updateStock: (id: string, updates: Partial<Omit<Stock, 'id' | 'createdAt'>>) => Promise<void>
-  deleteStock: (id: string) => Promise<void>
-  moveStockToGroup: (stockId: string, newGroupId: string) => Promise<void>
-  
-  //基金操作
-  addFund: (fund: Omit<Fund, 'id' | 'createdAt'>) => Promise<void>
-  updateFund: (id: string, updates: Partial<Omit<Fund, 'id' | 'createdAt'>>) => Promise<void>
-  deleteFund: (id: string) => Promise<void>
-  moveFundToGroup: (fundId: string, newGroupId: string) => Promise<void>
-  
-  // 数据刷新
-  refreshStockQuotes: () => Promise<void>
-  refreshFundQuotes: () => Promise<void>
-  setRefreshConfig: (config: Partial<RefreshConfig>) => void
-  toggleRefresh: (enabled: boolean) => void
-  
-  // UI操作
-  setActiveTab: (tab: 'stock' | 'fund') => void
-  toggleDarkMode: () => void
-  setStockViewMode: (mode: 'card' | 'list') => void
-  setFundViewMode: (mode: 'card' | 'list') => void
-  toggleSidebar: () => void
-  setSidebarCollapsed: (collapsed: boolean) => void
-  clearError: () => void
+/**
+ * 合并所有Store为一个统一接口
+ * 允许代码继续使用 useStore() 调用
+ */
+export const useStore = () => {
+  const uiStore = useUIStore()
+  const stockStore = useStockStore()
+  const fundStore = useFundStore()
+  const refreshStore = useRefreshStore()
+
+  return {
+    // UI Store
+    activeTab: uiStore.activeTab,
+    darkMode: uiStore.darkMode,
+    stockViewMode: uiStore.stockViewMode,
+    fundViewMode: uiStore.fundViewMode,
+    sidebarCollapsed: uiStore.sidebarCollapsed,
+    setActiveTab: uiStore.setActiveTab,
+    toggleDarkMode: uiStore.toggleDarkMode,
+    setStockViewMode: uiStore.setStockViewMode,
+    setFundViewMode: uiStore.setFundViewMode,
+    toggleSidebar: uiStore.toggleSidebar,
+    setSidebarCollapsed: uiStore.setSidebarCollapsed,
+
+    // Refresh Store
+    refreshConfig: refreshStore.refreshConfig,
+    setRefreshConfig: refreshStore.setRefreshConfig,
+    toggleRefresh: refreshStore.toggleRefresh,
+
+    // Stock Store
+    stockGroups: stockStore.stockGroups,
+    stocks: stockStore.stocks,
+    stockQuotes: stockStore.stockQuotes,
+    selectedStockGroup: stockStore.selectedStockGroup,
+    createStockGroup: stockStore.createStockGroup,
+    selectStockGroup: stockStore.selectStockGroup,
+    updateStockGroup: stockStore.updateStockGroup,
+    deleteStockGroup: stockStore.deleteStockGroup,
+    addStock: stockStore.addStock,
+    updateStock: stockStore.updateStock,
+    deleteStock: stockStore.deleteStock,
+    moveStockToGroup: stockStore.moveStockToGroup,
+    refreshStockQuotes: stockStore.refreshStockQuotes,
+
+    // Fund Store
+    fundGroups: fundStore.fundGroups,
+    funds: fundStore.funds,
+    fundQuotes: fundStore.fundQuotes,
+    selectedFundGroup: fundStore.selectedFundGroup,
+    createFundGroup: fundStore.createFundGroup,
+    selectFundGroup: fundStore.selectFundGroup,
+    updateFundGroup: fundStore.updateFundGroup,
+    deleteFundGroup: fundStore.deleteFundGroup,
+    addFund: fundStore.addFund,
+    updateFund: fundStore.updateFund,
+    deleteFund: fundStore.deleteFund,
+    moveFundToGroup: fundStore.moveFundToGroup,
+    refreshFundQuotes: fundStore.refreshFundQuotes,
+
+    // 全局加载状态和错误
+    loading: stockStore.loading || fundStore.loading || refreshStore.loading,
+    error: stockStore.error || fundStore.error || refreshStore.error,
+    clearError: () => {
+      stockStore.clearError()
+      fundStore.clearError()
+      refreshStore.clearError()
+    },
+
+    // 全局初始化
+    initialize: async () => {
+      await Promise.all([
+        refreshStore.initialize(),
+        stockStore.initialize(),
+        fundStore.initialize(),
+        loadUIConfig()
+      ])
+    }
+  }
 }
 
-export const useStore = create<StoreState>()(
-  devtools(
-    (set, get) => ({
-      //初始状态
-      activeTab: 'stock',
-      refreshConfig: {
-        stockInterval: 1500,
-        fundInterval: 60000,
-        enabled: true
-      },
-      darkMode: false,
-      stockViewMode: 'card',
-      fundViewMode: 'card',
-      stockGroups: [],
-      fundGroups: [],
-      selectedStockGroup: null,
-      selectedFundGroup: null,
-      stocks: [],
-      funds: [],
-      stockQuotes: {},
-      fundQuotes: {},
-      loading: false,
-      error: null,
+// 加载UI配置
+async function loadUIConfig() {
+  const uiStore = useUIStore()
+  const savedDarkMode = localStorage.getItem('darkMode') === 'true'
+  const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
+  const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
+  const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
 
-      // 初始化
-      initialize: async () => {
-        set({ loading: true, error: null })
-        try {
-          // 加载配置
-          const savedDarkMode = localStorage.getItem('darkMode') === 'true'
-          const savedRefreshConfig = localStorage.getItem('refreshConfig')
-          const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
-          const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
-          const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
-          if (savedRefreshConfig) {
-            try {
-              const config = JSON.parse(savedRefreshConfig)
-              set({ refreshConfig: config })
-            } catch (e) {
-              console.error('Failed to parse saved refresh config', e)
-            }
-          }
-          set({
-            darkMode: savedDarkMode,
-            stockViewMode: savedStockViewMode || 'card',
-            fundViewMode: savedFundViewMode || 'card',
-            sidebarCollapsed: savedSidebarCollapsed
-          })
+  if (savedDarkMode) {
+    uiStore.toggleDarkMode()
+  }
+  if (savedStockViewMode && savedStockViewMode !== 'card') {
+    uiStore.setStockViewMode(savedStockViewMode)
+  }
+  if (savedFundViewMode && savedFundViewMode !== 'card') {
+    uiStore.setFundViewMode(savedFundViewMode)
+  }
+  if (savedSidebarCollapsed) {
+    uiStore.setSidebarCollapsed(savedSidebarCollapsed)
+  }
+}
 
-          // 加载分组和持仓数据
-          const [stockGroups, fundGroups, stocks, funds] = await Promise.all([
-            window.electronAPI.db.getStockGroups(),
-            window.electronAPI.db.getFundGroups(),
-            window.electronAPI.db.getStocks(),
-            window.electronAPI.db.getFunds()
-          ])
-          
-          set({ stockGroups, fundGroups, stocks, funds })
-
-          // 如果没有分组，则创建默认分组
-          if (stockGroups.length === 0) {
-            await get().createStockGroup('我的股票')
-          }
-          if (fundGroups.length === 0) {
-            await get().createFundGroup('我的基金')
-          }
-
-          // 初始默认选择第一个分组
-          const initialSelectedStockGroup = localStorage.getItem('selectedStockGroup')
-          const initialSelectedFundGroup = localStorage.getItem('selectedFundGroup')
-
-          set({
-            selectedStockGroup: stockGroups.some(g => g.id === initialSelectedStockGroup)
-              ? initialSelectedStockGroup
-              : stockGroups[0]?.id || null,
-            selectedFundGroup: fundGroups.some(g => g.id === initialSelectedFundGroup)
-              ? initialSelectedFundGroup
-              : fundGroups[0]?.id || null
-          })
-          
-          // 加载行情数据
-          await get().refreshStockQuotes()
-          await get().refreshFundQuotes()
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '初始化失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      // 分组操作
-      createStockGroup: async (name) => {
-        set({ loading: true, error: null })
-        try {
-          const group = await window.electronAPI.db.createStockGroup(name)
-          set(state => ({ 
-            stockGroups: [...state.stockGroups, group],
-            selectedStockGroup: group.id
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '创建分组失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      createFundGroup: async (name) => {
-        set({ loading: true, error: null })
-        try {
-          const group = await window.electronAPI.db.createFundGroup(name)
-          set(state => ({ 
-            fundGroups: [...state.fundGroups, group],
-            selectedFundGroup: group.id
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '创建分组失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      selectStockGroup: (groupId) => {
-        set({ selectedStockGroup: groupId })
-        if (groupId) {
-          localStorage.setItem('selectedStockGroup', groupId)
-        } else {
-          localStorage.removeItem('selectedStockGroup')
-        }
-      },
-      selectFundGroup: (groupId) => {
-        set({ selectedFundGroup: groupId })
-        if (groupId) {
-          localStorage.setItem('selectedFundGroup', groupId)
-        } else {
-          localStorage.removeItem('selectedFundGroup')
-        }
-      },
-
-      updateStockGroup: async (id, name) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.updateStockGroup(id, name)
-          set(state => ({
-            stockGroups: state.stockGroups.map(group => 
-              group.id === id ? { ...group, name } : group
-            )
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '更新分组失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      updateFundGroup: async (id, name) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.updateFundGroup(id, name)
-          set(state => ({
-            fundGroups: state.fundGroups.map(group => 
-              group.id === id ? { ...group, name } : group
-            )
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '更新分组失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      deleteStockGroup: async (id) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.deleteStockGroup(id)
-          set(state => ({
-            stockGroups: state.stockGroups.filter(group => group.id !== id),
-            selectedStockGroup: state.selectedStockGroup === id ? null : state.selectedStockGroup,
-            stocks: state.stocks.filter(stock => stock.groupId !== id)
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '删除分组失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      deleteFundGroup: async (id) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.deleteFundGroup(id)
-          set(state => ({
-            fundGroups: state.fundGroups.filter(group => group.id !== id),
-            selectedFundGroup: state.selectedFundGroup === id ? null : state.selectedFundGroup,
-            funds: state.funds.filter(fund => fund.groupId !== id)
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '删除分组失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      //操作
-      addStock: async (stockData) => {
-        set({ loading: true, error: null })
-        try {
-          const stock = await window.electronAPI.db.createStock(stockData)
-          set(state => ({ stocks: [...state.stocks, stock] }))
-          await get().refreshStockQuotes()
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '添加股票失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      updateStock: async (id, updates) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.updateStock(id, updates)
-          set(state => ({
-            stocks: state.stocks.map(stock => 
-              stock.id === id ? { ...stock, ...updates } : stock
-            )
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '更新股票失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      deleteStock: async (id) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.deleteStock(id)
-          set(state => ({
-            stocks: state.stocks.filter(stock => stock.id !== id)
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '删除股票失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      moveStockToGroup: async (stockId, newGroupId) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.updateStock(stockId, { groupId: newGroupId })
-          set(state => ({
-            stocks: state.stocks.map(stock =>
-              stock.id === stockId ? { ...stock, groupId: newGroupId } : stock
-            )
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '移动股票失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      //基金操作
-      addFund: async (fundData) => {
-        set({ loading: true, error: null })
-        try {
-          const fund = await window.electronAPI.db.createFund(fundData)
-          set(state => ({ funds: [...state.funds, fund] }))
-          await get().refreshFundQuotes()
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '添加基金失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      updateFund: async (id, updates) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.updateFund(id, updates)
-          set(state => ({
-            funds: state.funds.map(fund => 
-              fund.id === id ? { ...fund, ...updates } : fund
-            )
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '更新基金失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      deleteFund: async (id) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.deleteFund(id)
-          set(state => ({
-            funds: state.funds.filter(fund => fund.id !== id)
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '删除基金失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      moveFundToGroup: async (fundId, newGroupId) => {
-        set({ loading: true, error: null })
-        try {
-          await window.electronAPI.db.updateFund(fundId, { groupId: newGroupId })
-          set(state => ({
-            funds: state.funds.map(fund =>
-              fund.id === fundId ? { ...fund, groupId: newGroupId } : fund
-            )
-          }))
-        } catch (error) {
-          set({ error: error instanceof Error ? error.message : '移动基金失败' })
-        } finally {
-          set({ loading: false })
-        }
-      },
-
-      // 数据刷新
-      refreshStockQuotes: async () => {
-        try {
-          const symbols = [...new Set(get().stocks.map(s => s.symbol))]
-          if (symbols.length === 0) return
-          const quotes = await StockService.getStockQuotes(symbols)
-          const quoteMap: Record<string, StockQuote> = {}
-          quotes.forEach((quote: StockQuote) => {
-            quoteMap[quote.symbol] = quote
-            // 也通过去除前缀后的代码作为 key，以兼容旧数据或无前缀请求
-            const shortSymbol = quote.symbol.replace(/^(sh|sz|hk|us)/i, '')
-            quoteMap[shortSymbol] = quote
-          })
-          set({ stockQuotes: quoteMap })
-        } catch (error) {
-          console.error('刷新股票行情失败:', error)
-        }
-      },
-
-      refreshFundQuotes: async () => {
-        try {
-          const codes = [...new Set(get().funds.map(f => f.code))]
-          if (codes.length === 0) return
-          
-          const quotes = await FundService.getFundQuotes(codes)
-          console.log(quotes)
-          const quoteMap: Record<string, FundQuote> = {}
-          quotes.forEach((quote: FundQuote) => {
-            quoteMap[quote.code] = quote
-          })
-          
-          set({ fundQuotes: quoteMap })
-        } catch (error) {
-          console.error('刷新基金行情失败:', error)
-        }
-      },
-
-      setRefreshConfig: (config) => {
-        const newConfig = { ...get().refreshConfig, ...config }
-        set({ refreshConfig: newConfig })
-        localStorage.setItem('refreshConfig', JSON.stringify(newConfig))
-      },
-
-      toggleRefresh: (enabled) => {
-        const newConfig = { ...get().refreshConfig, enabled }
-        set({ refreshConfig: newConfig })
-        localStorage.setItem('refreshConfig', JSON.stringify(newConfig))
-      },
-
-      // UI操作
-      setActiveTab: (tab) => set({ activeTab: tab }),
-      toggleDarkMode: () => {
-        const newMode = !get().darkMode
-        set({ darkMode: newMode })
-        localStorage.setItem('darkMode', newMode.toString())
-      },
-      setStockViewMode: (mode: 'card' | 'list') => {
-        set({ stockViewMode: mode })
-        localStorage.setItem('stockViewMode', mode)
-      },
-      setFundViewMode: (mode: 'card' | 'list') => {
-        set({ fundViewMode: mode })
-        localStorage.setItem('fundViewMode', mode)
-      },
-      toggleSidebar: () => {
-        const newState = !get().sidebarCollapsed
-        set({ sidebarCollapsed: newState })
-        localStorage.setItem('sidebarCollapsed', newState.toString())
-      },
-      setSidebarCollapsed: (collapsed: boolean) => {
-        set({ sidebarCollapsed: collapsed })
-        localStorage.setItem('sidebarCollapsed', collapsed.toString())
-      },
-      clearError: () => set({ error: null })
-    }),
-    {
-      name: 'stocklite-store'
-    }
-  )
-)
+// 直接导出子Store以便需要时单独使用
+export { useUIStore, useStockStore, useFundStore, useRefreshStore }

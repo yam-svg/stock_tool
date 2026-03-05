@@ -11,7 +11,7 @@ import {
   StockCard,
   StockList,
 } from './components'
-import { useStore } from './store'
+import { useStore, useStockStore, useFundStore, useRefreshStore, useUIStore } from './store'
 import { Button } from './ui'
 
 const App: React.FC = () => {
@@ -70,7 +70,30 @@ const App: React.FC = () => {
   // 初始化应用
   useEffect(() => {
     const init = async () => {
-      await useStore.getState().initialize()
+      // 初始化各个Store
+      await useRefreshStore.getState().initialize()
+      await useStockStore.getState().initialize()
+      await useFundStore.getState().initialize()
+      
+      // 加载UI配置
+      const savedDarkMode = localStorage.getItem('darkMode') === 'true'
+      const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
+      const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
+      const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
+
+      const uiStore = useUIStore.getState()
+      if (savedDarkMode && !useUIStore.getState().darkMode) {
+        uiStore.toggleDarkMode()
+      }
+      if (savedStockViewMode && savedStockViewMode !== 'card') {
+        uiStore.setStockViewMode(savedStockViewMode)
+      }
+      if (savedFundViewMode && savedFundViewMode !== 'card') {
+        uiStore.setFundViewMode(savedFundViewMode)
+      }
+      if (savedSidebarCollapsed) {
+        uiStore.setSidebarCollapsed(savedSidebarCollapsed)
+      }
     }
     init()
   }, [])
