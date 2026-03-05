@@ -38,16 +38,17 @@ my-electron-app/
 │   │   └── preload.ts            # 预加载脚本
 │   │
 │   ├── renderer/                  # React 前端应用
-│   │   ├── App.tsx               # 应用主组件
+│   │   ├── App.tsx               # 应用主组件（已优化为编排层）
 │   │   ├── main.tsx              # 入口文件
 │   │   ├── index.css             # 全局样式
 │   │   │
 │   │   ├── components/           # 组件（已按功能分组）
 │   │   │   ├── layout/           # 布局组件
-│   │   │   │   ├── Header.tsx    # 顶部导航栏
-│   │   │   │   └── Sidebar.tsx   # 左侧分组面板
+│   │   │   │   ├── Header.tsx    # 顶部导航栏（含刷新状态提示）
+│   │   │   │   └── Sidebar.tsx   # 左侧分组面板（支持收缩）
 │   │   │   │
 │   │   │   ├── stock/            # 股票相关组件
+│   │   │   │   ├── StockView.tsx          # 股票主视图（新增）
 │   │   │   │   ├── StockCard.tsx          # 股票卡片
 │   │   │   │   ├── StockList.tsx          # 股票列表
 │   │   │   │   ├── StockForm.tsx          # 股票表单
@@ -78,12 +79,26 @@ my-electron-app/
 │   │   │   │
 │   │   │   └── index.ts          # 组件导出
 │   │   │
+│   │   ├── hooks/                # 业务逻辑 Hooks（新增）
+│   │   │   ├── useAppLifecycle.ts     # 应用生命周期管理
+│   │   │   ├── usePortfolioMetrics.ts # 收益计算和数据汇总
+│   │   │   ├── useGroupActions.ts     # 分组操作
+│   │   │   ├── useHoldingActions.ts   # 持仓操作
+│   │   │   └── index.ts              # 统一导出
+│   │   │
+│   │   ├── types/                # 类型定义（新增）
+│   │   │   └── hooks.ts          # Hook 相关类型
+│   │   │
 │   │   ├── services/             # 业务服务
 │   │   │   ├── stockService.ts   # 股票服务
 │   │   │   └── fundService.ts    # 基金服务
 │   │   │
-│   │   └── store/                # Zustand 状态管理
-│   │       └── index.ts          # 全局状态存储
+│   │   └── store/                # Zustand 状态管理（已分仓）
+│   │       ├── index.ts          # 统一接口
+│   │       ├── uiStore.ts        # UI 状态
+│   │       ├── stockStore.ts     # 股票状态（含 refreshing）
+│   │       ├── fundStore.ts      # 基金状态（含 refreshing）
+│   │       └── refreshStore.ts   # 刷新配置
 │   │
 │   └── shared/                    # 共享资源
 │       ├── types.ts              # TypeScript 类型定义
@@ -124,8 +139,10 @@ my-electron-app/
 ### 界面特性
 - ✅ **深色模式** - 完整的深色/浅色主题支持
 - ✅ **响应式** - 自适应各种窗口大小
-- ✅ **流畅动画** - 300ms 过渡效果
+- ✅ **流畅动画** - 300ms 过渡效果，价格变化闪烁提示
 - ✅ **现代UI** - 使用 Tailwind CSS 和 Lucide 图标
+- ✅ **刷新反馈** - Activity 图标颜色变化，最小显示 600ms
+- ✅ **列表优化** - 持仓为 0 时显示 `-`，避免数据误导
 
 ### 数据管理
 - ✅ **本地存储** - SQLite 数据库存储
@@ -381,7 +398,61 @@ npm run package
 - **[REFACTOR_SUMMARY.md](./REFACTOR_SUMMARY.md)** - 重构完成总结，包含代码质量对比和性能分析
 - **[COMPLETION_CHECKLIST.md](./COMPLETION_CHECKLIST.md)** - 完成清单，列出所有新创建的文件和模块
 
-## 🔄 最近的重构改进
+## 🔄 最近更新 (2026-03-05)
+
+### 🎨 核心架构优化
+- ✅ **App.tsx 瘦身** - 从 600+ 行精简，提取业务逻辑到 Hooks
+  - `useAppLifecycle` - 应用生命周期管理（初始化、定时刷新、响应式侧栏）
+  - `usePortfolioMetrics` - 收益计算和数据汇总（股票/基金收益、可见列表、分组计数）
+  - `useGroupActions` - 分组操作（创建/选择/更新/删除/移动/添加）
+  - `useHoldingActions` - 持仓操作（编辑/移动/删除/新增股票基金）
+- ✅ **StockView 组件** - 股票视图独立组件，统一卡片/列表展示
+- ✅ **类型系统重构** - 抽离所有内联类型到 `src/renderer/types/hooks.ts`
+  - `AppTab` / `EditableHolding` / `UpdatePayload`
+  - `StockSubmitPayload` / `FundSubmitPayload`
+  - `UseHoldingActionsParams` / `UseGroupActionsParams` / `UsePortfolioMetricsParams`
+
+### 🎯 用户体验改进
+- ✅ **刷新状态反馈** - 自动刷新时的视觉提示
+  - Header 右上角 Activity 图标颜色变化（灰色 → 绿色）
+  - 手动刷新按钮旋转动画 + 禁用状态
+  - **最小显示时间 600ms**，确保用户能看到反馈
+- ✅ **股票列表优化** - 持仓为 0 时，市值和收益显示 `-`，避免误导
+- ✅ **初始化修复** - 解决 Invalid Hook Call 错误，使用 `getState()` 正确调用 Store
+- ✅ **性能优化** - 防止重复初始化和定时器重建，使用 `useRef` 稳定回调引用
+
+### 🏗️ 代码质量提升
+- ✅ **注释完善** - 为所有核心 Hooks 和业务逻辑添加详细注释
+- ✅ **类型安全** - 消除 `any` 类型，使用统一的类型定义
+- ✅ **模块化** - App.tsx 从"大而全"转为"编排层"，职责清晰
+
+### 📁 新增文件
+```
+src/renderer/
+├── hooks/                         # 业务逻辑 Hooks
+│   ├── useAppLifecycle.ts        # 生命周期管理
+│   ├── usePortfolioMetrics.ts    # 收益计算
+│   ├── useGroupActions.ts        # 分组操作
+│   ├── useHoldingActions.ts      # 持仓操作
+│   └── index.ts                  # 统一导出
+├── types/
+│   └── hooks.ts                  # Hook 相关类型定义
+└── components/
+    └── stock/
+        └── StockView.tsx         # 股票视图组件
+```
+
+### 🔧 技术改进
+| 改进项 | 优化前 | 优化后 | 效果 |
+|--------|--------|--------|------|
+| App.tsx 行数 | 600+ | ~310 | ↓ 48% |
+| 类型安全 | any 类型 | 统一类型 | ↑ 100% |
+| 刷新反馈 | 无 | 600ms 最小显示 | ↑ 用户体验 |
+| Hook 数量 | 0 | 4 | ↑ 可维护性 |
+
+---
+
+## 🔄 历史重构记录
 
 ### Store 分仓 (5个模块)
 ```
@@ -439,6 +510,6 @@ src/main/
 
 ---
 
-**最后更新**: 2026年3月4日  
+**最后更新**: 2026年3月5日  
 **版本**: 1.0.0  
-**状态**: 🟢 暂停开发
+**状态**: 🟢 活跃开发中
