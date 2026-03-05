@@ -1,265 +1,69 @@
 import axios from 'axios'
 import { ipcMain } from 'electron'
 import iconv from 'iconv-lite'
-import { GlobalIndexQuote } from '../../shared/types'
-
-type GlobalIndexConfig = {
-  symbol: string
-  code: string
-  nameEn: string
-  nameCn: string
-  market: string
-  timezone: string
-}
-
-const GLOBAL_INDEXES: GlobalIndexConfig[] = [
-  { symbol: '^GSPC', code: 'SPX', nameEn: 'S&P 500', nameCn: '标普500', market: 'US', timezone: 'America/New_York' },
-  { symbol: '^DJI', code: 'DJI', nameEn: 'Dow Jones', nameCn: '道琼斯', market: 'US', timezone: 'America/New_York' },
-  { symbol: '^IXIC', code: 'IXIC', nameEn: 'NASDAQ', nameCn: '纳斯达克', market: 'US', timezone: 'America/New_York' },
-  { symbol: '^FTSE', code: 'FTSE', nameEn: 'FTSE 100', nameCn: '富时100', market: 'UK', timezone: 'Europe/London' },
-  { symbol: '^GDAXI', code: 'DAX', nameEn: 'DAX', nameCn: '德国DAX', market: 'DE', timezone: 'Europe/Berlin' },
-  { symbol: '^N225', code: 'N225', nameEn: 'Nikkei 225', nameCn: '日经225', market: 'JP', timezone: 'Asia/Tokyo' },
-  { symbol: '^HSI', code: 'HSI', nameEn: 'Hang Seng', nameCn: '恒生指数', market: 'HK', timezone: 'Asia/Hong_Kong' },
-  {
-    symbol: '000001.SS',
-    code: 'SSE',
-    nameEn: 'SSE Composite',
-    nameCn: '上证指数',
-    market: 'CN',
-    timezone: 'Asia/Shanghai',
-  },
-  {
-    symbol: '399001.SZ',
-    code: 'SZSE',
-    nameEn: 'SZSE Component',
-    nameCn: '深证成指',
-    market: 'CN',
-    timezone: 'Asia/Shanghai',
-  },
-  {
-    symbol: '000300.SS',
-    code: 'CSI300',
-    nameEn: 'CSI 300',
-    nameCn: '沪深300',
-    market: 'CN',
-    timezone: 'Asia/Shanghai',
-  },
-]
-
-function getMarketSessionMinutes(market: string): {
-  start: number;
-  end: number;
-  lunchStart?: number;
-  lunchEnd?: number
-} {
-  switch (market) {
-    case 'CN':
-      return { start: 9 * 60 + 30, end: 15 * 60, lunchStart: 11 * 60 + 30, lunchEnd: 13 * 60 }
-    case 'HK':
-      return { start: 9 * 60 + 30, end: 16 * 60, lunchStart: 12 * 60, lunchEnd: 13 * 60 }
-    case 'JP':
-      return { start: 9 * 60, end: 15 * 60, lunchStart: 11 * 60 + 30, lunchEnd: 12 * 60 + 30 }
-    case 'US':
-      return { start: 9 * 60 + 30, end: 16 * 60 }
-    case 'UK':
-      return { start: 8 * 60, end: 16 * 60 + 30 }
-    case 'DE':
-      return { start: 9 * 60, end: 17 * 60 + 30 }
-    default:
-      return { start: 9 * 60, end: 16 * 60 }
-  }
-}
-
-/**
- * 判断市场是否开市
- * @param market 市场代码 (CN, US, HK, JP, UK, DE)
- * @param timezone 时区
- * @returns 是否开市
- */
-function isMarketOpenByTimezone(market: string, timezone: string): boolean {
-  const now = new Date()
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: timezone,
-    hour12: false,
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).formatToParts(now)
-  
-  const weekday = parts.find((p) => p.type === 'weekday')?.value || 'Mon'
-  const hour = Number(parts.find((p) => p.type === 'hour')?.value || '0')
-  const minute = Number(parts.find((p) => p.type === 'minute')?.value || '0')
-  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
-  const day = dayMap[weekday] ?? 1
-  
-  // 周末不开市
-  if (day === 0 || day === 6) return false
-  
-  const current = hour * 60 + minute
-  const session = getMarketSessionMinutes(market)
-  
-  // 检查交易时间范围
-  if (current < session.start || current > session.end) return false
-  
-  // 检查午休时间（若有午休，在午休时间内不开市）
-  if (session.lunchStart !== undefined && session.lunchEnd !== undefined) {
-    if (current >= session.lunchStart && current <= session.lunchEnd) return false
-  }
-  
-  return true
-}
-
-/**
- * 解析新浪返回的全球指数数据
- *
- * 新浪返回格式：
- * var hq_str_gb_dji="道琼斯,39123.45,1.23,2026-03-05 06:30:00,....";
- *
- * 字段结构（全球指数）：
- * 0  名称
- * 1  最新价
- * 2  涨跌幅 %
- * 3  时间
- * 4  涨跌额
- * 5  开盘
- * 6  最高
- * 7  最低
- *
- * @param text 新浪返回的原始文本
- * @param symbolMap 新浪symbol -> 标准symbol
- */
-function parseSinaGlobalIndexData(
-  text: string,
-  symbolMap: Record<string, string>
-): Map<string, { price: number; changePercent: number }> {
-  const quoteMap = new Map<string, { price: number; changePercent: number }>()
-  
-  const regex = /var hq_str_([^=]+)="([^"]*)"/g
-  let match: RegExpExecArray | null
-  
-  while ((match = regex.exec(text)) !== null) {
-    const sinaSymbol = match[1].toUpperCase()
-    const rawData = match[2]
-    
-    const stdSymbol = symbolMap[sinaSymbol]
-    if (!stdSymbol || !rawData) continue
-    
-    const data = rawData.split(',')
-    
-    let price = 0
-    let changePercent = 0
-    
-    // ===== 全球指数 (gb_) =====
-    if (sinaSymbol.startsWith('GB_') || sinaSymbol.startsWith('RT_HK')) {
-      if (data.length >= 3) {
-        price = Number(data[1])
-        changePercent = Number(data[2])
-      }
-    }
-    
-    // ===== A股指数 =====
-    else if (sinaSymbol.startsWith('SH') || sinaSymbol.startsWith('SZ')) {
-      if (data.length >= 4) {
-        const yesterdayClose = Number(data[2])
-        price = Number(data[3])
-        
-        if (yesterdayClose > 0) {
-          changePercent = ((price - yesterdayClose) / yesterdayClose) * 100
-        }
-      }
-    }
-    
-    if (Number.isFinite(price)) {
-      quoteMap.set(stdSymbol, {
-        price,
-        changePercent
-      })
-    }
-  }
-  
-  return quoteMap
-}
+import { isMarketOpenByTimezone, parseSinaData } from '../utils'
+import { API_TOKEN, GLOBAL_INDEXES, SINA_SYMBOL_MAP } from '../utils/constants'
 
 /**
  * 注册 IPC：获取全球指数行情
  */
-export function registerGlobalIndexQuoteHandlers() {
-  ipcMain.handle('db-get-global-index-quotes', async () => {
+export async function registerGlobalIndexQuoteHandlers() {
+  ipcMain.handle("db-get-global-index-quotes", async () => {
+    const symbols = Object.values(SINA_SYMBOL_MAP).join(",")
+    const sinaUrl = `http://hq.sinajs.cn/list=${symbols}`
     const now = Date.now()
-    
-    /**
-     * 新浪symbol -> 标准symbol
-     *
-     * 注意：
-     * 新浪 symbol 必须大写
-     */
-    const symbolMap: Record<string, string> = {
-      GB_DJI: '^DJI',
-      GB_IXIC: '^IXIC',
-      'GB_$INX': '^GSPC',
-      RT_HKHSI: '^HSI',
-      SH000001: '000001.SS',
-      SZ399001: '399001.SZ',
-      SH000300: '000300.SS',
-    }
-    
     const quoteMap = new Map<string, { price: number; changePercent: number }>()
     
-    /**
-     * 新浪接口
-     */
-    const url =
-      'https://hq.sinajs.cn/list=gb_dji,gb_ixic,gb_$inx,rt_hkHSI,sh000001,sz399001,sh000300'
-    
+    // 1️⃣ 新浪接口
     try {
-      const response = await axios.get(url, {
+      const res = await axios.get(sinaUrl, {
+        responseType: "arraybuffer",
         headers: {
-          Referer: 'https://finance.sina.com.cn',
-          'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+          Referer: "https://finance.sina.com.cn",
+          "User-Agent": "Mozilla/5.0",
         },
-        
-        /**
-         * 必须用 arraybuffer
-         * 因为新浪返回是 GBK
-         */
-        responseType: 'arraybuffer',
         timeout: 10000,
       })
-      
-      /**
-       * 新浪返回 GBK
-       */
-      const text = iconv.decode(response.data, 'gbk')
-      
-      const parsed = parseSinaGlobalIndexData(text, symbolMap)
-      
-      parsed.forEach((v, k) => {
-        quoteMap.set(k, v)
-      })
-    } catch (error) {
-      console.error('Fetch sina quotes failed:', error)
+      const text = iconv.decode(res.data, "gbk")
+      const sinaQuotes = parseSinaData(text)
+      sinaQuotes.forEach((v, k) => quoteMap.set(k, v))
+    } catch (err) {
+      console.warn("新浪接口获取失败", err)
     }
     
-    /**
-     * 构建返回结构
-     */
-    const result: GlobalIndexQuote[] = GLOBAL_INDEXES.map((item) => {
-      const quote = quoteMap.get(item.symbol)
+    // 2️⃣ 日经225通过Twelve Data API（免费注册Token）
+    try {
+      const tdRes = await axios.get(
+        `https://api.twelvedata.com/quote?symbol=XYM/JPY&apikey=${API_TOKEN}`
+      )
+      const data = tdRes.data
+      console.log(data)
+      if (data && data.price) {
+        quoteMap.set("gb_nky", {
+          price: parseFloat(data.price),
+          changePercent: parseFloat(data.change_percent),
+        })
+      }
+    } catch (err) {
+      console.warn("Twelve Data 日经接口失败", err)
+    }
+    
+    // 3️⃣ 构建统一返回结果
+    return GLOBAL_INDEXES.map((item) => {
+      const sinaSymbol = SINA_SYMBOL_MAP[item.symbol]
+      const quote = quoteMap.get(sinaSymbol)
       
       return {
         symbol: item.symbol,
         code: item.code,
         name: `${item.nameCn} (${item.nameEn})`,
         market: item.market,
-        value: quote?.price ?? 0,
-        changePercent: quote?.changePercent ?? 0,
+        value: quote?.price || 0,
+        changePercent: quote?.changePercent || 0,
         isOpen: isMarketOpenByTimezone(item.market, item.timezone),
         updateTime: now,
       }
     })
-    
-    return result
   })
 }
 
