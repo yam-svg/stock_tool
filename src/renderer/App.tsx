@@ -195,7 +195,7 @@ const App: React.FC = () => {
             } border border-l-0 hover:shadow-xl`}
             title="展开侧边栏"
           >
-            <Menu className="w-4 h-4" />
+            <Menu className="w-2 h-2" />
           </button>
         )}
 
