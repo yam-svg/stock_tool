@@ -1,6 +1,7 @@
-﻿import React from "react";
-import { Stock, StockQuote, StockGroup } from "../../../shared/types";
-import { StockActionMenu } from "./StockActionMenu";
+﻿import React from 'react'
+import { Stock, StockGroup, StockQuote } from '../../../shared/types'
+import { StockActionMenu } from './StockActionMenu'
+
 interface StockListProps {
   darkMode: boolean;
   stocks: Stock[];
@@ -10,6 +11,7 @@ interface StockListProps {
   onEdit: (stock: Stock) => void;
   onMove: (stockId: string, groupId: string) => void;
 }
+
 export const StockList: React.FC<StockListProps> = ({
   darkMode,
   stocks,
@@ -19,46 +21,46 @@ export const StockList: React.FC<StockListProps> = ({
   onEdit,
   onMove,
 }) => {
-  const [showMenuId, setShowMenuId] = React.useState<string | null>(null);
-  const [flashColors, setFlashColors] = React.useState<Record<string, "red" | "green">>({});
-  const prevPricesRef = React.useRef<Record<string, number>>({});
+  const [showMenuId, setShowMenuId] = React.useState<string | null>(null)
+  const [flashColors, setFlashColors] = React.useState<Record<string, 'red' | 'green'>>({})
+  const prevPricesRef = React.useRef<Record<string, number>>({})
   // 价格更新闪烁效果
   React.useEffect(() => {
-    const newFlashColors: Record<string, "red" | "green"> = {};
+    const newFlashColors: Record<string, 'red' | 'green'> = {}
     stocks.forEach((stock) => {
-      const currentPrice = quotes[stock.symbol]?.price || 0;
-      const prevPrice = prevPricesRef.current[stock.symbol] || currentPrice;
+      const currentPrice = quotes[stock.symbol]?.price || 0
+      const prevPrice = prevPricesRef.current[stock.symbol] || currentPrice
       if (currentPrice !== prevPrice && prevPrice !== 0) {
         if (currentPrice > prevPrice) {
-          newFlashColors[stock.id] = "red";
+          newFlashColors[stock.id] = 'red'
         } else if (currentPrice < prevPrice) {
-          newFlashColors[stock.id] = "green";
+          newFlashColors[stock.id] = 'green'
         }
       }
-      prevPricesRef.current[stock.symbol] = currentPrice;
-    });
+      prevPricesRef.current[stock.symbol] = currentPrice
+    })
     if (Object.keys(newFlashColors).length > 0) {
-      setFlashColors(newFlashColors);
+      setFlashColors(newFlashColors)
       const timer = setTimeout(() => {
-        setFlashColors({});
-      }, 1500);
-      return () => clearTimeout(timer);
+        setFlashColors({})
+      }, 1500)
+      return () => clearTimeout(timer)
     }
-  }, [stocks, quotes]);
-
+  }, [stocks, quotes])
+  
   return (
     <div
       className={`rounded-lg border ${
-        darkMode ? "border-gray-700/50 bg-gray-800/50" : "border-gray-200/50 bg-white/50"
+        darkMode ? 'border-gray-700/50 bg-gray-800/50' : 'border-gray-200/50 bg-white/50'
       } backdrop-blur-sm`}
     >
       {/* 表头 */}
       <div
         className={`grid gap-4 px-4 py-3 text-xs font-semibold ${
-          darkMode ? "bg-gray-700/50" : "bg-gray-100/50"
+          darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'
         }`}
         style={{
-          gridTemplateColumns: "1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr 0.6fr"
+          gridTemplateColumns: '1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr 0.6fr',
         }}
       >
         <div>股票代码</div>
@@ -75,41 +77,41 @@ export const StockList: React.FC<StockListProps> = ({
       {/* 表格内容 */}
       <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
         {stocks.map((stock) => {
-          const quote = quotes[stock.symbol];
-          const currentPrice = quote?.price || 0;
-          const cost = stock.costPrice * stock.quantity;
-          const marketValue = currentPrice * stock.quantity;
-          const profit = marketValue - cost;
+          const quote = quotes[stock.symbol]
+          const currentPrice = quote?.price || 0
+          const cost = stock.costPrice * stock.quantity
+          const marketValue = currentPrice * stock.quantity
+          const profit = marketValue - cost
           const profitRate = stock.costPrice !== 0
             ? ((currentPrice - stock.costPrice) / stock.costPrice) * 100
-            : 0;
-          const priceChange = quote?.change || 0;
-          const changePercent = quote?.changePercent || 0;
-          const flashColor = flashColors[stock.id];
+            : 0
+          const priceChange = quote?.change || 0
+          const changePercent = quote?.changePercent || 0
+          const flashColor = flashColors[stock.id]
           return (
             <div
               key={stock.id}
               className={`grid gap-4 px-4 py-3 text-sm transition-colors duration-500 relative ${
-                flashColor === "red"
+                flashColor === 'red'
                   ? darkMode
-                    ? "bg-red-500/20"
-                    : "bg-red-50/50"
-                  : flashColor === "green"
-                  ? darkMode
-                    ? "bg-green-500/20"
-                    : "bg-green-50/50"
-                  : darkMode
-                  ? "hover:bg-gray-700/30"
-                  : "hover:bg-gray-50/50"
+                    ? 'bg-red-500/20'
+                    : 'bg-red-50/50'
+                  : flashColor === 'green'
+                    ? darkMode
+                      ? 'bg-green-500/20'
+                      : 'bg-green-50/50'
+                    : darkMode
+                      ? 'hover:bg-gray-700/30'
+                      : 'hover:bg-gray-50/50'
               }`}
               style={{
-                gridTemplateColumns: "1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr 0.6fr"
+                gridTemplateColumns: '1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr 0.6fr',
               }}
             >
               <div className="flex items-center">
                 <div
                   className={`w-2 h-2 rounded-full mr-2 ${
-                    currentPrice >= stock.costPrice ? "bg-red-500" : "bg-green-500"
+                    currentPrice >= stock.costPrice ? 'bg-red-500' : 'bg-green-500'
                   }`}
                 ></div>
                 <span className="text-gray-500">{stock.symbol}</span>
@@ -117,34 +119,34 @@ export const StockList: React.FC<StockListProps> = ({
               <div className="font-medium">{stock.name}</div>
               <div className="text-right">{stock.quantity}</div>
               <div className="text-right">¥{stock.costPrice.toFixed(2)}</div>
-               <div className={`text-right font-bold ${
-                 (quote?.change || 0) >= 0 ? "text-red-500" : "text-green-500"
-               }`}>
-                 ¥{currentPrice ? currentPrice.toFixed(2) : "-"}
-               </div>
-               <div className={`text-right font-bold ${
-                 priceChange >= 0 ? "text-red-500" : "text-green-500"
-               }`}>
-                 {priceChange >= 0 ? "+" : ""}{priceChange ? priceChange.toFixed(4) : "-"}
-               </div>
-               <div className={`text-right font-bold ${
-                 changePercent >= 0 ? "text-red-500" : "text-green-500"
-               }`}>
-                 {changePercent >= 0 ? "+" : ""}{changePercent ? changePercent.toFixed(2) : "-"}%
-               </div>
+              <div className={`text-right font-bold ${
+                (quote?.change || 0) >= 0 ? 'text-red-500' : 'text-green-500'
+              }`}>
+                ¥{currentPrice ? currentPrice.toFixed(4) : '-'}
+              </div>
+              <div className={`text-right font-bold ${
+                priceChange >= 0 ? 'text-red-500' : 'text-green-500'
+              }`}>
+                {priceChange >= 0 ? '+' : ''}{priceChange ? priceChange.toFixed(4) : '-'}
+              </div>
+              <div className={`text-right font-bold ${
+                changePercent >= 0 ? 'text-red-500' : 'text-green-500'
+              }`}>
+                {changePercent >= 0 ? '+' : ''}{changePercent ? changePercent.toFixed(2) : '-'}%
+              </div>
               <div className="text-right">
                 <div className="font-medium">¥{marketValue.toFixed(2)}</div>
               </div>
               <div className="text-right">
-                <div className={`font-bold ${profit >= 0 ? "text-red-500" : "text-green-500"}`}>
+                <div className={`font-bold ${profit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
                   ¥{profit.toFixed(2)}
                 </div>
                 <div
                   className={`text-xs ${
-                    profitRate >= 0 ? "text-red-400" : "text-green-400"
+                    profitRate >= 0 ? 'text-red-400' : 'text-green-400'
                   }`}
                 >
-                  {profitRate >= 0 ? "+" : ""}
+                  {profitRate >= 0 ? '+' : ''}
                   {profitRate.toFixed(2)}%
                 </div>
               </div>
@@ -155,8 +157,8 @@ export const StockList: React.FC<StockListProps> = ({
                   groups={groups}
                   isOpen={showMenuId === stock.id}
                   onToggle={(e) => {
-                    e.stopPropagation?.();
-                    setShowMenuId(showMenuId === stock.id ? null : stock.id);
+                    e.stopPropagation?.()
+                    setShowMenuId(showMenuId === stock.id ? null : stock.id)
                   }}
                   onEdit={onEdit}
                   onMove={onMove}
@@ -165,9 +167,9 @@ export const StockList: React.FC<StockListProps> = ({
                 />
               </div>
             </div>
-          );
+          )
         })}
       </div>
     </div>
-  );
-};
+  )
+}
