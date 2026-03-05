@@ -35,6 +35,8 @@ export const useStore = () => {
     refreshConfig: refreshStore.refreshConfig,
     setRefreshConfig: refreshStore.setRefreshConfig,
     toggleRefresh: refreshStore.toggleRefresh,
+    isMarketOpen: refreshStore.isMarketOpen,
+    nextMarketOpenTime: refreshStore.nextMarketOpenTime,
 
     // Stock Store
     stockGroups: stockStore.stockGroups,

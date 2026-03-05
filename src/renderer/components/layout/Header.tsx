@@ -11,6 +11,8 @@ interface HeaderProps {
   refreshConfig: { enabled: boolean }
   stockRefreshing?: boolean
   fundRefreshing?: boolean
+  isMarketOpen?: boolean
+  nextMarketOpenTime?: string
   setActiveTab: (tab: 'stock' | 'fund') => void
   toggleDarkMode: () => void
   toggleRefresh: (enabled: boolean) => void
@@ -25,10 +27,12 @@ export const Header: React.FC<HeaderProps> = ({
   refreshConfig,
   stockRefreshing = false,
   fundRefreshing = false,
+  isMarketOpen = true,
+  nextMarketOpenTime = '',
   setActiveTab,
   toggleDarkMode,
   toggleRefresh,
-  onManualRefresh,
+  onManualRefresh
 }) => {
   const isRefreshing = stockRefreshing || fundRefreshing
   
@@ -120,17 +124,26 @@ export const Header: React.FC<HeaderProps> = ({
           {/* 刷新开关 */}
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-lg ${
             darkMode ? 'bg-black/10' : 'bg-black/5'
-          } transition-all duration-300`}>
+          } ${!isMarketOpen ? 'opacity-60' : ''} transition-all duration-300`}>
             <Activity className={`w-3.5 h-3.5 transition-colors duration-300 ${
-              isRefreshing ? 'text-green-500' : 'text-gray-500'
+              isRefreshing ? 'text-green-500' : !isMarketOpen ? 'text-orange-500' : 'text-gray-500'
             }`} />
-            <span className="text-xs font-medium">自动刷新</span>
+            <span className="text-xs font-medium">
+              {!isMarketOpen ? nextMarketOpenTime : '自动刷新'}
+            </span>
             <button
               onClick={() => toggleRefresh(!refreshConfig.enabled)}
+              disabled={!isMarketOpen}
               className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 ${
                 refreshConfig.enabled ? 'bg-green-500' : 'bg-gray-300'
-              }`}
-              title={refreshConfig.enabled ? '点击关闭自动刷新' : '点击开启自动刷新'}
+              } ${!isMarketOpen ? 'cursor-not-allowed opacity-50' : ''}`}
+              title={
+                !isMarketOpen
+                  ? `市场未开市，${nextMarketOpenTime}`
+                  : refreshConfig.enabled
+                    ? '点击关闭自动刷新'
+                    : '点击开启自动刷新'
+              }
             >
               <span
                 className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform duration-200 ${

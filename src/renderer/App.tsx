@@ -16,6 +16,8 @@ const App: React.FC = () => {
     refreshStockQuotes,
     refreshFundQuotes,
     toggleRefresh,
+    isMarketOpen,
+    nextMarketOpenTime,
     stockGroups,
     fundGroups,
     stocks,
@@ -175,6 +177,8 @@ const App: React.FC = () => {
         refreshConfig={refreshConfig}
         stockRefreshing={stockRefreshing}
         fundRefreshing={fundRefreshing}
+        isMarketOpen={isMarketOpen}
+        nextMarketOpenTime={nextMarketOpenTime}
         setActiveTab={setActiveTab}
         toggleDarkMode={toggleDarkMode}
         toggleRefresh={toggleRefresh}
