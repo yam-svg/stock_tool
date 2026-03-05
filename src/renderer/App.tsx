@@ -194,7 +194,7 @@ const App: React.FC = () => {
             darkMode={darkMode}
             icon={<Menu className="w-2 h-2" />}
             tooltip="展开侧边栏"
-            className="fixed left-0 top-12 z-50 rounded-r-lg rounded-l-none shadow-lg pointer-events-auto"
+            className="fixed left-0 top-[52px] z-50 rounded-r-lg rounded-l-none shadow-lg pointer-events-auto"
             size="sm"
           />
         )}
