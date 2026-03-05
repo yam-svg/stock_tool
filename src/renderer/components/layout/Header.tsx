@@ -104,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onManualRefresh}
             disabled={isRefreshing}
             darkMode={darkMode}
-            icon={<RefreshCw className={isRefreshing ? 'animate-spin' : ''} />}
+            icon={<RefreshCw className={isRefreshing ? 'animate-spin w-4 h-4' : 'w-4 h-4'} />}
             tooltip={isRefreshing ? '正在刷新...' : '手动刷新'}
           />
           
