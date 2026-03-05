@@ -1,19 +1,20 @@
-import { Activity, Moon, PieChart, RefreshCw, Sun, TrendingUp } from 'lucide-react'
+import { Activity, Globe, Moon, PieChart, RefreshCw, Sun, TrendingUp } from 'lucide-react'
 import React from 'react'
 import { FaChartLine } from 'react-icons/fa'
 import { Tabs, IconButton } from '../../ui'
 
 interface HeaderProps {
   darkMode: boolean
-  activeTab: 'stock' | 'fund'
+  activeTab: 'stock' | 'fund' | 'global'
   stockProfit?: number
   fundProfit?: number
   refreshConfig: { enabled: boolean }
   stockRefreshing?: boolean
   fundRefreshing?: boolean
+  globalRefreshing?: boolean
   isMarketOpen?: boolean
   nextMarketOpenTime?: string
-  setActiveTab: (tab: 'stock' | 'fund') => void
+  setActiveTab: (tab: 'stock' | 'fund' | 'global') => void
   toggleDarkMode: () => void
   toggleRefresh: (enabled: boolean) => void
   onManualRefresh: () => void
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   refreshConfig,
   stockRefreshing = false,
   fundRefreshing = false,
+  globalRefreshing = false,
   isMarketOpen = true,
   nextMarketOpenTime = '',
   setActiveTab,
@@ -34,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   toggleRefresh,
   onManualRefresh
 }) => {
-  const isRefreshing = stockRefreshing || fundRefreshing
+  const isRefreshing = stockRefreshing || fundRefreshing || globalRefreshing
   
   return (
     <header className={`${
@@ -61,18 +63,19 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Tab 切换 */}
           <Tabs
             activeTab={activeTab as string}
-            onChange={(tab) => setActiveTab(tab as 'stock' | 'fund')}
+            onChange={(tab) => setActiveTab(tab as 'stock' | 'fund' | 'global')}
             tabs={[
               { id: 'stock', label: '股票', icon: <TrendingUp /> },
               { id: 'fund', label: '基金', icon: <PieChart /> },
+              { id: 'global', label: '全球市场', icon: <Globe /> },
             ]}
             size="md"
           />
         </div>
-        
+
         <div className="flex items-center space-x-3">
-          {/* 股票收益概览 */}
-          {stockProfit !== undefined && (
+          {/* 全球市场模式下隐藏股票/基金收益，仅保留与市场数据相关控制 */}
+          {activeTab !== 'global' && stockProfit !== undefined && (
             <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
               darkMode ? 'bg-gray-800/50' : 'bg-white/50'
             } border ${
@@ -88,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
           )}
           
           {/* 基金收益概览 */}
-          {fundProfit !== undefined && (
+          {activeTab !== 'global' && fundProfit !== undefined && (
             <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
               darkMode ? 'bg-gray-800/50' : 'bg-white/50'
             } border ${

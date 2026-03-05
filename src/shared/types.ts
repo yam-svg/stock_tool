@@ -122,11 +122,24 @@ export interface RefreshConfig {
 
 //应用状态接口
 export interface AppState {
-  activeTab: 'stock' | 'fund'
+  activeTab: 'stock' | 'fund' | 'global'
   refreshConfig: RefreshConfig
   darkMode: boolean
   stockViewMode?: 'card' | 'list'
   fundViewMode?: 'card' | 'list'
+  globalViewMode?: 'card' | 'list'
+}
+
+// 全球市场指数数据接口
+export interface GlobalIndexQuote {
+  symbol: string
+  code: string
+  name: string
+  market: string
+  value: number
+  changePercent: number
+  isOpen: boolean
+  updateTime: number
 }
 
 // 数据库API接口
@@ -156,6 +169,7 @@ export interface DatabaseAPI {
   //行数据
   getStockQuotes: (symbols: string[]) => Promise<StockQuote[]>
   getFundQuotes: (codes: string[]) => Promise<FundQuote[]>
+  getGlobalIndexQuotes: () => Promise<GlobalIndexQuote[]>
   
   // 搜索
   searchStocks: (keyword: string) => Promise<StockSearchResult[]>

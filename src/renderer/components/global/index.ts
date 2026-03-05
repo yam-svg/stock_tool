@@ -1,0 +1,2 @@
+export { GlobalMarketView } from './GlobalMarketView'
+

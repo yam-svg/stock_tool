@@ -23,6 +23,7 @@ export function useGroupActions({
   // 创建分组后立即清空输入，避免重复创建同名草稿。
   const handleCreateGroup = () => {
     if (!newGroupName.trim()) return
+    if (activeTab === 'global') return
 
     if (activeTab === 'stock') {
       void createStockGroup(newGroupName)
@@ -34,6 +35,7 @@ export function useGroupActions({
   }
 
   const handleGroupSelect = (id: string | null) => {
+    if (activeTab === 'global') return
     if (activeTab === 'stock') {
       selectStockGroup(id)
     } else {
@@ -42,6 +44,7 @@ export function useGroupActions({
   }
 
   const handleUpdateGroup = (id: string, newName: string) => {
+    if (activeTab === 'global') return
     if (activeTab === 'stock') {
       void updateStockGroup(id, newName)
     } else {
@@ -51,6 +54,7 @@ export function useGroupActions({
 
   // 删除前检查是否包含项目；有内容时给出二次确认。
   const handleDeleteGroup = (id: string) => {
+    if (activeTab === 'global') return
     const hasItems =
       activeTab === 'stock'
         ? stocks.some((s) => s.groupId === id)
@@ -69,6 +73,7 @@ export function useGroupActions({
 
   // 以“组内批量迁移”的方式实现分组移动，不改变项目本身数据结构。
   const handleMoveGroup = (groupId: string, targetGroupId: string) => {
+    if (activeTab === 'global') return
     if (activeTab === 'stock') {
       const itemsToMove = stocks.filter((s) => s.groupId === groupId)
       itemsToMove.forEach((item) => {
@@ -84,6 +89,7 @@ export function useGroupActions({
 
   // 记录“添加目标分组”，并按当前 tab 打开对应搜索弹窗。
   const handleAddToGroup = (groupId: string) => {
+    if (activeTab === 'global') return
     setAddTargetGroupId(groupId)
     if (activeTab === 'stock') {
       setSearchStockModalOpen(true)

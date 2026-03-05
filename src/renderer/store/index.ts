@@ -6,6 +6,7 @@ import { useUIStore } from './uiStore'
 import { useStockStore } from './stockStore'
 import { useFundStore } from './fundStore'
 import { useRefreshStore } from './refreshStore'
+import { useGlobalMarketStore } from './globalMarketStore'
 
 /**
  * 合并所有Store为一个统一接口
@@ -16,6 +17,7 @@ export const useStore = () => {
   const stockStore = useStockStore()
   const fundStore = useFundStore()
   const refreshStore = useRefreshStore()
+  const globalMarketStore = useGlobalMarketStore()
 
   return {
     // UI Store
@@ -23,11 +25,13 @@ export const useStore = () => {
     darkMode: uiStore.darkMode,
     stockViewMode: uiStore.stockViewMode,
     fundViewMode: uiStore.fundViewMode,
+    globalViewMode: uiStore.globalViewMode,
     sidebarCollapsed: uiStore.sidebarCollapsed,
     setActiveTab: uiStore.setActiveTab,
     toggleDarkMode: uiStore.toggleDarkMode,
     setStockViewMode: uiStore.setStockViewMode,
     setFundViewMode: uiStore.setFundViewMode,
+    setGlobalViewMode: uiStore.setGlobalViewMode,
     toggleSidebar: uiStore.toggleSidebar,
     setSidebarCollapsed: uiStore.setSidebarCollapsed,
 
@@ -70,13 +74,19 @@ export const useStore = () => {
     moveFundToGroup: fundStore.moveFundToGroup,
     refreshFundQuotes: fundStore.refreshFundQuotes,
 
+    // Global Market Store
+    globalIndexes: globalMarketStore.globalIndexes,
+    globalRefreshing: globalMarketStore.refreshing,
+    refreshGlobalIndexes: globalMarketStore.refreshGlobalIndexes,
+
     // 全局加载状态和错误
-    loading: stockStore.loading || fundStore.loading || refreshStore.loading,
-    error: stockStore.error || fundStore.error || refreshStore.error,
+    loading: stockStore.loading || fundStore.loading || refreshStore.loading || globalMarketStore.loading,
+    error: stockStore.error || fundStore.error || refreshStore.error || globalMarketStore.error,
     clearError: () => {
       stockStore.clearError()
       fundStore.clearError()
       refreshStore.clearError()
+      globalMarketStore.clearError()
     },
 
     // 全局初始化
@@ -85,6 +95,7 @@ export const useStore = () => {
         refreshStore.initialize(),
         stockStore.initialize(),
         fundStore.initialize(),
+        globalMarketStore.initialize(),
       ])
       loadUIConfig()
     }
@@ -97,6 +108,7 @@ function loadUIConfig() {
   const savedDarkMode = localStorage.getItem('darkMode') === 'true'
   const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
   const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
+  const savedGlobalViewMode = localStorage.getItem('globalViewMode') as 'card' | 'list' | null
   const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
 
   if (savedDarkMode && !uiStore.darkMode) {
@@ -108,10 +120,13 @@ function loadUIConfig() {
   if (savedFundViewMode && savedFundViewMode !== uiStore.fundViewMode) {
     uiStore.setFundViewMode(savedFundViewMode)
   }
+  if (savedGlobalViewMode && savedGlobalViewMode !== uiStore.globalViewMode) {
+    uiStore.setGlobalViewMode(savedGlobalViewMode)
+  }
   if (savedSidebarCollapsed !== uiStore.sidebarCollapsed) {
     uiStore.setSidebarCollapsed(savedSidebarCollapsed)
   }
 }
 
 // 直接导出子Store以便需要时单独使用
-export { useUIStore, useStockStore, useFundStore, useRefreshStore }
+export { useUIStore, useStockStore, useFundStore, useRefreshStore, useGlobalMarketStore }

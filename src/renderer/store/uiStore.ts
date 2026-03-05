@@ -2,16 +2,18 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 interface UIState {
-  activeTab: 'stock' | 'fund'
+  activeTab: 'stock' | 'fund' | 'global'
   darkMode: boolean
   stockViewMode: 'card' | 'list'
   fundViewMode: 'card' | 'list'
+  globalViewMode: 'card' | 'list'
   sidebarCollapsed: boolean
 
-  setActiveTab: (tab: 'stock' | 'fund') => void
+  setActiveTab: (tab: 'stock' | 'fund' | 'global') => void
   toggleDarkMode: () => void
   setStockViewMode: (mode: 'card' | 'list') => void
   setFundViewMode: (mode: 'card' | 'list') => void
+  setGlobalViewMode: (mode: 'card' | 'list') => void
   toggleSidebar: () => void
   setSidebarCollapsed: (collapsed: boolean) => void
 }
@@ -24,6 +26,7 @@ export const useUIStore = create<UIState>()(
       darkMode: false,
       stockViewMode: 'card',
       fundViewMode: 'card',
+      globalViewMode: 'card',
       sidebarCollapsed: false,
 
       // UI操作
@@ -45,6 +48,11 @@ export const useUIStore = create<UIState>()(
         localStorage.setItem('fundViewMode', mode)
       },
 
+      setGlobalViewMode: (mode: 'card' | 'list') => {
+        set({ globalViewMode: mode })
+        localStorage.setItem('globalViewMode', mode)
+      },
+
       toggleSidebar: () => {
         const newState = !get().sidebarCollapsed
         set({ sidebarCollapsed: newState })
@@ -61,4 +69,3 @@ export const useUIStore = create<UIState>()(
     }
   )
 )
-

@@ -1,5 +1,148 @@
 import { ipcMain } from 'electron'
 import axios from 'axios'
+import { GlobalIndexQuote } from '../../shared/types'
+
+type GlobalIndexConfig = {
+  symbol: string
+  code: string
+  nameEn: string
+  nameCn: string
+  market: string
+  timezone: string
+}
+
+const GLOBAL_INDEXES: GlobalIndexConfig[] = [
+  { symbol: '^GSPC', code: 'SPX', nameEn: 'S&P 500', nameCn: '标普500', market: 'US', timezone: 'America/New_York' },
+  { symbol: '^DJI', code: 'DJI', nameEn: 'Dow Jones', nameCn: '道琼斯', market: 'US', timezone: 'America/New_York' },
+  { symbol: '^IXIC', code: 'IXIC', nameEn: 'NASDAQ', nameCn: '纳斯达克', market: 'US', timezone: 'America/New_York' },
+  { symbol: '^FTSE', code: 'FTSE', nameEn: 'FTSE 100', nameCn: '富时100', market: 'UK', timezone: 'Europe/London' },
+  { symbol: '^GDAXI', code: 'DAX', nameEn: 'DAX', nameCn: '德国DAX', market: 'DE', timezone: 'Europe/Berlin' },
+  { symbol: '^N225', code: 'N225', nameEn: 'Nikkei 225', nameCn: '日经225', market: 'JP', timezone: 'Asia/Tokyo' },
+  { symbol: '^HSI', code: 'HSI', nameEn: 'Hang Seng', nameCn: '恒生指数', market: 'HK', timezone: 'Asia/Hong_Kong' },
+  { symbol: '000001.SS', code: 'SSE', nameEn: 'SSE Composite', nameCn: '上证指数', market: 'CN', timezone: 'Asia/Shanghai' },
+  { symbol: '399001.SZ', code: 'SZSE', nameEn: 'SZSE Component', nameCn: '深证成指', market: 'CN', timezone: 'Asia/Shanghai' },
+  { symbol: '000300.SS', code: 'CSI300', nameEn: 'CSI 300', nameCn: '沪深300', market: 'CN', timezone: 'Asia/Shanghai' },
+]
+
+function getMarketSessionMinutes(market: string): { start: number; end: number; lunchStart?: number; lunchEnd?: number } {
+  switch (market) {
+    case 'CN':
+      return { start: 9 * 60 + 30, end: 15 * 60, lunchStart: 11 * 60 + 30, lunchEnd: 13 * 60 }
+    case 'HK':
+      return { start: 9 * 60 + 30, end: 16 * 60, lunchStart: 12 * 60, lunchEnd: 13 * 60 }
+    case 'JP':
+      return { start: 9 * 60, end: 15 * 60, lunchStart: 11 * 60 + 30, lunchEnd: 12 * 60 + 30 }
+    case 'US':
+      return { start: 9 * 60 + 30, end: 16 * 60 }
+    case 'UK':
+      return { start: 8 * 60, end: 16 * 60 + 30 }
+    case 'DE':
+      return { start: 9 * 60, end: 17 * 60 + 30 }
+    default:
+      return { start: 9 * 60, end: 16 * 60 }
+  }
+}
+
+function isMarketOpenByTimezone(market: string, timezone: string): boolean {
+  const now = new Date()
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    hour12: false,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).formatToParts(now)
+
+  const weekday = parts.find((p) => p.type === 'weekday')?.value || 'Mon'
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value || '0')
+  const minute = Number(parts.find((p) => p.type === 'minute')?.value || '0')
+  const dayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+  const day = dayMap[weekday] ?? 1
+
+  if (day === 0 || day === 6) return false
+
+  const current = hour * 60 + minute
+  const session = getMarketSessionMinutes(market)
+
+  if (current < session.start || current > session.end) return false
+  if (session.lunchStart !== undefined && session.lunchEnd !== undefined) {
+    if (current > session.lunchStart && current < session.lunchEnd) return false
+  }
+  return true
+}
+
+function toNumber(value: unknown): number {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+function isOpenByMarketState(marketState: unknown): boolean | null {
+  const state = String(marketState || '').toUpperCase()
+  if (!state) return null
+  if (state === 'REGULAR' || state === 'OPEN') return true
+  if (state === 'CLOSED' || state === 'POST' || state === 'PRE' || state === 'POSTPOST' || state === 'PREPRE') return false
+  return null
+}
+
+export function registerGlobalIndexQuoteHandlers() {
+  ipcMain.handle('db-get-global-index-quotes', async () => {
+    try {
+      const symbols = GLOBAL_INDEXES.map((item) => item.symbol).join(',')
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}`
+      const response = await axios.get(url, { timeout: 10000 })
+      const list = response.data?.quoteResponse?.result || []
+      const bySymbol = new Map<string, any>()
+
+      list.forEach((quote: any) => {
+        const key = String(quote?.symbol || '').toUpperCase()
+        if (key) bySymbol.set(key, quote)
+      })
+
+      const now = Date.now()
+      const result: GlobalIndexQuote[] = GLOBAL_INDEXES.map((item) => {
+        const quote = bySymbol.get(item.symbol.toUpperCase())
+
+        const regularPrice = toNumber(quote?.regularMarketPrice)
+        const prevClose = toNumber(quote?.regularMarketPreviousClose)
+        const fallbackPrice = toNumber(quote?.postMarketPrice) || toNumber(quote?.preMarketPrice)
+        const value = regularPrice || fallbackPrice || prevClose || 0
+
+        let changePercent = toNumber(quote?.regularMarketChangePercent)
+        if (!changePercent && value && prevClose) {
+          changePercent = ((value - prevClose) / prevClose) * 100
+        }
+
+        const marketStateOpen = isOpenByMarketState(quote?.marketState)
+        const fallbackOpen = isMarketOpenByTimezone(item.market, item.timezone)
+
+        return {
+          symbol: item.symbol,
+          code: item.code,
+          name: `${item.nameCn} (${item.nameEn})`,
+          market: item.market,
+          value,
+          changePercent,
+          isOpen: marketStateOpen === null ? fallbackOpen : marketStateOpen,
+          updateTime: now,
+        }
+      })
+
+      return result
+    } catch (error) {
+      console.error('Fetch global index quotes failed:', error)
+      return GLOBAL_INDEXES.map((item) => ({
+        symbol: item.symbol,
+        code: item.code,
+        name: `${item.nameCn} (${item.nameEn})`,
+        market: item.market,
+        value: 0,
+        changePercent: 0,
+        isOpen: isMarketOpenByTimezone(item.market, item.timezone),
+        updateTime: Date.now(),
+      }))
+    }
+  })
+}
 
 /**
  * 获取股票行情数据
@@ -172,5 +315,5 @@ export function registerFundQuoteHandlers() {
 export function registerAllQuoteHandlers() {
   registerStockQuoteHandlers()
   registerFundQuoteHandlers()
+  registerGlobalIndexQuoteHandlers()
 }
-

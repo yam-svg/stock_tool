@@ -24,3 +24,6 @@ export { EditModal } from './modals/EditModal'
 export { MoveModal } from './modals/MoveModal'
 export { SearchStockModal } from './modals/SearchStockModal'
 export { SearchFundModal } from './modals/SearchFundModal'
+
+// Global components
+export { GlobalMarketView } from './global/GlobalMarketView'
