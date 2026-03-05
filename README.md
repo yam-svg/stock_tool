@@ -2,6 +2,24 @@
 
 一个基于 **Electron + React + TypeScript** 的现代化桌面应用，专注于股票和基金的持仓收益管理。支持分组管理、实时行情、深色模式，提供流畅的用户体验。
 
+## ⚡ 启动与打包
+
+### 1) 安装依赖
+```bash
+npm install
+```
+
+### 2) 本地启动（开发模式）
+```bash
+npm run dev
+npm run start:dev
+```
+
+### 3) 打包安装程序（Windows）
+```bash
+npm run package
+```
+
 ## 🎯 产品特性
 
 - **轻量快速** - 启动迅速，响应灵敏，界面简洁优雅
