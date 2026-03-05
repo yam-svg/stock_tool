@@ -81,30 +81,30 @@ export const useStore = () => {
         refreshStore.initialize(),
         stockStore.initialize(),
         fundStore.initialize(),
-        loadUIConfig()
       ])
+      loadUIConfig()
     }
   }
 }
 
 // 加载UI配置
-async function loadUIConfig() {
-  const uiStore = useUIStore()
+function loadUIConfig() {
+  const uiStore = useUIStore.getState()
   const savedDarkMode = localStorage.getItem('darkMode') === 'true'
   const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
   const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
   const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
 
-  if (savedDarkMode) {
+  if (savedDarkMode && !uiStore.darkMode) {
     uiStore.toggleDarkMode()
   }
-  if (savedStockViewMode && savedStockViewMode !== 'card') {
+  if (savedStockViewMode && savedStockViewMode !== uiStore.stockViewMode) {
     uiStore.setStockViewMode(savedStockViewMode)
   }
-  if (savedFundViewMode && savedFundViewMode !== 'card') {
+  if (savedFundViewMode && savedFundViewMode !== uiStore.fundViewMode) {
     uiStore.setFundViewMode(savedFundViewMode)
   }
-  if (savedSidebarCollapsed) {
+  if (savedSidebarCollapsed !== uiStore.sidebarCollapsed) {
     uiStore.setSidebarCollapsed(savedSidebarCollapsed)
   }
 }
