@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { RefreshConfig } from '../../shared/types'
 
 interface UseAppLifecycleParams {
@@ -18,9 +18,21 @@ export function useAppLifecycle({
   sidebarCollapsed,
   setSidebarCollapsed,
 }: UseAppLifecycleParams) {
-  // 应用首次挂载时执行全局初始化（配置 + 数据）。
+  const initializedRef = useRef(false)
+  const refreshStockQuotesRef = useRef(refreshStockQuotes)
+  const refreshFundQuotesRef = useRef(refreshFundQuotes)
+
+  // 保持最新回调引用，避免定时器 effect 因函数引用变化而重复重建。
   useEffect(() => {
-    initialize()
+    refreshStockQuotesRef.current = refreshStockQuotes
+    refreshFundQuotesRef.current = refreshFundQuotes
+  }, [refreshStockQuotes, refreshFundQuotes])
+
+  // 仅初始化一次，避免由于上层函数引用变化导致反复初始化卡顿。
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+    void initialize()
   }, [initialize])
 
   // 根据刷新配置启动/停止定时器，避免在组件层重复管理。
@@ -28,11 +40,11 @@ export function useAppLifecycle({
     if (!refreshConfig.enabled) return
 
     const stockTimer = setInterval(() => {
-      void refreshStockQuotes()
+      void refreshStockQuotesRef.current()
     }, refreshConfig.stockInterval)
 
     const fundTimer = setInterval(() => {
-      void refreshFundQuotes()
+      void refreshFundQuotesRef.current()
     }, refreshConfig.fundInterval)
 
     return () => {
@@ -43,8 +55,6 @@ export function useAppLifecycle({
     refreshConfig.enabled,
     refreshConfig.stockInterval,
     refreshConfig.fundInterval,
-    refreshStockQuotes,
-    refreshFundQuotes,
   ])
 
   // 响应式规则：窄屏自动收起，宽屏自动展开。
