@@ -88,6 +88,7 @@ export const StockList: React.FC<StockListProps> = ({
           const priceChange = quote?.change || 0
           const changePercent = quote?.changePercent || 0
           const flashColor = flashColors[stock.id]
+          const hasPosition = stock.quantity > 0
           return (
             <div
               key={stock.id}
@@ -135,19 +136,20 @@ export const StockList: React.FC<StockListProps> = ({
                 {changePercent >= 0 ? '+' : ''}{changePercent ? changePercent.toFixed(2) : '-'}%
               </div>
               <div className="text-right">
-                <div className="font-medium">¥{marketValue.toFixed(2)}</div>
+                <div className="font-medium">{hasPosition ? `¥${marketValue.toFixed(2)}` : '-'}</div>
               </div>
               <div className="text-right">
                 <div className={`font-bold ${profit >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                  ¥{profit.toFixed(2)}
+                  {hasPosition ? `¥${profit.toFixed(2)}` : '-'}
                 </div>
                 <div
                   className={`text-xs ${
                     profitRate >= 0 ? 'text-red-400' : 'text-green-400'
                   }`}
                 >
-                  {profitRate >= 0 ? '+' : ''}
-                  {profitRate.toFixed(2)}%
+                  {hasPosition
+                    ? `${profitRate >= 0 ? '+' : ''}${profitRate.toFixed(2)}%`
+                    : '-'}
                 </div>
               </div>
               <div className="flex justify-center items-center">
