@@ -7,6 +7,7 @@ export { StockCard } from './stock/StockCard'
 export { StockList } from './stock/StockList'
 export { StockForm } from './stock/StockForm'
 export { StockActionMenu } from './stock/StockActionMenu'
+export { StockView } from './stock/StockView'
 
 // Fund components
 export { FundCard } from './fund/FundCard'
