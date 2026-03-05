@@ -9,7 +9,7 @@ export function createWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: path.join(__dirname, '../preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -19,7 +19,7 @@ export function createWindow() {
     mainWindow.loadURL('http://localhost:5417')
     mainWindow.webContents.openDevTools()
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../../dist/index.html'))
+    mainWindow.loadFile(path.join(__dirname, '../../../dist/index.html'))
   }
 
   return mainWindow
