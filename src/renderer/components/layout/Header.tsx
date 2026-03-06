@@ -36,7 +36,21 @@ export const Header: React.FC<HeaderProps> = ({
   toggleRefresh,
   onManualRefresh
 }) => {
-  const isRefreshing = stockRefreshing || fundRefreshing || globalRefreshing
+  // 根据当前活动标签页获取对应的刷新状态
+  const getCurrentRefreshingState = () => {
+    switch (activeTab) {
+      case 'stock':
+        return stockRefreshing
+      case 'fund':
+        return fundRefreshing
+      case 'global':
+        return globalRefreshing
+      default:
+        return false
+    }
+  }
+
+  const isRefreshing = getCurrentRefreshingState()
   const containerRef = useRef<HTMLDivElement>(null)
   const [showProfits, setShowProfits] = useState(true)
   const [showRightControls, setShowRightControls] = useState(true)
@@ -166,12 +180,13 @@ export const Header: React.FC<HeaderProps> = ({
                 className={darkMode ? 'text-yellow-400' : ''}
               />
 
-              {/* 刷新开关 */}
-              <div
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
-                  darkMode ? 'bg-black/10' : 'bg-black/5'
-                } ${!isMarketOpen ? 'opacity-60' : ''} transition-all duration-300 whitespace-nowrap`}
-              >
+              {/* 刷新开关 - 仅在股票页面显示 */}
+              {activeTab === 'stock' && (
+                <div
+                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
+                    darkMode ? 'bg-black/10' : 'bg-black/5'
+                  } ${!isMarketOpen ? 'opacity-60' : ''} transition-all duration-300 whitespace-nowrap`}
+                >
                 <Activity
                   className={`w-3.5 h-3.5 transition-colors duration-300 ${
                     isRefreshing
@@ -205,6 +220,7 @@ export const Header: React.FC<HeaderProps> = ({
                   />
                 </button>
               </div>
+              )}
             </>
           )}
         </div>
