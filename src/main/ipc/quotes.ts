@@ -37,7 +37,6 @@ export async function registerGlobalIndexQuoteHandlers() {
         `https://api.twelvedata.com/quote?symbol=XYM/JPY&apikey=${API_TOKEN}`
       )
       const data = tdRes.data
-      console.log(data)
       if (data && data.price) {
         quoteMap.set("gb_nky", {
           price: parseFloat(data.price),
