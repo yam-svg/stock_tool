@@ -1,35 +1,51 @@
-# Stock666 - 股基金持仓管理工具
+# StockLite - 股票基金全球市场持仓管理工具
 
-一个基于 **Electron + React + TypeScript** 的现代化桌面应用，专注于股票和基金的持仓收益管理。支持分组管理、实时行情、深色模式，提供流畅的用户体验。
+一个基于 **Electron + React + TypeScript** 的现代化桌面应用，专注于股票、基金和全球市场指数的持仓收益管理。支持分组管理、实时行情、深色模式、拖拽排序、表头排序，提供流畅的用户体验。
 
-## ⚡ 启动与打包
+## ⚡ 快速开始
 
-### 1) 安装依赖
+### 安装依赖
 ```bash
 npm install
 ```
 
-### 2) 本地启动（开发模式）
+### 开发模式（推荐）
 ```bash
 npm run dev
+```
+启动 Vite 开发服务器和 TypeScript 编译器，支持热更新。
+
+### 生产模式启动
+```bash
+npm run build
+npm run start
+```
+
+### 开发模式启动（带 DevTools）
+```bash
 npm run start:dev
 ```
 
-### 3) 打包安装程序（Windows）
+### 打包安装程序（Windows）
 ```bash
 npm run package
 ```
+生成 Windows NSIS 安装器到 `release/` 目录。
 
-## 🎯 产品特性
+## 🎯 核心特性
 
+- **三大市场** - 股票、基金、全球市场指数一站式管理
 - **轻量快速** - 启动迅速，响应灵敏，界面简洁优雅
 - **专注收益** - 专为持仓收益计算和分析设计
-- **分组管理** - 支持自定义分组，组织管理多个投资组合
+- **智能分组** - 支持自定义分组，组织管理多个投资组合
 - **双视图模式** - 卡片视图展示详情，列表视图快速浏览
-- **实时行情** - 股票/基金行情自动刷新，掌握最新数据
+- **拖拽排序** - 支持自由拖拽调整持仓顺序（无排序时）
+- **表头排序** - 列表视图支持点击表头升序/降序排序
+- **实时行情** - 股票/基金/全球指数行情自动刷新
+- **市场时间智能** - 自动识别开/休市，智能控制刷新
 - **本地存储** - 数据安全存储在本地 SQLite 数据库
 - **深色模式** - 支持深色/浅色主题切换，保护眼睛
-- **响应式布局** - 自适应窗口大小，完美适配各种屏幕
+- **响应式布局** - 自适应窗口大小，侧栏自动收缩/展开
 - **快速搜索** - 模态框快速搜索添加股票和基金
 
 ## 🚀 技术栈
@@ -45,82 +61,114 @@ npm run package
 | **样式框架** | Tailwind CSS | 3.4.19 |
 | **图标库** | Lucide React | 0.576.0 |
 | **HTTP客户端** | Axios | 1.13.6 |
+| **拖拽排序** | @dnd-kit/core | 6.3.1 |
+| **拖拽排序** | @dnd-kit/sortable | 9.1.0 |
 
 ## 📁 项目结构
 
 ```
 my-electron-app/
 ├── src/
-│   ├── main/                      # Electron 主进程
-│   │   ├── main.ts               # 主进程入口
-│   │   └── preload.ts            # 预加载脚本
+│   ├── main/                      # Electron 主进程（已分仓）
+│   │   ├── main.ts               # 主进程入口（34行）
+│   │   ├── database/             # 数据库管理
+│   │   │   └── index.ts          # SQLite 数据库操作
+│   │   ├── window/               # 窗口管理
+│   │   │   ├── index.ts          # 窗口创建和配置
+│   │   │   └── preload.ts        # 预加载脚本
+│   │   ├── ipc/                  # IPC handlers（22个）
+│   │   │   ├── index.ts          # IPC 路由注册
+│   │   │   ├── stock.ts          # 股票操作
+│   │   │   ├── fund.ts           # 基金操作
+│   │   │   ├── quotes.ts         # 行情数据
+│   │   │   └── search.ts         # 搜索功能
+│   │   └── utils/                # 工具和常量
+│   │       ├── index.ts          # 工具函数
+│   │       └── constants.ts      # 常量定义
 │   │
 │   ├── renderer/                  # React 前端应用
-│   │   ├── App.tsx               # 应用主组件（已优化为编排层）
+│   │   ├── App.tsx               # 应用主组件（编排层，310行）
 │   │   ├── main.tsx              # 入口文件
 │   │   ├── index.css             # 全局样式
 │   │   │
 │   │   ├── components/           # 组件（已按功能分组）
 │   │   │   ├── layout/           # 布局组件
-│   │   │   │   ├── Header.tsx    # 顶部导航栏（含刷新状态提示）
+│   │   │   │   ├── Header.tsx    # 顶部导航栏（刷新状态、页面切换）
 │   │   │   │   └── Sidebar.tsx   # 左侧分组面板（支持收缩）
 │   │   │   │
 │   │   │   ├── stock/            # 股票相关组件
-│   │   │   │   ├── StockView.tsx          # 股票主视图（新增）
+│   │   │   │   ├── StockView.tsx          # 股票主视图
 │   │   │   │   ├── StockCard.tsx          # 股票卡片
-│   │   │   │   ├── StockList.tsx          # 股票列表
+│   │   │   │   ├── StockList.tsx          # 股票列表（支持排序拖拽）
 │   │   │   │   ├── StockForm.tsx          # 股票表单
-│   │   │   │   └── StockActionMenu.tsx    # 股票操作菜单
+│   │   │   │   ├── StockActionMenu.tsx    # 股票操作菜单
+│   │   │   │   ├── DraggableStockCard.tsx # 可拖拽股票卡片
+│   │   │   │   └── index.ts              # 导出
 │   │   │   │
 │   │   │   ├── fund/             # 基金相关组件
+│   │   │   │   ├── FundView.tsx          # 基金主视图
 │   │   │   │   ├── FundCard.tsx          # 基金卡片
-│   │   │   │   ├── FundList.tsx          # 基金列表
+│   │   │   │   ├── FundList.tsx          # 基金列表（支持排序拖拽）
 │   │   │   │   ├── FundForm.tsx          # 基金表单
-│   │   │   │   └── FundView.tsx          # 基金视图
+│   │   │   │   ├── FundActionMenu.tsx    # 基金操作菜单
+│   │   │   │   ├── DraggableFundCard.tsx # 可拖拽基金卡片
+│   │   │   │   └── index.ts              # 导出
+│   │   │   │
+│   │   │   ├── global/           # 全球市场组件（新增）
+│   │   │   │   ├── GlobalMarketView.tsx  # 全球市场主视图
+│   │   │   │   └── index.ts              # 导出
 │   │   │   │
 │   │   │   ├── group/            # 分组管理组件
-│   │   │   │   └── GroupItem.tsx # 分组项
+│   │   │   │   ├── GroupItem.tsx # 分组项
+│   │   │   │   └── index.ts      # 导出
 │   │   │   │
 │   │   │   ├── modals/           # 模态框组件
 │   │   │   │   ├── AddStockModal.tsx         # 添加股票
 │   │   │   │   ├── EditModal.tsx            # 编辑弹窗
 │   │   │   │   ├── MoveModal.tsx            # 移动分组
 │   │   │   │   ├── SearchStockModal.tsx     # 搜索股票
-│   │   │   │   └── SearchFundModal.tsx      # 搜索基金
+│   │   │   │   ├── SearchFundModal.tsx      # 搜索基金
+│   │   │   │   └── index.ts                # 导出
 │   │   │   │
 │   │   │   ├── ui/               # UI基础组件
 │   │   │   │   ├── Button.tsx
 │   │   │   │   ├── Input.tsx
 │   │   │   │   ├── Card.tsx
 │   │   │   │   ├── Tabs.tsx
-│   │   │   │   └── Badge.tsx
+│   │   │   │   ├── Badge.tsx
+│   │   │   │   ├── IconButton.tsx
+│   │   │   │   ├── Toggle.tsx
+│   │   │   │   └── index.ts      # 导出
 │   │   │   │
-│   │   │   └── index.ts          # 组件导出
+│   │   │   └── index.ts          # 组件总导出
 │   │   │
-│   │   ├── hooks/                # 业务逻辑 Hooks（新增）
+│   │   ├── hooks/                # 业务逻辑 Hooks
 │   │   │   ├── useAppLifecycle.ts     # 应用生命周期管理
 │   │   │   ├── usePortfolioMetrics.ts # 收益计算和数据汇总
 │   │   │   ├── useGroupActions.ts     # 分组操作
 │   │   │   ├── useHoldingActions.ts   # 持仓操作
 │   │   │   └── index.ts              # 统一导出
 │   │   │
-│   │   ├── types/                # 类型定义（新增）
+│   │   ├── types/                # 类型定义
 │   │   │   └── hooks.ts          # Hook 相关类型
 │   │   │
 │   │   ├── services/             # 业务服务
-│   │   │   ├── stockService.ts   # 股票服务
-│   │   │   └── fundService.ts    # 基金服务
+│   │   │   ├── stockService.ts        # 股票服务
+│   │   │   ├── fundService.ts         # 基金服务
+│   │   │   └── globalMarketService.ts # 全球市场服务（新增）
 │   │   │
 │   │   └── store/                # Zustand 状态管理（已分仓）
-│   │       ├── index.ts          # 统一接口
-│   │       ├── uiStore.ts        # UI 状态
-│   │       ├── stockStore.ts     # 股票状态（含 refreshing）
-│   │       ├── fundStore.ts      # 基金状态（含 refreshing）
-│   │       └── refreshStore.ts   # 刷新配置
+│   │       ├── index.ts                # 统一接口（向后兼容）
+│   │       ├── uiStore.ts              # UI 状态
+│   │       ├── stockStore.ts           # 股票状态
+│   │       ├── fundStore.ts            # 基金状态
+│   │       ├── refreshStore.ts         # 刷新配置（市场时间）
+│   │       └── globalMarketStore.ts    # 全球市场状态（新增）
 │   │
 │   └── shared/                    # 共享资源
 │       ├── types.ts              # TypeScript 类型定义
-│       └── utils.ts              # 工具函数
+│       ├── utils.ts              # 工具函数
+│       └── marketTime.ts         # 市场时间工具（新增）
 │
 ├── package.json                   # 项目配置
 ├── tsconfig.json                  # TS配置（渲染进程）
@@ -391,82 +439,77 @@ npm run package
 
 ## 🐛 已知问题和限制
 
-1. **行情数据** - 基金行情接口数据滞后
-2. **基金模块** - 基金功能尚需完善
-3. **导出功能** - 暂不支持数据导出
-4. **多账户** - 当前仅支持单账户
+1. **全球市场数据** - 部分市场数据源待优化（日经225等）
+2. **导出功能** - 暂不支持数据导出
+3. **多账户** - 当前仅支持单账户
 
 ## 🗺️ 未来规划
 
-- [ ] **真实行情 API** - 集成更优秀的股票/基金行情数据
+- [ ] **优化全球市场数据源** - 改进日经225等市场的数据获取
+- [ ] **数据导出功能** - 支持导出持仓和收益数据
+- [ ] **多账户支持** - 支持管理多个投资账户
+- [ ] **图表分析** - 添加收益趋势图表
+- [ ] **性能监控** - 添加性能分析工具
 
-## 📚 详细文档
+## 📚 开发指南
 
-> **重要**: 项目已完成大规模架构重构，所有模块都已分仓。请查看以下文档了解详情。
+### 2026-03-06 - 基金列表优化和全局市场完善
+- ✅ **基金列表重构** - 统一使用 FundList 组件，支持排序和拖拽
+  - 创建 `FundActionMenu` 组件，统一操作菜单
+  - 添加涨跌幅列显示
+  - 修复表头和内容列对齐问题
+  - 支持拖拽排序和表头排序（升序/降序/无排序）
+- ✅ **无限循环修复** - 解决基金页面的 "Maximum update depth exceeded" 错误
+  - 使用单独的 store hooks（`useFundStore`, `useUIStore`）代替合并对象
+  - 使用 `useMemo` 缓存 `filteredFunds` 和 `sortedFunds`
+  - 打破无限渲染循环
+- ✅ **刷新状态优化** - Header 刷新按钮根据当前页面显示对应的刷新状态
+  - 股票页面显示股票刷新状态
+  - 基金页面显示基金刷新状态
+  - 全球市场页面显示全球市场刷新状态
+  - 自动刷新开关仅在股票页面显示
+- ✅ **全球市场数据源优化** - 重新规划全球市场数据获取
+  - 美股（道指、纳指、标普500）- 新浪财经接口
+  - 中国A股（上证、深证、沪深300）- 新浪财经接口
+  - 港股（恒生指数）- 新浪财经实时接口
+  - 日本（日经225）- 东方财富接口（备用）
+  - 优化数据解析逻辑，正确处理不同接口格式
 
-### 🎯 快速开始
-- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - 开发速查表，包含常用命令和代码片段
-
-### 🏗️ 架构文档
-- **[ARCHITECTURE_SUMMARY.md](./ARCHITECTURE_SUMMARY.md)** - 项目架构总结，包含整体设计和关键文件位置
-- **[STORE_REFACTOR.md](./STORE_REFACTOR.md)** - Store 模块分仓详细文档（5个独立Store模块）
-- **[MAIN_REFACTOR.md](./MAIN_REFACTOR.md)** - Main Process 分仓详细文档（7个功能模块）
-
-### 📋 完成报告
-- **[REFACTOR_SUMMARY.md](./REFACTOR_SUMMARY.md)** - 重构完成总结，包含代码质量对比和性能分析
-- **[COMPLETION_CHECKLIST.md](./COMPLETION_CHECKLIST.md)** - 完成清单，列出所有新创建的文件和模块
-
-## 🔄 最近更新 (2026-03-05)
-
-### 🎨 核心架构优化
-- ✅ **App.tsx 瘦身** - 从 600+ 行精简，提取业务逻辑到 Hooks
+### 2026-03-05 - 核心架构优化
+- ✅ **App.tsx 瘦身** - 从 600+ 行精简到 310 行，提取业务逻辑到 Hooks
   - `useAppLifecycle` - 应用生命周期管理（初始化、定时刷新、响应式侧栏）
   - `usePortfolioMetrics` - 收益计算和数据汇总（股票/基金收益、可见列表、分组计数）
   - `useGroupActions` - 分组操作（创建/选择/更新/删除/移动/添加）
   - `useHoldingActions` - 持仓操作（编辑/移动/删除/新增股票基金）
 - ✅ **StockView 组件** - 股票视图独立组件，统一卡片/列表展示
 - ✅ **类型系统重构** - 抽离所有内联类型到 `src/renderer/types/hooks.ts`
-  - `AppTab` / `EditableHolding` / `UpdatePayload`
-  - `StockSubmitPayload` / `FundSubmitPayload`
-  - `UseHoldingActionsParams` / `UseGroupActionsParams` / `UsePortfolioMetricsParams`
-
-### 🎯 用户体验改进
-- ✅ **刷新状态反馈** - 自动刷新时的视觉提示
-  - Header 右上角 Activity 图标颜色变化（灰色 → 绿色）
-  - 手动刷新按钮旋转动画 + 禁用状态
-  - **最小显示时间 600ms**，确保用户能看到反馈
+- ✅ **刷新状态反馈** - Activity 图标颜色变化（灰色 → 绿色），最小显示时间 600ms
 - ✅ **股票列表优化** - 持仓为 0 时，市值和收益显示 `-`，避免误导
-- ✅ **初始化修复** - 解决 Invalid Hook Call 错误，使用 `getState()` 正确调用 Store
-- ✅ **性能优化** - 防止重复初始化和定时器重建，使用 `useRef` 稳定回调引用
+- ✅ **初始化修复** - 解决 Invalid Hook Call 错误
 
-### 🏗️ 代码质量提升
-- ✅ **注释完善** - 为所有核心 Hooks 和业务逻辑添加详细注释
-- ✅ **类型安全** - 消除 `any` 类型，使用统一的类型定义
-- ✅ **模块化** - App.tsx 从"大而全"转为"编排层"，职责清晰
+### 2026-03-04 - Store 和 Main Process 分仓
+- ✅ **Store 模块分仓** - 拆分为 5 个独立模块
+  - `uiStore.ts` - UI 状态管理
+  - `stockStore.ts` - 股票数据和操作
+  - `fundStore.ts` - 基金数据和操作
+  - `refreshStore.ts` - 刷新配置和市场时间
+  - `globalMarketStore.ts` - 全球市场状态
+- ✅ **Main Process 分仓** - 拆分为 9 个功能模块
+  - `database/` - 数据库管理
+  - `window/` - 窗口管理
+  - `ipc/` - IPC handlers（22个）
+  - `utils/` - 工具和常量
+- ✅ **main.ts 精简** - 从 500+ 行精简到 34 行
+- ✅ **代码质量提升** - 完整的 JSDoc 注释，类型安全
 
-### 📁 新增文件
-```
-src/renderer/
-├── hooks/                         # 业务逻辑 Hooks
-│   ├── useAppLifecycle.ts        # 生命周期管理
-│   ├── usePortfolioMetrics.ts    # 收益计算
-│   ├── useGroupActions.ts        # 分组操作
-│   ├── useHoldingActions.ts      # 持仓操作
-│   └── index.ts                  # 统一导出
-├── types/
-│   └── hooks.ts                  # Hook 相关类型定义
-└── components/
-    └── stock/
-        └── StockView.tsx         # 股票视图组件
-```
-
-### 🔧 技术改进
-| 改进项 | 优化前 | 优化后 | 效果 |
-|--------|--------|--------|------|
-| App.tsx 行数 | 600+ | ~310 | ↓ 48% |
+### 主要改进统计
+| 指标 | 优化前 | 优化后 | 改进幅度 |
+|------|--------|--------|---------|
+| App.tsx 行数 | 600+ | 310 | ↓ 48% |
+| main.ts 行数 | 500+ | 34 | ↓ 93% |
+| Store 模块数 | 1 | 5 | ↑ 400% |
+| Main 模块数 | 2 | 9 | ↑ 350% |
 | 类型安全 | any 类型 | 统一类型 | ↑ 100% |
-| 刷新反馈 | 无 | 600ms 最小显示 | ↑ 用户体验 |
-| Hook 数量 | 0 | 4 | ↑ 可维护性 |
 
 ---
 
@@ -528,6 +571,17 @@ src/main/
 
 ---
 
-**最后更新**: 2026年3月5日  
+**最后更新**: 2026年3月6日  
 **版本**: 1.5.0  
 **状态**: 🟢 活跃开发中
+
+**主要功能完成度**:
+- ✅ 股票管理 - 100%
+- ✅ 基金管理 - 100%
+- ✅ 全球市场 - 95%（部分市场数据源待优化）
+- ✅ 拖拽排序 - 100%
+- ✅ 表头排序 - 100%
+- ✅ 智能刷新 - 100%
+- ✅ 响应式布局 - 100%
+
+
