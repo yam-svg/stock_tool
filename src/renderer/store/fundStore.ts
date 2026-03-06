@@ -27,6 +27,7 @@ interface FundState {
   updateFund: (id: string, updates: Partial<Omit<Fund, 'id' | 'createdAt'>>) => Promise<void>
   deleteFund: (id: string) => Promise<void>
   moveFundToGroup: (fundId: string, newGroupId: string) => Promise<void>
+  reorderFunds: (fundIds: string[]) => Promise<void>
 
   // 数据刷新
   refreshFundQuotes: () => Promise<void>
@@ -61,7 +62,12 @@ export const useFundStore = create<FundState>()(
             window.electronAPI.db.getFunds()
           ])
 
-          set({ fundGroups, funds })
+          // 确保基金按 sortOrder 排序
+          const sortedFunds = funds.sort((a: Fund, b: Fund) =>
+            ((a.sortOrder || 0) - (b.sortOrder || 0))
+          )
+
+          set({ fundGroups, funds: sortedFunds })
 
           // 如果没有分组，则创建默认分组
           if (fundGroups.length === 0) {
@@ -147,7 +153,11 @@ export const useFundStore = create<FundState>()(
         set({ loading: true, error: null })
         try {
           const fund = await window.electronAPI.db.createFund(fundData)
-          set(state => ({ funds: [...state.funds, fund] }))
+          set(state => ({
+            funds: [...state.funds, fund].sort((a: Fund, b: Fund) =>
+              ((a.sortOrder || 0) - (b.sortOrder || 0))
+            )
+          }))
           await get().refreshFundQuotes()
         } catch (error) {
           set({ error: error instanceof Error ? error.message : '添加基金失败' })
@@ -199,6 +209,26 @@ export const useFundStore = create<FundState>()(
           set({ error: error instanceof Error ? error.message : '移动基金失败' })
         } finally {
           set({ loading: false })
+        }
+      },
+
+      reorderFunds: async (fundIds: string[]) => {
+        try {
+          // 更新本地状态
+          const updates = fundIds.map((id: string, index: number) => ({ id, sortOrder: index }))
+          
+          set(state => ({
+            funds: state.funds.map(fund => {
+              const update = updates.find((u: { id: string; sortOrder: number }) => u.id === fund.id)
+              return update ? { ...fund, sortOrder: update.sortOrder } : fund
+            }).sort((a: Fund, b: Fund) => ((a.sortOrder || 0) - (b.sortOrder || 0)))
+          }))
+          
+          // 保存到数据库
+          await window.electronAPI.db.updateFundsSortOrder(updates)
+        } catch (error) {
+          console.error('重新排序基金失败:', error)
+          set({ error: error instanceof Error ? error.message : '重新排序失败' })
         }
       },
 

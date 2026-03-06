@@ -14,6 +14,7 @@ export interface Stock {
   costPrice: number
   quantity: number
   createdAt: number
+  sortOrder?: number  // 排序顺序
 }
 
 //行情数据接口
@@ -48,6 +49,7 @@ export interface Fund {
   costNav: number
   shares: number
   createdAt: number
+  sortOrder?: number  // 排序顺序
   // 下面字段来自基金搜索结果中的基础信息，仅在当前会话中使用，不一定持久化
   fundType?: string        // 基金类型，如 混合型、债券型 等
   company?: string         // 基金公司
@@ -159,12 +161,14 @@ export interface DatabaseAPI {
   getStocks: (groupId?: string) => Promise<Stock[]>
   updateStock: (id: string, updates: Partial<Omit<Stock, 'id' | 'createdAt'>>) => Promise<void>
   deleteStock: (id: string) => Promise<void>
+  updateStocksSortOrder: (updates: Array<{ id: string; sortOrder: number }>) => Promise<void>
   
   //基操作
   createFund: (fund: Omit<Fund, 'id' | 'createdAt'>) => Promise<Fund>
   getFunds: (groupId?: string) => Promise<Fund[]>
   updateFund: (id: string, updates: Partial<Omit<Fund, 'id' | 'createdAt'>>) => Promise<void>
   deleteFund: (id: string) => Promise<void>
+  updateFundsSortOrder: (updates: Array<{ id: string; sortOrder: number }>) => Promise<void>
   
   //行数据
   getStockQuotes: (symbols: string[]) => Promise<StockQuote[]>

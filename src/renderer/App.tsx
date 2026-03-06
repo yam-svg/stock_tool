@@ -40,6 +40,7 @@ const App: React.FC = () => {
     deleteStock,
     moveStockToGroup,
     moveFundToGroup,
+    reorderStocks,
     selectedStockGroup,
     selectedFundGroup,
     selectStockGroup,
@@ -249,6 +250,7 @@ const App: React.FC = () => {
               onDelete={handleDeleteStock}
               onEdit={handleEditItem}
               onMove={handleMoveItem}
+              onReorder={reorderStocks}
             />
           ) : activeTab === 'fund' ? (
             <FundView darkMode={darkMode} onEditFund={handleEditItem} />

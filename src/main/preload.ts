@@ -19,12 +19,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStocks: (groupId?: string) => ipcRenderer.invoke('db-get-stocks', groupId),
     updateStock: (id: string, updates: any) => ipcRenderer.invoke('db-update-stock', id, updates),
     deleteStock: (id: string) => ipcRenderer.invoke('db-delete-stock', id),
+    updateStocksSortOrder: (updates: Array<{ id: string; sortOrder: number }>) =>
+      ipcRenderer.invoke('db-update-stocks-sort-order', updates),
     
     //基操作
     createFund: (fund: any) => ipcRenderer.invoke('db-create-fund', fund),
     getFunds: (groupId?: string) => ipcRenderer.invoke('db-get-funds', groupId),
     updateFund: (id: string, updates: any) => ipcRenderer.invoke('db-update-fund', id, updates),
     deleteFund: (id: string) => ipcRenderer.invoke('db-delete-fund', id),
+    updateFundsSortOrder: (updates: Array<{ id: string; sortOrder: number }>) =>
+      ipcRenderer.invoke('db-update-funds-sort-order', updates),
     
     //行数据
     getStockQuotes: (symbols: string[]) => ipcRenderer.invoke('db-get-stock-quotes', symbols),

@@ -1,8 +1,24 @@
 import React from 'react'
 import { PieChart, LayoutGrid, List } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  rectSortingStrategy,
+} from '@dnd-kit/sortable'
 import { useStore } from '../../store'
-import { FundCard } from './FundCard'
-import { FundList } from './FundList'
+import { DraggableFundCard } from './DraggableFundCard'
+import { DraggableFundRow } from './DraggableFundRow'
 
 interface FundViewProps {
   darkMode: boolean;
@@ -19,11 +35,51 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
     moveFundToGroup,
     fundViewMode,
     setFundViewMode,
+    reorderFunds,
   } = useStore()
 
   const filteredFunds = selectedFundGroup 
     ? funds.filter(f => f.groupId === selectedFundGroup)
     : []
+
+  const [localFunds, setLocalFunds] = React.useState(filteredFunds)
+  const [showMenuId, setShowMenuId] = React.useState<string | null>(null)
+  const [showMoveMenuId, setShowMoveMenuId] = React.useState<string | null>(null)
+
+  // 配置拖拽传感器
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // 同步外部数据变化
+  React.useEffect(() => {
+    setLocalFunds(filteredFunds)
+  }, [filteredFunds])
+
+  // 处理拖拽结束
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      setLocalFunds((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id)
+        const newIndex = items.findIndex((item) => item.id === over.id)
+        const newItems = arrayMove(items, oldIndex, newIndex)
+        
+        // 通知 store 保存新顺序
+        reorderFunds(newItems.map((item) => item.id))
+        
+        return newItems
+      })
+    }
+  }
 
   if (funds.length === 0) {
     return (
@@ -100,34 +156,79 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
       </div>
 
       {/* 基金列表 - 卡片或列表视图 */}
-      {fundViewMode === 'card' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-          {filteredFunds.map(fund => (
-            <FundCard
-              key={fund.id}
-              darkMode={darkMode}
-              fund={fund}
-              quote={fundQuotes[fund.code]}
-              groups={fundGroups}
-              onDelete={deleteFund}
-              onEdit={onEditFund}
-              onMove={moveFundToGroup}
-            />
-          ))}
-        </div>
-      ) : (
-        filteredFunds.length > 0 && (
-          <FundList
-            darkMode={darkMode}
-            funds={filteredFunds}
-            quotes={fundQuotes}
-            groups={fundGroups}
-            onDelete={deleteFund}
-            onEdit={onEditFund}
-            onMove={moveFundToGroup}
-          />
-        )
-      )}
+      {/* 拖拽上下文 */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={localFunds.map((f) => f.id)}
+          strategy={fundViewMode === 'card' ? rectSortingStrategy : verticalListSortingStrategy}
+        >
+          {fundViewMode === 'card' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {localFunds.map(fund => (
+                <DraggableFundCard
+                  key={fund.id}
+                  darkMode={darkMode}
+                  fund={fund}
+                  quote={fundQuotes[fund.code]}
+                  groups={fundGroups}
+                  onDelete={deleteFund}
+                  onEdit={onEditFund}
+                  onMove={moveFundToGroup}
+                />
+              ))}
+            </div>
+          ) : (
+            localFunds.length > 0 && (
+              <div className={`rounded-lg overflow-hidden border ${
+                darkMode ? 'border-gray-700/50 bg-gray-800/50' : 'border-gray-200/50 bg-white/50'
+              } backdrop-blur-sm`}>
+                {/* 表头 */}
+                <div className={`grid grid-cols-12 gap-4 px-4 py-3 text-xs font-semibold ${
+                  darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'
+                }`}>
+                  <div className="col-span-1"></div>
+                  <div className="col-span-2">基金代码</div>
+                  <div className="col-span-2">基金名称</div>
+                  <div className="col-span-1 text-right">持仓份额</div>
+                  <div className="col-span-1 text-right">成本净值</div>
+                  <div className="col-span-1 text-right">当前净值</div>
+                  <div className="col-span-2 text-right">市值</div>
+                  <div className="col-span-2 text-right">收益</div>
+                  <div className="col-span-1 text-center">操作</div>
+                </div>
+                {/* 表格内容 */}
+                <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
+                  {localFunds.map(fund => (
+                    <DraggableFundRow
+                      key={fund.id}
+                      darkMode={darkMode}
+                      fund={fund}
+                      quote={fundQuotes[fund.code]}
+                      groups={fundGroups}
+                      showMenu={showMenuId === fund.id}
+                      showMoveMenu={showMoveMenuId === fund.id}
+                      onToggleMenu={(e) => {
+                        e.stopPropagation?.()
+                        setShowMenuId(showMenuId === fund.id ? null : fund.id)
+                      }}
+                      onToggleMoveMenu={() => {
+                        setShowMoveMenuId(showMoveMenuId === fund.id ? null : fund.id)
+                      }}
+                      onDelete={deleteFund}
+                      onEdit={onEditFund}
+                      onMove={moveFundToGroup}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          )}
+        </SortableContext>
+      </DndContext>
     </div>
   )
 }

@@ -63,12 +63,12 @@ export function registerStockHandlers() {
     let stmt
     if (groupId) {
       stmt = db.prepare(
-        'SELECT id, symbol, name, group_id AS groupId, cost_price AS costPrice, quantity, created_at AS createdAt FROM stocks WHERE group_id = ? ORDER BY created_at'
+        'SELECT id, symbol, name, group_id AS groupId, cost_price AS costPrice, quantity, created_at AS createdAt, sort_order AS sortOrder FROM stocks WHERE group_id = ? ORDER BY sort_order, created_at'
       )
       return stmt.all(groupId)
     } else {
       stmt = db.prepare(
-        'SELECT id, symbol, name, group_id AS groupId, cost_price AS costPrice, quantity, created_at AS createdAt FROM stocks ORDER BY created_at'
+        'SELECT id, symbol, name, group_id AS groupId, cost_price AS costPrice, quantity, created_at AS createdAt, sort_order AS sortOrder FROM stocks ORDER BY sort_order, created_at'
       )
       return stmt.all()
     }
@@ -80,6 +80,7 @@ export function registerStockHandlers() {
       .map(key => {
         if (key === 'groupId') return 'group_id = ?'
         if (key === 'costPrice') return 'cost_price = ?'
+        if (key === 'sortOrder') return 'sort_order = ?'
         return `${key} = ?`
       })
       .join(', ')
@@ -95,6 +96,20 @@ export function registerStockHandlers() {
     const db = getDatabase()
     const stmt = db.prepare('DELETE FROM stocks WHERE id = ?')
     stmt.run(id)
+  })
+  
+  // 批量更新股票排序
+  ipcMain.handle('db-update-stocks-sort-order', async (_event, updates: Array<{ id: string; sortOrder: number }>) => {
+    const db = getDatabase()
+    const stmt = db.prepare('UPDATE stocks SET sort_order = ? WHERE id = ?')
+    
+    const transaction = db.transaction(() => {
+      for (const update of updates) {
+        stmt.run(update.sortOrder, update.id)
+      }
+    })
+    
+    transaction()
   })
 }
 

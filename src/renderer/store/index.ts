@@ -56,6 +56,7 @@ export const useStore = () => {
     updateStock: stockStore.updateStock,
     deleteStock: stockStore.deleteStock,
     moveStockToGroup: stockStore.moveStockToGroup,
+    reorderStocks: stockStore.reorderStocks,
     refreshStockQuotes: stockStore.refreshStockQuotes,
 
     // Fund Store
@@ -72,6 +73,7 @@ export const useStore = () => {
     updateFund: fundStore.updateFund,
     deleteFund: fundStore.deleteFund,
     moveFundToGroup: fundStore.moveFundToGroup,
+    reorderFunds: fundStore.reorderFunds,
     refreshFundQuotes: fundStore.refreshFundQuotes,
 
     // Global Market Store

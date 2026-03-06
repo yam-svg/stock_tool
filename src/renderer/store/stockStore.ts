@@ -27,6 +27,7 @@ interface StockState {
   updateStock: (id: string, updates: Partial<Omit<Stock, 'id' | 'createdAt'>>) => Promise<void>
   deleteStock: (id: string) => Promise<void>
   moveStockToGroup: (stockId: string, newGroupId: string) => Promise<void>
+  reorderStocks: (stockIds: string[]) => Promise<void>
 
   // 数据刷新
   refreshStockQuotes: () => Promise<void>
@@ -61,7 +62,12 @@ export const useStockStore = create<StockState>()(
             window.electronAPI.db.getStocks()
           ])
 
-          set({ stockGroups, stocks })
+          // 确保股票按 sortOrder 排序
+          const sortedStocks = stocks.sort((a: Stock, b: Stock) =>
+            ((a.sortOrder || 0) - (b.sortOrder || 0))
+          )
+
+          set({ stockGroups, stocks: sortedStocks })
 
           // 如果没有分组，则创建默认分组
           if (stockGroups.length === 0) {
@@ -147,7 +153,11 @@ export const useStockStore = create<StockState>()(
         set({ loading: true, error: null })
         try {
           const stock = await window.electronAPI.db.createStock(stockData)
-          set(state => ({ stocks: [...state.stocks, stock] }))
+          set(state => ({
+            stocks: [...state.stocks, stock].sort((a: Stock, b: Stock) =>
+              ((a.sortOrder || 0) - (b.sortOrder || 0))
+            )
+          }))
           await get().refreshStockQuotes()
         } catch (error) {
           set({ error: error instanceof Error ? error.message : '添加股票失败' })
@@ -199,6 +209,26 @@ export const useStockStore = create<StockState>()(
           set({ error: error instanceof Error ? error.message : '移动股票失败' })
         } finally {
           set({ loading: false })
+        }
+      },
+
+      reorderStocks: async (stockIds: string[]) => {
+        try {
+          // 更新本地状态
+          const updates = stockIds.map((id: string, index: number) => ({ id, sortOrder: index }))
+          
+          set(state => ({
+            stocks: state.stocks.map(stock => {
+              const update = updates.find((u: { id: string; sortOrder: number }) => u.id === stock.id)
+              return update ? { ...stock, sortOrder: update.sortOrder } : stock
+            }).sort((a: Stock, b: Stock) => ((a.sortOrder || 0) - (b.sortOrder || 0)))
+          }))
+          
+          // 保存到数据库
+          await window.electronAPI.db.updateStocksSortOrder(updates)
+        } catch (error) {
+          console.error('重新排序股票失败:', error)
+          set({ error: error instanceof Error ? error.message : '重新排序失败' })
         }
       },
 
