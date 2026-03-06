@@ -1,5 +1,5 @@
+import { ChevronLeft, FolderPlus, Plus } from 'lucide-react'
 import React from 'react'
-import { FolderPlus, Plus, ChevronLeft } from 'lucide-react'
 import { GroupItem } from '../group'
 
 interface Group {
@@ -40,12 +40,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onDeleteGroup,
   onMoveGroup,
   selectedGroupId,
-  onAddToGroup
+  onAddToGroup,
 }) => {
   return (
-    <div className={`${collapsed ? 'w-0' : 'w-64'} transition-all duration-300 overflow-hidden ${
+    <div className={`${collapsed ? 'opacity-0 w-0' : 'w-64'} transition-all duration-300 ${
       darkMode
-        ? 'bg-gray-800/50 border-gray-700/50' 
+        ? 'bg-gray-800/50 border-gray-700/50'
         : 'bg-white/50 border-gray-200/50'
     } border-r backdrop-blur-sm`}>
       <div className="w-64 sticky top-16 h-[calc(100vh-4rem)] flex flex-col p-4">
@@ -82,8 +82,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onKeyDown={(e) => e.key === 'Enter' && onGroupCreate()}
               placeholder={`新建${activeTab === 'stock' ? '股票' : '基金'}分组`}
               className={`w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                darkMode 
-                  ? 'bg-transparent text-white placeholder-gray-400' 
+                darkMode
+                  ? 'bg-transparent text-white placeholder-gray-400'
                   : 'bg-transparent text-gray-800 placeholder-gray-500'
               }`}
             />
@@ -96,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span>创建分组</span>
           </button>
         </div>
-
+        
         {/* 分组列表 */}
         <div className="flex flex-col flex-1 min-h-0">
           <div className="text-xs font-medium text-gray-500 px-2 mb-2 flex-shrink-0">我的分组</div>

@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({
           : 'bg-white/80 backdrop-blur-md border-gray-200/50'
       } border-b sticky top-0 z-50 px-4 py-2 shadow-sm`}
     >
-      <div ref={containerRef} className="flex items-center justify-between w-full px-4">
+      <div ref={containerRef} className="flex items-center justify-between w-full">
         <div className="flex items-center space-x-6 min-w-0">
           {/* Logo */}
           <div className="flex items-center space-x-2 flex-shrink-0">
@@ -168,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* 刷新开关 */}
               <div
-                className={`flex items-center space-x-2 px-3 py-1 rounded-lg ${
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
                   darkMode ? 'bg-black/10' : 'bg-black/5'
                 } ${!isMarketOpen ? 'opacity-60' : ''} transition-all duration-300 whitespace-nowrap`}
               >
