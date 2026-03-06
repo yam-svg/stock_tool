@@ -46,6 +46,12 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
   const [showMenuId, setShowMenuId] = React.useState<string | null>(null)
   const [showMoveMenuId, setShowMoveMenuId] = React.useState<string | null>(null)
 
+  // 排序状态
+  type SortField = 'code' | 'name' | 'shares' | 'costNav' | 'currentNav' | 'marketValue' | 'profit' | null
+  type SortDirection = 'asc' | 'desc'
+  const [sortField, setSortField] = React.useState<SortField>(null)
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>('asc')
+
   // 配置拖拽传感器
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -58,10 +64,77 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
     })
   )
 
-  // 同步外部数据变化
+  // 排序函数
+  const sortFunds = React.useCallback((fundsArray: any[], field: SortField, direction: SortDirection) => {
+    if (!field) return fundsArray
+
+    return [...fundsArray].sort((a, b) => {
+      let aValue: number | string = 0
+      let bValue: number | string = 0
+
+      switch (field) {
+        case 'code':
+          aValue = a.code
+          bValue = b.code
+          break
+        case 'name':
+          aValue = a.name
+          bValue = b.name
+          break
+        case 'shares':
+          aValue = a.shares
+          bValue = b.shares
+          break
+        case 'costNav':
+          aValue = a.costNav
+          bValue = b.costNav
+          break
+        case 'currentNav':
+          aValue = fundQuotes[a.code]?.nav || 0
+          bValue = fundQuotes[b.code]?.nav || 0
+          break
+        case 'marketValue':
+          aValue = (fundQuotes[a.code]?.nav || 0) * a.shares
+          bValue = (fundQuotes[b.code]?.nav || 0) * b.shares
+          break
+        case 'profit':
+          aValue = ((fundQuotes[a.code]?.nav || 0) * a.shares) - (a.costNav * a.shares)
+          bValue = ((fundQuotes[b.code]?.nav || 0) * b.shares) - (b.costNav * b.shares)
+          break
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return direction === 'asc'
+          ? aValue.localeCompare(bValue, 'zh-CN')
+          : bValue.localeCompare(aValue, 'zh-CN')
+      }
+
+      return direction === 'asc' ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number)
+    })
+  }, [fundQuotes])
+
+  // 处理表头点击排序
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // 同一字段：切换方向或取消排序
+      if (sortDirection === 'asc') {
+        setSortDirection('desc')
+      } else {
+        setSortField(null)
+        setSortDirection('asc')
+      }
+    } else {
+      // 新字段：设置为升序
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // 同步外部数据变化并应用排序
   React.useEffect(() => {
-    setLocalFunds(filteredFunds)
-  }, [filteredFunds])
+    const sorted = sortFunds(filteredFunds, sortField, sortDirection)
+    setLocalFunds(sorted)
+  }, [filteredFunds, sortField, sortDirection, sortFunds])
 
   // 处理拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
@@ -191,13 +264,62 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
                   darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'
                 }`}>
                   <div className="col-span-1"></div>
-                  <div className="col-span-2">基金代码</div>
-                  <div className="col-span-2">基金名称</div>
-                  <div className="col-span-1 text-right">持仓份额</div>
-                  <div className="col-span-1 text-right">成本净值</div>
-                  <div className="col-span-1 text-right">当前净值</div>
-                  <div className="col-span-2 text-right">市值</div>
-                  <div className="col-span-2 text-right">收益</div>
+                  <div className="col-span-2 cursor-pointer" onClick={() => handleSort('code')}>
+                    基金代码
+                    {sortField === 'code' && (
+                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
+                        {sortDirection === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="col-span-2 cursor-pointer" onClick={() => handleSort('name')}>
+                    基金名称
+                    {sortField === 'name' && (
+                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
+                        {sortDirection === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('shares')}>
+                    持仓份额
+                    {sortField === 'shares' && (
+                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
+                        {sortDirection === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('costNav')}>
+                    成本净值
+                    {sortField === 'costNav' && (
+                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
+                        {sortDirection === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('currentNav')}>
+                    当前净值
+                    {sortField === 'currentNav' && (
+                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
+                        {sortDirection === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="col-span-2 text-right cursor-pointer" onClick={() => handleSort('marketValue')}>
+                    市值
+                    {sortField === 'marketValue' && (
+                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
+                        {sortDirection === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="col-span-2 text-right cursor-pointer" onClick={() => handleSort('profit')}>
+                    收益
+                    {sortField === 'profit' && (
+                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
+                        {sortDirection === 'asc' ? '▲' : '▼'}
+                      </span>
+                    )}
+                  </div>
                   <div className="col-span-1 text-center">操作</div>
                 </div>
                 {/* 表格内容 */}

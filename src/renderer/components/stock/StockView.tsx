@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { LayoutGrid, List, Search } from 'lucide-react'
 import {
   DndContext,
@@ -13,13 +13,12 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
   rectSortingStrategy,
 } from '@dnd-kit/sortable'
 import { Stock, StockGroup, StockQuote } from '../../../shared/types'
 import { Button } from '../../ui'
 import { DraggableStockCard } from './DraggableStockCard'
-import { DraggableStockRow } from './DraggableStockRow'
+import { StockList } from './StockList'
 
 interface StockViewProps {
   darkMode: boolean
@@ -51,15 +50,18 @@ export const StockView: React.FC<StockViewProps> = ({
   onReorder,
 }) => {
   const [localStocks, setLocalStocks] = React.useState(visibleStocks)
-  const [showMenuId, setShowMenuId] = React.useState<string | null>(null)
-  const [flashColors, setFlashColors] = React.useState<Record<string, 'red' | 'green'>>({})
-  const prevPricesRef = React.useRef<Record<string, number>>({})
+
+  // 排序状态
+  type SortField = 'symbol' | 'name' | 'quantity' | 'costPrice' | 'currentPrice' | 'change' | 'changePercent' | 'marketValue' | 'profit' | null
+  type SortDirection = 'asc' | 'desc'
+  const [sortField, setSortField] = React.useState<SortField>(null)
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>('asc')
 
   // 配置拖拽传感器
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // 移动 8px 才开始拖拽
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -67,36 +69,86 @@ export const StockView: React.FC<StockViewProps> = ({
     })
   )
 
-  // 同步外部数据变化
-  React.useEffect(() => {
-    setLocalStocks(visibleStocks)
-  }, [visibleStocks])
+  // 排序函数
+  const sortStocks = React.useCallback((stocks: Stock[], field: SortField, direction: SortDirection) => {
+    if (!field) return stocks
 
-  // 价格更新闪烁效果（仅列表模式）
-  React.useEffect(() => {
-    if (stockViewMode !== 'list') return
-    
-    const newFlashColors: Record<string, 'red' | 'green'> = {}
-    localStocks.forEach((stock) => {
-      const currentPrice = stockQuotes[stock.symbol]?.price || 0
-      const prevPrice = prevPricesRef.current[stock.symbol] || currentPrice
-      if (currentPrice !== prevPrice && prevPrice !== 0) {
-        if (currentPrice > prevPrice) {
-          newFlashColors[stock.id] = 'red'
-        } else if (currentPrice < prevPrice) {
-          newFlashColors[stock.id] = 'green'
-        }
+    return [...stocks].sort((a, b) => {
+      let aValue: number | string = 0
+      let bValue: number | string = 0
+
+      switch (field) {
+        case 'symbol':
+          aValue = a.symbol
+          bValue = b.symbol
+          break
+        case 'name':
+          aValue = a.name
+          bValue = b.name
+          break
+        case 'quantity':
+          aValue = a.quantity
+          bValue = b.quantity
+          break
+        case 'costPrice':
+          aValue = a.costPrice
+          bValue = b.costPrice
+          break
+        case 'currentPrice':
+          aValue = stockQuotes[a.symbol]?.price || 0
+          bValue = stockQuotes[b.symbol]?.price || 0
+          break
+        case 'change':
+          aValue = stockQuotes[a.symbol]?.change || 0
+          bValue = stockQuotes[b.symbol]?.change || 0
+          break
+        case 'changePercent':
+          aValue = stockQuotes[a.symbol]?.changePercent || 0
+          bValue = stockQuotes[b.symbol]?.changePercent || 0
+          break
+        case 'marketValue':
+          aValue = (stockQuotes[a.symbol]?.price || 0) * a.quantity
+          bValue = (stockQuotes[b.symbol]?.price || 0) * b.quantity
+          break
+        case 'profit':
+          aValue = ((stockQuotes[a.symbol]?.price || 0) * a.quantity) - (a.costPrice * a.quantity)
+          bValue = ((stockQuotes[b.symbol]?.price || 0) * b.quantity) - (b.costPrice * b.quantity)
+          break
       }
-      prevPricesRef.current[stock.symbol] = currentPrice
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return direction === 'asc'
+          ? aValue.localeCompare(bValue, 'zh-CN')
+          : bValue.localeCompare(aValue, 'zh-CN')
+      }
+
+      return direction === 'asc' ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number)
     })
-    if (Object.keys(newFlashColors).length > 0) {
-      setFlashColors(newFlashColors)
-      const timer = setTimeout(() => {
-        setFlashColors({})
-      }, 1500)
-      return () => clearTimeout(timer)
+  }, [stockQuotes])
+
+  // 处理表头点击排序
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // 同一字段：切换方向或取消排序
+      if (sortDirection === 'asc') {
+        setSortDirection('desc')
+      } else {
+        setSortField(null)
+        setSortDirection('asc')
+      }
+    } else {
+      // 新字段：设置为升序
+      setSortField(field)
+      setSortDirection('asc')
     }
-  }, [localStocks, stockQuotes, stockViewMode])
+  }
+
+  // 同步外部数据变化并应用排序
+  React.useEffect(() => {
+    const sorted = sortStocks(visibleStocks, sortField, sortDirection)
+    setLocalStocks(sorted)
+  }, [visibleStocks, sortField, sortDirection, sortStocks])
+
 
   // 处理拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
@@ -187,17 +239,17 @@ export const StockView: React.FC<StockViewProps> = ({
         </div>
       )}
 
-      {/* 拖拽上下文 */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={localStocks.map((s) => s.id)}
-          strategy={stockViewMode === 'card' ? rectSortingStrategy : verticalListSortingStrategy}
+      {stockViewMode === 'card' ? (
+        // 卡片模式：支持拖拽
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          {stockViewMode === 'card' ? (
+          <SortableContext
+            items={localStocks.map((s) => s.id)}
+            strategy={rectSortingStrategy}
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {localStocks.map((stock) => (
                 <DraggableStockCard
@@ -212,60 +264,27 @@ export const StockView: React.FC<StockViewProps> = ({
                 />
               ))}
             </div>
-          ) : (
-            localStocks.length > 0 && (
-              <div
-                className={`rounded-lg border ${
-                  darkMode ? 'border-gray-700/50 bg-gray-800/50' : 'border-gray-200/50 bg-white/50'
-                } backdrop-blur-sm`}
-              >
-                {/* 表头 */}
-                <div
-                  className={`grid gap-4 px-4 py-3 text-xs font-semibold ${
-                    darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'
-                  }`}
-                  style={{
-                    gridTemplateColumns: '40px 1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr 0.6fr',
-                  }}
-                >
-                  <div></div>
-                  <div>股票代码</div>
-                  <div>股票名称</div>
-                  <div className="text-right">持仓数量</div>
-                  <div className="text-right">成本价</div>
-                  <div className="text-right">当前价</div>
-                  <div className="text-right">涨跌额</div>
-                  <div className="text-right">涨跌幅</div>
-                  <div className="text-right">市值</div>
-                  <div className="text-right">收益</div>
-                  <div className="text-center">操作</div>
-                </div>
-                {/* 表格内容 */}
-                <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
-                  {localStocks.map((stock) => (
-                    <DraggableStockRow
-                      key={stock.id}
-                      darkMode={darkMode}
-                      stock={stock}
-                      quote={stockQuotes[stock.symbol]}
-                      groups={stockGroups}
-                      showMenu={showMenuId === stock.id}
-                      flashColor={flashColors[stock.id] || null}
-                      onToggleMenu={(e) => {
-                        e.stopPropagation?.()
-                        setShowMenuId(showMenuId === stock.id ? null : stock.id)
-                      }}
-                      onDelete={onDelete}
-                      onEdit={onEdit}
-                      onMove={onMove}
-                    />
-                  ))}
-                </div>
-              </div>
-            )
-          )}
-        </SortableContext>
-      </DndContext>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        // 列表模式：统一使用 StockList 组件
+        localStocks.length > 0 && (
+          <StockList
+            darkMode={darkMode}
+            stocks={localStocks}
+            quotes={stockQuotes}
+            groups={stockGroups}
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onMove={onMove}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            enableDrag={sortField === null}
+            onDragEnd={handleDragEnd}
+          />
+        )
+      )}
     </div>
   )
 }
