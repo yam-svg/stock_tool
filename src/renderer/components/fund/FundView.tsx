@@ -1,24 +1,18 @@
-import React from 'react'
-import { PieChart, LayoutGrid, List } from 'lucide-react'
 import {
-  DndContext,
   closestCenter,
+  DndContext,
+  DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
 } from '@dnd-kit/core'
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  rectSortingStrategy,
-} from '@dnd-kit/sortable'
-import { useStore } from '../../store'
+import { arrayMove, rectSortingStrategy, SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { LayoutGrid, List, PieChart } from 'lucide-react'
+import React from 'react'
+import { useFundStore, useUIStore } from '../../store'
 import { DraggableFundCard } from './DraggableFundCard'
-import { DraggableFundRow } from './DraggableFundRow'
+import { FundList } from './FundList.tsx'
 
 interface FundViewProps {
   darkMode: boolean;
@@ -26,32 +20,32 @@ interface FundViewProps {
 }
 
 export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
-  const { 
-    funds, 
-    fundQuotes, 
-    fundGroups, 
-    selectedFundGroup,
-    deleteFund,
-    moveFundToGroup,
-    fundViewMode,
-    setFundViewMode,
-    reorderFunds,
-  } = useStore()
-
-  const filteredFunds = selectedFundGroup 
-    ? funds.filter(f => f.groupId === selectedFundGroup)
-    : []
-
+  // 使用单独的 store hooks，避免每次创建新对象
+  const funds = useFundStore(state => state.funds)
+  const fundQuotes = useFundStore(state => state.fundQuotes)
+  const fundGroups = useFundStore(state => state.fundGroups)
+  const selectedFundGroup = useFundStore(state => state.selectedFundGroup)
+  const deleteFund = useFundStore(state => state.deleteFund)
+  const moveFundToGroup = useFundStore(state => state.moveFundToGroup)
+  const reorderFunds = useFundStore(state => state.reorderFunds)
+  const fundViewMode = useUIStore(state => state.fundViewMode)
+  const setFundViewMode = useUIStore(state => state.setFundViewMode)
+  
+  // 使用 useMemo 缓存 filteredFunds，避免每次渲染创建新数组
+  const filteredFunds = React.useMemo(() => {
+    return selectedFundGroup
+      ? funds.filter(f => f.groupId === selectedFundGroup)
+      : []
+  }, [funds, selectedFundGroup])
+  
   const [localFunds, setLocalFunds] = React.useState(filteredFunds)
-  const [showMenuId, setShowMenuId] = React.useState<string | null>(null)
-  const [showMoveMenuId, setShowMoveMenuId] = React.useState<string | null>(null)
-
+  
   // 排序状态
   type SortField = 'code' | 'name' | 'shares' | 'costNav' | 'currentNav' | 'marketValue' | 'profit' | null
   type SortDirection = 'asc' | 'desc'
   const [sortField, setSortField] = React.useState<SortField>(null)
   const [sortDirection, setSortDirection] = React.useState<SortDirection>('asc')
-
+  
   // 配置拖拽传感器
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -61,18 +55,35 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   )
-
-  // 排序函数
-  const sortFunds = React.useCallback((fundsArray: any[], field: SortField, direction: SortDirection) => {
-    if (!field) return fundsArray
-
-    return [...fundsArray].sort((a, b) => {
+  
+  // 处理表头点击排序
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // 同一字段：切换方向或取消排序
+      if (sortDirection === 'asc') {
+        setSortDirection('desc')
+      } else {
+        setSortField(null)
+        setSortDirection('asc')
+      }
+    } else {
+      // 新字段：设置为升序
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+  
+  // 使用 useMemo 缓存排序结果，避免无限循环
+  const sortedFunds = React.useMemo(() => {
+    if (!sortField) return filteredFunds
+    
+    return [...filteredFunds].sort((a, b) => {
       let aValue: number | string = 0
       let bValue: number | string = 0
-
-      switch (field) {
+      
+      switch (sortField) {
         case 'code':
           aValue = a.code
           bValue = b.code
@@ -102,44 +113,26 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
           bValue = ((fundQuotes[b.code]?.nav || 0) * b.shares) - (b.costNav * b.shares)
           break
       }
-
+      
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return direction === 'asc'
+        return sortDirection === 'asc'
           ? aValue.localeCompare(bValue, 'zh-CN')
           : bValue.localeCompare(aValue, 'zh-CN')
       }
-
-      return direction === 'asc' ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number)
+      
+      return sortDirection === 'asc' ? (aValue as number) - (bValue as number) : (bValue as number) - (aValue as number)
     })
-  }, [fundQuotes])
-
-  // 处理表头点击排序
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      // 同一字段：切换方向或取消排序
-      if (sortDirection === 'asc') {
-        setSortDirection('desc')
-      } else {
-        setSortField(null)
-        setSortDirection('asc')
-      }
-    } else {
-      // 新字段：设置为升序
-      setSortField(field)
-      setSortDirection('asc')
-    }
-  }
-
-  // 同步外部数据变化并应用排序
+  }, [filteredFunds, sortField, sortDirection, fundQuotes])
+  
+  // 同步排序结果到 localFunds
   React.useEffect(() => {
-    const sorted = sortFunds(filteredFunds, sortField, sortDirection)
-    setLocalFunds(sorted)
-  }, [filteredFunds, sortField, sortDirection, sortFunds])
-
+    setLocalFunds(sortedFunds)
+  }, [sortedFunds])
+  
   // 处理拖拽结束
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-
+    
     if (over && active.id !== over.id) {
       setLocalFunds((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id)
@@ -153,7 +146,7 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
       })
     }
   }
-
+  
   if (funds.length === 0) {
     return (
       <div className="space-y-6">
@@ -171,7 +164,7 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
       </div>
     )
   }
-
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -227,19 +220,19 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
           </div>
         </div>
       </div>
-
+      
       {/* 基金列表 - 卡片或列表视图 */}
-      {/* 拖拽上下文 */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={localFunds.map((f) => f.id)}
-          strategy={fundViewMode === 'card' ? rectSortingStrategy : verticalListSortingStrategy}
+      {fundViewMode === 'card' ? (
+        // 卡片模式：支持拖拽
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          {fundViewMode === 'card' ? (
+          <SortableContext
+            items={localFunds.map((f) => f.id)}
+            strategy={rectSortingStrategy}
+          >
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {localFunds.map(fund => (
                 <DraggableFundCard
@@ -254,103 +247,27 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
                 />
               ))}
             </div>
-          ) : (
-            localFunds.length > 0 && (
-              <div className={`rounded-lg overflow-hidden border ${
-                darkMode ? 'border-gray-700/50 bg-gray-800/50' : 'border-gray-200/50 bg-white/50'
-              } backdrop-blur-sm`}>
-                {/* 表头 */}
-                <div className={`grid grid-cols-12 gap-4 px-4 py-3 text-xs font-semibold ${
-                  darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'
-                }`}>
-                  <div className="col-span-1"></div>
-                  <div className="col-span-2 cursor-pointer" onClick={() => handleSort('code')}>
-                    基金代码
-                    {sortField === 'code' && (
-                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
-                        {sortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="col-span-2 cursor-pointer" onClick={() => handleSort('name')}>
-                    基金名称
-                    {sortField === 'name' && (
-                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
-                        {sortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('shares')}>
-                    持仓份额
-                    {sortField === 'shares' && (
-                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
-                        {sortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('costNav')}>
-                    成本净值
-                    {sortField === 'costNav' && (
-                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
-                        {sortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="col-span-1 text-right cursor-pointer" onClick={() => handleSort('currentNav')}>
-                    当前净值
-                    {sortField === 'currentNav' && (
-                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
-                        {sortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="col-span-2 text-right cursor-pointer" onClick={() => handleSort('marketValue')}>
-                    市值
-                    {sortField === 'marketValue' && (
-                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
-                        {sortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="col-span-2 text-right cursor-pointer" onClick={() => handleSort('profit')}>
-                    收益
-                    {sortField === 'profit' && (
-                      <span className={`ml-1 text-xs ${sortDirection === 'asc' ? 'text-blue-500' : 'text-red-500'}`}>
-                        {sortDirection === 'asc' ? '▲' : '▼'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="col-span-1 text-center">操作</div>
-                </div>
-                {/* 表格内容 */}
-                <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
-                  {localFunds.map(fund => (
-                    <DraggableFundRow
-                      key={fund.id}
-                      darkMode={darkMode}
-                      fund={fund}
-                      quote={fundQuotes[fund.code]}
-                      groups={fundGroups}
-                      showMenu={showMenuId === fund.id}
-                      showMoveMenu={showMoveMenuId === fund.id}
-                      onToggleMenu={(e) => {
-                        e.stopPropagation?.()
-                        setShowMenuId(showMenuId === fund.id ? null : fund.id)
-                      }}
-                      onToggleMoveMenu={() => {
-                        setShowMoveMenuId(showMoveMenuId === fund.id ? null : fund.id)
-                      }}
-                      onDelete={deleteFund}
-                      onEdit={onEditFund}
-                      onMove={moveFundToGroup}
-                    />
-                  ))}
-                </div>
-              </div>
-            )
-          )}
-        </SortableContext>
-      </DndContext>
+          </SortableContext>
+        </DndContext>
+      ) : (
+        // 列表模式：统一使用 FundList 组件
+        localFunds.length > 0 && (
+          <FundList
+            darkMode={darkMode}
+            funds={localFunds}
+            quotes={fundQuotes}
+            groups={fundGroups}
+            onDelete={deleteFund}
+            onEdit={onEditFund}
+            onMove={moveFundToGroup}
+            sortField={sortField}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            enableDrag={sortField === null}
+            onDragEnd={handleDragEnd}
+          />
+        )
+      )}
     </div>
   )
 }
