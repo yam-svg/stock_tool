@@ -33,7 +33,7 @@ export const EditModal: React.FC<EditModalProps> = ({
       setFormData(initialData);
       setErrors({});
     }
-  }, [isOpen, initialData]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
