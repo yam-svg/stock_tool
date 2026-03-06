@@ -13,6 +13,7 @@ interface DraggableStockCardProps {
   onDelete: (id: string) => void
   onEdit: (stock: Stock) => void
   onMove: (stockId: string, groupId: string) => void
+  onShowChart?: (symbol: string, name: string) => void
 }
 
 /**

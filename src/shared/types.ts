@@ -174,6 +174,14 @@ export interface DatabaseAPI {
   getStockQuotes: (symbols: string[]) => Promise<StockQuote[]>
   getFundQuotes: (codes: string[]) => Promise<FundQuote[]>
   getGlobalIndexQuotes: () => Promise<GlobalIndexQuote[]>
+  getStockIntraday: (symbol: string) => Promise<{
+    success: boolean
+    data?: {
+      points: Array<{ time: string; price: number; volume: number }>
+      yesterdayClose: number
+    }
+    error?: string
+  }>
   
   // 搜索
   searchStocks: (keyword: string) => Promise<StockSearchResult[]>

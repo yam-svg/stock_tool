@@ -10,6 +10,7 @@ interface StockCardProps {
   onDelete: (id: string) => void;
   onEdit: (stock: Stock) => void;
   onMove: (stockId: string, groupId: string) => void;
+  onShowChart?: (symbol: string, name: string) => void;
 }
 
 export const StockCard: React.FC<StockCardProps> = ({
@@ -20,6 +21,7 @@ export const StockCard: React.FC<StockCardProps> = ({
   onDelete,
   onEdit,
   onMove,
+  onShowChart,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false);
   const [flashColor, setFlashColor] = React.useState<"red" | "green" | null>(null);
@@ -54,17 +56,18 @@ export const StockCard: React.FC<StockCardProps> = ({
 
   return (
     <div
-      className={`rounded-lg p-3 shadow-sm relative transition-colors duration-500 ${
+      className={`rounded-lg p-3 shadow-sm relative transition-colors duration-500 cursor-pointer ${
         flashColor === "red"
           ? "bg-red-500/20"
           : flashColor === "green"
           ? "bg-green-500/20"
           : darkMode
-          ? "bg-gray-800/50"
-          : "bg-white/50"
+          ? "bg-gray-800/50 hover:bg-gray-800/70"
+          : "bg-white/50 hover:bg-white/70"
       } border ${
         darkMode ? "border-gray-700/50" : "border-gray-200/50"
       } backdrop-blur-sm`}
+      onClick={() => onShowChart?.(stock.symbol, stock.name)}
     >
       {/* 头部信息 */}
       <div className="flex items-center justify-between mb-2">

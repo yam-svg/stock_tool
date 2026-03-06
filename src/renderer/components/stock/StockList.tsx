@@ -30,6 +30,7 @@ interface StockListProps {
   onDelete: (id: string) => void
   onEdit: (stock: Stock) => void
   onMove: (stockId: string, groupId: string) => void
+  onShowChart?: (symbol: string, name: string) => void
   sortField?: SortField
   sortDirection?: SortDirection
   onSort?: (field: SortField) => void
@@ -45,6 +46,7 @@ export const StockList: React.FC<StockListProps> = ({
   onDelete,
   onEdit,
   onMove,
+  onShowChart,
   sortField = null,
   sortDirection = 'asc',
   onSort,
@@ -144,7 +146,7 @@ export const StockList: React.FC<StockListProps> = ({
     return (
       <div
         ref={setNodeRef}
-        className={`grid gap-4 px-4 py-3 text-sm transition-colors duration-500 relative ${
+        className={`grid gap-4 px-4 py-3 text-sm transition-colors duration-500 relative cursor-pointer ${
           flashColor === 'red'
             ? darkMode
               ? 'bg-red-500/20'
@@ -161,6 +163,7 @@ export const StockList: React.FC<StockListProps> = ({
           ...style,
           gridTemplateColumns: enableDrag ? '40px 1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr 0.6fr' : '1fr 1fr 0.8fr 0.8fr 0.8fr 0.8fr 0.8fr 1.2fr 1.2fr 0.6fr',
         }}
+        onClick={() => onShowChart?.(stock.symbol, stock.name)}
       >
         {enableDrag && (
           <div
@@ -169,6 +172,7 @@ export const StockList: React.FC<StockListProps> = ({
             className={`flex items-center justify-center cursor-grab active:cursor-grabbing ${
               darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-gray-400 hover:text-gray-600'
             }`}
+            onClick={(e) => e.stopPropagation()}
           >
             <GripVertical size={16} />
           </div>

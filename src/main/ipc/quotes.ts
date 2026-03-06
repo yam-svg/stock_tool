@@ -232,10 +232,127 @@ export function registerFundQuoteHandlers() {
 }
 
 /**
+ * 获取股票分时数据（今天的走势）
+ */
+export function registerStockIntradayHandler() {
+  ipcMain.handle('db-get-stock-intraday', async (_event, symbol: string) => {
+    try {
+      // 确保有前缀
+      let fullSymbol = symbol.toLowerCase()
+      if (!/^[a-z]{2}[0-9]+/.test(fullSymbol)) {
+        if (/^[0-9]{6}$/.test(symbol)) {
+          if (symbol.startsWith('6') || symbol.startsWith('5')) {
+            fullSymbol = `sh${symbol}`
+          } else if (symbol.startsWith('0') || symbol.startsWith('3') || symbol.startsWith('1')) {
+            fullSymbol = `sz${symbol}`
+          }
+        }
+      }
+
+      console.log('Fetching intraday data for:', fullSymbol)
+
+      // 新浪分时接口获取基本信息和昨收价
+      const url = `http://hq.sinajs.cn/list=${fullSymbol}`
+      const response = await axios.get(url, {
+        headers: {
+          Referer: 'http://finance.sina.com.cn',
+        },
+        responseType: 'arraybuffer',
+        timeout: 10000,
+      })
+
+      const decoder = new TextDecoder('gbk')
+      const text = decoder.decode(response.data)
+      
+      // 解析数据获取昨收价
+      const match = text.match(/var hq_str_[^=]+="([^"]+)"/)
+      if (!match) {
+        return { success: false, error: '数据格式错误' }
+      }
+
+      const data = match[1].split(',')
+      if (data.length < 4) {
+        return { success: false, error: '数据不完整' }
+      }
+
+      const yesterdayClose = parseFloat(data[2]) // 昨收价
+      console.log('Yesterday close:', yesterdayClose)
+
+      // 使用新浪分时数据接口
+      const market = fullSymbol.startsWith('sh') ? 'sh' : 'sz'
+      const code = fullSymbol.substring(2)
+      
+      // 新浪分时数据接口（返回今天的分时数据）
+      const intradayUrl = `https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.getKLineData?symbol=${market}${code}&scale=5&ma=no&datalen=288`
+      
+      console.log('Fetching intraday from Sina:', intradayUrl)
+      
+      const intradayResponse = await axios.get(intradayUrl, {
+        headers: {
+          Referer: 'https://finance.sina.com.cn',
+        },
+        timeout: 10000,
+      })
+
+      const intradayData = intradayResponse.data
+      
+      if (!intradayData || !Array.isArray(intradayData) || intradayData.length === 0) {
+        console.error('Intraday data is empty or invalid')
+        return { success: false, error: '分时数据为空' }
+      }
+
+      console.log('Intraday data length:', intradayData.length)
+      console.log('First data point:', intradayData[0])
+
+      // 转换为走势图数据格式
+      // 新浪返回格式: {day: "2026-03-06 09:35:00", open: "10.880", high: "10.890", low: "10.880", close: "10.885", volume: "1234567"}
+      const points = intradayData
+        .filter((item: any) => {
+          // 只取今天的数据
+          const itemDate = new Date(item.day)
+          const today = new Date()
+          return itemDate.toDateString() === today.toDateString()
+        })
+        .map((item: any) => {
+          const timeStr = item.day.split(' ')[1] // 提取时间部分 "09:35:00"
+          const time = timeStr.substring(0, 5) // 截取 "09:35"
+          
+          return {
+            time,
+            price: parseFloat(item.close),
+            volume: parseInt(item.volume) || 0,
+          }
+        })
+
+      if (points.length === 0) {
+        return { success: false, error: '今日暂无分时数据' }
+      }
+
+      console.log('Converted points:', points.length, 'first point:', points[0])
+
+      return {
+        success: true,
+        data: {
+          points,
+          yesterdayClose,
+        },
+      }
+    } catch (error) {
+      console.error('Fetch stock intraday failed:', error)
+      return {
+        success: false,
+        error: '获取分时数据失败: ' + (error instanceof Error ? error.message : String(error))
+      }
+    }
+  })
+}
+
+/**
  * 注册所有行情相关的 IPC handlers
  */
 export function registerAllQuoteHandlers() {
   registerStockQuoteHandlers()
   registerFundQuoteHandlers()
   registerGlobalIndexQuoteHandlers()
+  registerStockIntradayHandler()
 }

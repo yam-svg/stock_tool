@@ -19,6 +19,7 @@ import { Stock, StockGroup, StockQuote } from '../../../shared/types'
 import { Button } from '../../ui'
 import { DraggableStockCard } from './DraggableStockCard'
 import { StockList } from './StockList'
+import { StockChartModal } from '../modals/StockChartModal'
 
 interface StockViewProps {
   darkMode: boolean
@@ -50,12 +51,24 @@ export const StockView: React.FC<StockViewProps> = ({
   onReorder,
 }) => {
   const [localStocks, setLocalStocks] = React.useState(visibleStocks)
+  
+  // 走势图模态框状态
+  const [showChart, setShowChart] = React.useState(false)
+  const [chartSymbol, setChartSymbol] = React.useState('')
+  const [chartName, setChartName] = React.useState('')
 
   // 排序状态
   type SortField = 'symbol' | 'name' | 'quantity' | 'costPrice' | 'currentPrice' | 'change' | 'changePercent' | 'marketValue' | 'profit' | null
   type SortDirection = 'asc' | 'desc'
   const [sortField, setSortField] = React.useState<SortField>(null)
   const [sortDirection, setSortDirection] = React.useState<SortDirection>('asc')
+  
+  // 打开走势图
+  const handleShowChart = (symbol: string, name: string) => {
+    setChartSymbol(symbol)
+    setChartName(name)
+    setShowChart(true)
+  }
 
   // 配置拖拽传感器
   const sensors = useSensors(
@@ -261,6 +274,7 @@ export const StockView: React.FC<StockViewProps> = ({
                   onDelete={onDelete}
                   onEdit={onEdit}
                   onMove={onMove}
+                  onShowChart={handleShowChart}
                 />
               ))}
             </div>
@@ -277,6 +291,7 @@ export const StockView: React.FC<StockViewProps> = ({
             onDelete={onDelete}
             onEdit={onEdit}
             onMove={onMove}
+            onShowChart={handleShowChart}
             sortField={sortField}
             sortDirection={sortDirection}
             onSort={handleSort}
@@ -285,6 +300,15 @@ export const StockView: React.FC<StockViewProps> = ({
           />
         )
       )}
+      
+      {/* 走势图模态框 */}
+      <StockChartModal
+        isOpen={showChart}
+        onClose={() => setShowChart(false)}
+        symbol={chartSymbol}
+        name={chartName}
+        darkMode={darkMode}
+      />
     </div>
   )
 }

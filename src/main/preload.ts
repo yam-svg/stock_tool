@@ -34,6 +34,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStockQuotes: (symbols: string[]) => ipcRenderer.invoke('db-get-stock-quotes', symbols),
     getFundQuotes: (codes: string[]) => ipcRenderer.invoke('db-get-fund-quotes', codes),
     getGlobalIndexQuotes: () => ipcRenderer.invoke('db-get-global-index-quotes'),
+    getStockIntraday: (symbol: string) => ipcRenderer.invoke('db-get-stock-intraday', symbol),
     
     //搜索
     searchStocks: (keyword: string) => ipcRenderer.invoke('stock-search', keyword),
