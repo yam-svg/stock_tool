@@ -13,6 +13,7 @@ import React from 'react'
 import { useFundStore, useUIStore } from '../../store'
 import { DraggableFundCard } from './DraggableFundCard'
 import { FundList } from './FundList.tsx'
+import { isSystemFundGroup } from '../../../shared/groupConstants'
 
 interface FundViewProps {
   darkMode: boolean;
@@ -33,9 +34,9 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
   
   // 使用 useMemo 缓存 filteredFunds，避免每次渲染创建新数组
   const filteredFunds = React.useMemo(() => {
-    return selectedFundGroup
-      ? funds.filter(f => f.groupId === selectedFundGroup)
-      : []
+    if (!selectedFundGroup) return []
+    if (isSystemFundGroup(selectedFundGroup)) return funds
+    return funds.filter(f => f.groupId === selectedFundGroup)
   }, [funds, selectedFundGroup])
   
   const [localFunds, setLocalFunds] = React.useState(filteredFunds)

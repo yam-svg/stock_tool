@@ -1,4 +1,5 @@
 import { UseGroupActionsParams } from '../types/hooks'
+import { isSystemFundGroup, isSystemStockGroup } from '../../shared/groupConstants'
 
 export function useGroupActions({
   activeTab,
@@ -45,6 +46,9 @@ export function useGroupActions({
 
   const handleUpdateGroup = (id: string, newName: string) => {
     if (activeTab === 'global') return
+    if ((activeTab === 'stock' && isSystemStockGroup(id)) || (activeTab === 'fund' && isSystemFundGroup(id))) {
+      return
+    }
     if (activeTab === 'stock') {
       void updateStockGroup(id, newName)
     } else {
@@ -55,6 +59,9 @@ export function useGroupActions({
   // 删除前检查是否包含项目；有内容时给出二次确认。
   const handleDeleteGroup = (id: string) => {
     if (activeTab === 'global') return
+    if ((activeTab === 'stock' && isSystemStockGroup(id)) || (activeTab === 'fund' && isSystemFundGroup(id))) {
+      return
+    }
     const hasItems =
       activeTab === 'stock'
         ? stocks.some((s) => s.groupId === id)
@@ -74,6 +81,9 @@ export function useGroupActions({
   // 以“组内批量迁移”的方式实现分组移动，不改变项目本身数据结构。
   const handleMoveGroup = (groupId: string, targetGroupId: string) => {
     if (activeTab === 'global') return
+    if ((activeTab === 'stock' && isSystemStockGroup(groupId)) || (activeTab === 'fund' && isSystemFundGroup(groupId))) {
+      return
+    }
     if (activeTab === 'stock') {
       const itemsToMove = stocks.filter((s) => s.groupId === groupId)
       itemsToMove.forEach((item) => {

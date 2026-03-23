@@ -1,6 +1,12 @@
 import Database from 'better-sqlite3'
 import * as path from 'path'
 import { app } from 'electron'
+import {
+  ALL_FUND_GROUP_ID,
+  ALL_FUND_GROUP_NAME,
+  ALL_STOCK_GROUP_ID,
+  ALL_STOCK_GROUP_NAME,
+} from '../../shared/groupConstants'
 
 let db: Database.Database | null = null
 
@@ -72,6 +78,35 @@ export function initializeDatabase() {
     } catch (e) {
       // 列已存在，忽略错误
     }
+
+    // 保证系统分组存在且名称正确，旧数据升级时自动补齐。
+    const upsertStockSystemGroupStmt = db.prepare(
+      `INSERT INTO stock_groups (id, name, created_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET name = excluded.name`
+    )
+    const upsertFundSystemGroupStmt = db.prepare(
+      `INSERT INTO fund_groups (id, name, created_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET name = excluded.name`
+    )
+
+    const now = Date.now()
+    upsertStockSystemGroupStmt.run(ALL_STOCK_GROUP_ID, ALL_STOCK_GROUP_NAME, now)
+    upsertFundSystemGroupStmt.run(ALL_FUND_GROUP_ID, ALL_FUND_GROUP_NAME, now)
+
+    // 升级兼容：把无效分组引用回收到系统分组，避免“看不见持仓”。
+    db.prepare(
+      `UPDATE stocks
+       SET group_id = ?
+       WHERE group_id NOT IN (SELECT id FROM stock_groups)`
+    ).run(ALL_STOCK_GROUP_ID)
+
+    db.prepare(
+      `UPDATE funds
+       SET group_id = ?
+       WHERE group_id NOT IN (SELECT id FROM fund_groups)`
+    ).run(ALL_FUND_GROUP_ID)
 
     console.log('Database initialized successfully')
   } catch (error) {

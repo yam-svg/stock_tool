@@ -9,6 +9,7 @@ interface Group {
 interface GroupItemProps {
   darkMode: boolean
   group: Group
+  isSystemGroup?: boolean
   isSelected: boolean
   itemCount: number
   onSelect: () => void
@@ -22,6 +23,7 @@ interface GroupItemProps {
 export const GroupItem: React.FC<GroupItemProps> = ({
   darkMode,
   group,
+  isSystemGroup = false,
   isSelected,
   itemCount,
   onSelect,
@@ -61,6 +63,7 @@ export const GroupItem: React.FC<GroupItemProps> = ({
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!showMenu) return
+      if (isSystemGroup) return
       
       // 如果正在编辑，不处理快捷键
       if (isEditing) return
@@ -99,7 +102,7 @@ export const GroupItem: React.FC<GroupItemProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [showMenu, isEditing, onDelete, onMove, groups])
+  }, [showMenu, isEditing, onDelete, onMove, groups, isSystemGroup])
 
   const handleSaveEdit = () => {
     if (editName.trim()) {
@@ -141,8 +144,10 @@ export const GroupItem: React.FC<GroupItemProps> = ({
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 onBlur={handleSaveEdit}
-                onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
-                onKeyDown={(e) => e.key === 'Escape' && handleCancelEdit()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit()
+                  if (e.key === 'Escape') handleCancelEdit()
+                }}
                 className={`flex-1 text-sm font-medium bg-transparent border-b focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   darkMode ? 'border-gray-600' : 'border-gray-300'
                 }`}
@@ -173,7 +178,7 @@ export const GroupItem: React.FC<GroupItemProps> = ({
                 <Plus className="w-3.5 h-3.5" />
               </button>
             )}
-            <div className="relative" ref={menuRef}>
+            {!isSystemGroup && <div className="relative" ref={menuRef}>
               <button
                 onClick={(e) => {
                   e.stopPropagation()
@@ -291,7 +296,7 @@ export const GroupItem: React.FC<GroupItemProps> = ({
                   </button>
                 </div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
       </div>

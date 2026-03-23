@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import { UsePortfolioMetricsParams } from '../types/hooks'
+import { isSystemFundGroup, isSystemStockGroup } from '../../shared/groupConstants'
 
 export function usePortfolioMetrics({
   activeTab,
@@ -39,7 +40,11 @@ export function usePortfolioMetrics({
 
   // 当前选中股票分组下的可见列表。
   const visibleStocks = useMemo(
-    () => (selectedStockGroup ? stocks.filter((s) => s.groupId === selectedStockGroup) : []),
+    () => {
+      if (!selectedStockGroup) return []
+      if (isSystemStockGroup(selectedStockGroup)) return stocks
+      return stocks.filter((s) => s.groupId === selectedStockGroup)
+    },
     [stocks, selectedStockGroup],
   )
 
@@ -47,13 +52,13 @@ export function usePortfolioMetrics({
   const groupCounts = useMemo(() => {
     if (activeTab === 'stock') {
       return stockGroups.reduce((acc, group) => {
-        acc[group.id] = stocks.filter((s) => s.groupId === group.id).length
+        acc[group.id] = isSystemStockGroup(group.id) ? stocks.length : stocks.filter((s) => s.groupId === group.id).length
         return acc
       }, {} as Record<string, number>)
     }
 
     return fundGroups.reduce((acc, group) => {
-      acc[group.id] = funds.filter((f) => f.groupId === group.id).length
+      acc[group.id] = isSystemFundGroup(group.id) ? funds.length : funds.filter((f) => f.groupId === group.id).length
       return acc
     }, {} as Record<string, number>)
   }, [activeTab, stockGroups, fundGroups, stocks, funds])

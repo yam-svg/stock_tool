@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { StockGroup, Stock, StockQuote } from '../../shared/types'
 import StockService from '../services/stockService'
+import { ALL_STOCK_GROUP_ID, isSystemStockGroup } from '../../shared/groupConstants'
 
 
 interface StockState {
@@ -117,6 +118,7 @@ export const useStockStore = create<StockState>()(
       },
 
       updateStockGroup: async (id, name) => {
+        if (isSystemStockGroup(id)) return
         set({ loading: true, error: null })
         try {
           await window.electronAPI.db.updateStockGroup(id, name)
@@ -133,12 +135,16 @@ export const useStockStore = create<StockState>()(
       },
 
       deleteStockGroup: async (id) => {
+        if (isSystemStockGroup(id)) return
         set({ loading: true, error: null })
         try {
           await window.electronAPI.db.deleteStockGroup(id)
           set(state => ({
             stockGroups: state.stockGroups.filter(group => group.id !== id),
-            selectedStockGroup: state.selectedStockGroup === id ? null : state.selectedStockGroup,
+            selectedStockGroup:
+              state.selectedStockGroup === id
+                ? state.stockGroups.find(group => group.id === ALL_STOCK_GROUP_ID)?.id || null
+                : state.selectedStockGroup,
             stocks: state.stocks.filter(stock => stock.groupId !== id)
           }))
         } catch (error) {

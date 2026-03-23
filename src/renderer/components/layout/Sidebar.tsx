@@ -1,6 +1,7 @@
 import { ChevronLeft, FolderPlus, Plus } from 'lucide-react'
 import React from 'react'
 import { GroupItem } from '../group'
+import { isSystemFundGroup, isSystemStockGroup } from '../../../shared/groupConstants'
 
 interface Group {
   id: string
@@ -106,6 +107,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={group.id}
                 darkMode={darkMode}
                 group={group}
+                isSystemGroup={activeTab === 'stock' ? isSystemStockGroup(group.id) : isSystemFundGroup(group.id)}
                 isSelected={selectedGroupId === group.id}
                 itemCount={stocksCount?.[group.id] || 0}
                 onSelect={() => onGroupSelect(group.id)}

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { FundGroup, Fund, FundQuote } from '../../shared/types'
 import FundService from '../services/fundService'
+import { ALL_FUND_GROUP_ID, isSystemFundGroup } from '../../shared/groupConstants'
 
 
 interface FundState {
@@ -117,6 +118,7 @@ export const useFundStore = create<FundState>()(
       },
 
       updateFundGroup: async (id, name) => {
+        if (isSystemFundGroup(id)) return
         set({ loading: true, error: null })
         try {
           await window.electronAPI.db.updateFundGroup(id, name)
@@ -133,12 +135,16 @@ export const useFundStore = create<FundState>()(
       },
 
       deleteFundGroup: async (id) => {
+        if (isSystemFundGroup(id)) return
         set({ loading: true, error: null })
         try {
           await window.electronAPI.db.deleteFundGroup(id)
           set(state => ({
             fundGroups: state.fundGroups.filter(group => group.id !== id),
-            selectedFundGroup: state.selectedFundGroup === id ? null : state.selectedFundGroup,
+            selectedFundGroup:
+              state.selectedFundGroup === id
+                ? state.fundGroups.find(group => group.id === ALL_FUND_GROUP_ID)?.id || null
+                : state.selectedFundGroup,
             funds: state.funds.filter(fund => fund.groupId !== id)
           }))
         } catch (error) {
