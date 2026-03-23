@@ -64,6 +64,7 @@ export interface FundQuote {
   change: number
   changePercent: number
   date: string
+  updateTime: string
 }
 
 // 基金搜索结果接口

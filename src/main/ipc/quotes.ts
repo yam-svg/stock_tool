@@ -182,6 +182,14 @@ export function registerFundQuoteHandlers() {
     if (!normalized) return false
     return qdiiNameKeywords.some(keyword => normalized.includes(keyword))
   }
+
+  const buildUpdateTime = (primary?: string, secondary?: string) => {
+    const first = String(primary || '').trim()
+    if (first) return first.replace('T', ' ').replace(/\.[0-9]+Z?$/, '')
+    const second = String(secondary || '').trim()
+    if (second) return second.replace('T', ' ').replace(/\.[0-9]+Z?$/, '')
+    return ''
+  }
   
   ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
     if (codes.length === 0) return []
@@ -271,6 +279,7 @@ export function registerFundQuoteHandlers() {
               change: Number(change.toFixed(4)),
               changePercent: Number(changePercent.toFixed(2)),
               date: (json.jzrq as string) || (json.gztime as string) || new Date().toISOString().split('T')[0],
+              updateTime: buildUpdateTime(json.gztime as string, json.jzrq as string),
             }
             
             results[fundCode] = quoteData
@@ -330,6 +339,7 @@ export function registerFundQuoteHandlers() {
               change: Number(change.toFixed(4)),
               changePercent: Number(changePercent.toFixed(2)),
               date: data[4] || new Date().toISOString().split('T')[0],
+              updateTime: buildUpdateTime(data[4]),
             }
             
             results[code] = quoteData
@@ -448,6 +458,7 @@ export function registerFundQuoteHandlers() {
               change: 0, // 仅有最新净值，无法计算涨跌额
               changePercent: growthPercent,
               date: date || new Date().toISOString().split('T')[0],
+              updateTime: buildUpdateTime(date),
             }
             
             results[code] = quoteData
@@ -509,6 +520,7 @@ export function registerFundQuoteHandlers() {
                 change: Number(change.toFixed(4)),
                 changePercent: Number(changePercent.toFixed(2)),
                 date: (json.jzrq as string) || (json.gztime as string) || new Date().toISOString().split('T')[0],
+                updateTime: buildUpdateTime(json.gztime as string, json.jzrq as string),
               }
               
               results[fundCode] = quoteData
@@ -569,6 +581,7 @@ export function registerFundQuoteHandlers() {
               change: Number(change.toFixed(4)),
               changePercent: Number(changePercent.toFixed(2)),
               date: data[4] || new Date().toISOString().split('T')[0],
+              updateTime: buildUpdateTime(data[4]),
             }
             
             results[code] = quoteData

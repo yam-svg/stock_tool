@@ -60,7 +60,8 @@ class FundService {
             nav: 0,
             change: 0,
             changePercent: 0,
-            date: new Date().toISOString().split('T')[0]
+            date: new Date().toISOString().split('T')[0],
+            updateTime: ''
           }
           this.cache.set(code, { data: fallback, timestamp: now })
           results.push(fallback)

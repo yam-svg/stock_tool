@@ -78,6 +78,7 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
 
   const quote = quotes[fund.code]
   const currentNav = quote?.nav || 0
+  const updateTimeText = quote?.updateTime || '-'
   const cost = fund.costNav * fund.shares
   const marketValue = currentNav * fund.shares
   const profit = marketValue - cost
@@ -134,6 +135,8 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
         (quote?.changePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'
       }`}>
         {quote?.changePercent != null ? `${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%` : '-'}
+        
+        <div className="text-xs text-gray-500">更新时间：{updateTimeText}</div>
       </div>
       <div className="text-right">
         <div className="font-medium">¥{marketValue.toFixed(2)}</div>

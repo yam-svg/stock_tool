@@ -69,6 +69,7 @@ export const FundCard: React.FC<FundCardProps> = ({
   const profit = currentNav * fund.shares - fund.costNav * fund.shares
   const profitRate = fund.costNav !== 0 ? ((currentNav - fund.costNav) / fund.costNav) * 100 : 0
   const previousNav = currentNav ? currentNav - (quote?.change || 0) : 0
+  const updateTimeText = quote?.updateTime || '-'
 
   return (
     <div 
@@ -106,6 +107,7 @@ export const FundCard: React.FC<FundCardProps> = ({
             }`}>
               {currentNav ? currentNav.toFixed(4) : '-'}
             </div>
+            <div className="text-[11px] text-gray-500">更新时间 {updateTimeText}</div>
           </div>
           
           <div className="relative" ref={menuRef}>
