@@ -95,8 +95,8 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
       style={{
         ...style,
         gridTemplateColumns: enableDrag
-          ? '40px 2fr 2fr 1fr 1fr 1fr 1fr 2fr 2fr 1fr'
-          : '2fr 2fr 1fr 1fr 1fr 1fr 2fr 2fr 1fr',
+          ? '40px 2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr'
+          : '2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr',
       }}
     >
       {enableDrag && (
@@ -247,8 +247,8 @@ export const FundList: React.FC<FundListProps> = ({
         }`}
         style={{
           gridTemplateColumns: enableDrag
-            ? '40px 2fr 2fr 1fr 1fr 1fr 1fr 2fr 2fr 1fr'
-            : '2fr 2fr 1fr 1fr 1fr 1fr 2fr 2fr 1fr',
+            ? '40px 2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr'
+            : '2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr',
         }}
       >
         {enableDrag && <div></div>}
