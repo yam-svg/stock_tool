@@ -51,6 +51,10 @@ export const StockView: React.FC<StockViewProps> = ({
   onReorder,
 }) => {
   const [localStocks, setLocalStocks] = React.useState(visibleStocks)
+  const totalPositionQuantity = React.useMemo(
+    () => visibleStocks.reduce((sum, stock) => sum + (stock.quantity || 0), 0),
+    [visibleStocks]
+  )
   
   // 走势图模态框状态
   const [showChart, setShowChart] = React.useState(false)
@@ -230,7 +234,7 @@ export const StockView: React.FC<StockViewProps> = ({
               } border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
             >
               <div className="text-xs text-gray-500">持仓数量</div>
-              <div className="font-bold text-blue-500">{localStocks.length}</div>
+              <div className="font-bold text-blue-500">{totalPositionQuantity}</div>
             </div>
           )}
         </div>
