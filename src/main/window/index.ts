@@ -1,11 +1,17 @@
 import { BrowserWindow } from 'electron'
 import * as path from 'path'
 
+let mainWindow: BrowserWindow | null = null
+
 /**
  * 创建应用窗口
  */
 export function createWindow() {
-  const mainWindow = new BrowserWindow({
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    return mainWindow
+  }
+
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -22,6 +28,31 @@ export function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../../../dist/index.html'))
   }
 
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
+
+  return mainWindow
+}
+
+export function getMainWindow() {
+  return mainWindow
+}
+
+export function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return null
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+
+  if (!mainWindow.isVisible()) {
+    mainWindow.show()
+  }
+
+  mainWindow.focus()
   return mainWindow
 }
 
