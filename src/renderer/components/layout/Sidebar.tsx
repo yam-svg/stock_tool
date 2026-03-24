@@ -44,12 +44,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onAddToGroup,
 }) => {
   return (
-    <div className={`${collapsed ? 'opacity-0 w-0' : 'w-64'} transition-all duration-300 ${
+    <div className={`${collapsed ? 'opacity-0 w-0 pointer-events-none' : 'opacity-100 w-64'} transition-all duration-300 shrink-0 fixed left-0 top-16 z-40 shadow-xl lg:shadow-none lg:relative lg:top-0 ${
       darkMode
         ? 'bg-gray-800/50 border-gray-700/50'
         : 'bg-white/50 border-gray-200/50'
     } border-r backdrop-blur-sm`}>
-      <div className="w-64 sticky top-16 h-[calc(100vh-4rem)] flex flex-col p-4">
+      <div className="w-64 h-[calc(100vh-4rem)] flex flex-col p-4 lg:sticky lg:top-16">
         {/* 头部：标题和收起按钮 */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">

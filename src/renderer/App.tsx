@@ -75,7 +75,6 @@ const App: React.FC = () => {
     refreshConfig,
     refreshStockQuotes,
     refreshFundQuotes,
-    sidebarCollapsed,
     setSidebarCollapsed,
   })
   
@@ -210,6 +209,15 @@ const App: React.FC = () => {
             tooltip="展开侧边栏"
             className="fixed left-0 top-[52px] z-50 rounded-r-lg rounded-l-none shadow-lg pointer-events-auto"
             size="sm"
+          />
+        )}
+
+        {activeTab !== 'global' && !sidebarCollapsed && (
+          <button
+            type="button"
+            aria-label="关闭分组侧栏"
+            onClick={toggleSidebar}
+            className="fixed inset-0 top-16 z-30 bg-black/30 lg:hidden"
           />
         )}
 

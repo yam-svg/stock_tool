@@ -6,7 +6,6 @@ interface UseAppLifecycleParams {
   refreshConfig: RefreshConfig
   refreshStockQuotes: () => Promise<void>
   refreshFundQuotes: () => Promise<void>
-  sidebarCollapsed: boolean
   setSidebarCollapsed: (collapsed: boolean) => void
 }
 
@@ -15,7 +14,6 @@ export function useAppLifecycle({
   refreshConfig,
   refreshStockQuotes,
   refreshFundQuotes,
-  sidebarCollapsed,
   setSidebarCollapsed,
 }: UseAppLifecycleParams) {
   const initializedRef = useRef(false)
@@ -61,9 +59,9 @@ export function useAppLifecycle({
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth
-      if (width < 1024 && !sidebarCollapsed) {
+      if (width < 1024) {
         setSidebarCollapsed(true)
-      } else if (width >= 1280 && sidebarCollapsed) {
+      } else if (width >= 1280) {
         setSidebarCollapsed(false)
       }
     }
@@ -71,5 +69,5 @@ export function useAppLifecycle({
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [sidebarCollapsed, setSidebarCollapsed])
+  }, [setSidebarCollapsed])
 }
