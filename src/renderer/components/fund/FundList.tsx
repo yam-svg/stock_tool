@@ -18,6 +18,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Fund, FundGroup, FundQuote } from '../../../shared/types'
 import { FundActionMenu } from './FundActionMenu'
+import { isFundQuoteUpdatedToday } from '../../utils/fundQuote'
 
 type SortField = 'code' | 'name' | 'shares' | 'costNav' | 'currentNav' | 'marketValue' | 'profit' | null
 type SortDirection = 'asc' | 'desc'
@@ -77,6 +78,7 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
   } : {}
 
   const quote = quotes[fund.code]
+  const isUpdatedToday = isFundQuoteUpdatedToday(quote, fund)
   const currentNav = quote?.nav || 0
   const updateTimeText = quote?.updateTime || '-'
   const cost = fund.costNav * fund.shares
@@ -91,7 +93,7 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
       ref={setNodeRef}
       className={`grid gap-4 px-4 py-3 text-sm transition-colors ${
         darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'
-      }`}
+      } relative`}
       style={{
         ...style,
         gridTemplateColumns: enableDrag
@@ -99,6 +101,16 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
           : '2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr',
       }}
     >
+      {isUpdatedToday && (
+        <div className="absolute right-14 -top-2 z-10 rotate-6 pointer-events-none">
+          <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold shadow ${
+            darkMode ? 'bg-green-500/85 text-white' : 'bg-green-500 text-white'
+          }`}>
+            今日已更新
+          </span>
+        </div>
+      )}
+
       {enableDrag && (
         <div
           {...attributes}

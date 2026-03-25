@@ -142,12 +142,9 @@ export function registerFundQuoteHandlers() {
   const QDII_CACHE_TTL = 30000 // QDII基金30秒缓存（更激进的更新）
   const KNOWN_QDII_CODES = new Set(['017437'])
   
-  // QDII基金代码列表（以及其他跨境基金）
-  const qdiiPatterns = [
-    /^(001|002|160|161|162|163|164|165|166|167|168|169)\d{3}$/,
-    /^01(7|8|9)\d{3}$/, // 补充 017xxx/018xxx/019xxx，覆盖 017437
-    /^(180|470|519)\d{3}$/,
-  ]
+  // 仅对已确认的代码做“预判QDII”，避免把普通基金误分到QDII通道。
+  // 其他QDII交给后续“按名称识别”阶段处理。
+  const qdiiPatterns: RegExp[] = []
 
   const normalizeFundCode = (raw: string) => {
     const value = String(raw || '').trim()
@@ -435,7 +432,7 @@ export function registerFundQuoteHandlers() {
             const growthPercent = parseFloat(growthStr) || 0
             
             // 获取基金名称（从上一个查询或设置默认值）
-            let fundName = `QDII基金${code}`
+            let fundName = `基金${code}`
             // 尝试从缓存或网络中获取基金名称
             try {
               const infoResp = await axios.get(

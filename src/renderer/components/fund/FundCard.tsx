@@ -1,6 +1,7 @@
 import React from 'react'
 import { Trash2, MoreVertical, FolderInput, Edit2 } from 'lucide-react'
 import { Fund, FundQuote, FundGroup } from '../../../shared/types'
+import { isFundQuoteUpdatedToday } from '../../utils/fundQuote'
 
 interface FundCardProps {
   darkMode: boolean
@@ -70,6 +71,7 @@ export const FundCard: React.FC<FundCardProps> = ({
   const profitRate = fund.costNav !== 0 ? ((currentNav - fund.costNav) / fund.costNav) * 100 : 0
   const previousNav = currentNav ? currentNav - (quote?.change || 0) : 0
   const updateTimeText = quote?.updateTime || '-'
+  const isUpdatedToday = isFundQuoteUpdatedToday(quote, fund)
 
   return (
     <div 
@@ -85,6 +87,16 @@ export const FundCard: React.FC<FundCardProps> = ({
         darkMode ? 'border-gray-700/50' : 'border-gray-200/50'
       } backdrop-blur-sm`}
     >
+      {isUpdatedToday && (
+        <div className="absolute -top-2 right-14 z-10 rotate-6 pointer-events-none">
+          <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold shadow ${
+            darkMode ? 'bg-green-500/85 text-white' : 'bg-green-500 text-white'
+          }`}>
+            今日已更新
+          </span>
+        </div>
+      )}
+
       {/* 头部信息 */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center space-x-2">
