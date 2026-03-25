@@ -69,14 +69,15 @@ npm run package
 - 修复股票移动分组功能
 - 新增我的持仓固定分组
 - 新增基金更新标识
+- 修复部分基金净值更新问题
 
 
 ## 页面截图
 
 ### 股票
 
-(![股票页面](./public/images/股票页面.png))
+![股票页面](./public/images/股票页面.png)
 
 ### 基金
 
-(![基金页面](./public/images/基金页面.png))
+![基金页面](./public/images/基金页面.png)
