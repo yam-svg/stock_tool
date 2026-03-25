@@ -592,6 +592,71 @@ export function registerFundQuoteHandlers() {
       }
     }
     
+    // 通用兜底：对仍未命中的基金统一尝试东方财富 F10 历史净值接口。
+    const unresolvedCodes = uniqueCodes.filter((code) => !results[code])
+    if (unresolvedCodes.length > 0) {
+      await Promise.all(
+        unresolvedCodes.map(async (code) => {
+          try {
+            const response = await axios.get(
+              `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&sdate=&edate=&code=${code}`,
+              {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  Referer: 'https://fundf10.eastmoney.com/',
+                },
+                timeout: 8000,
+              },
+            )
+
+            const content = response.data
+            if (!content || typeof content !== 'string') return
+
+            const tbodyMatch = content.match(/<tbody>(.*?)<\/tbody>/s)
+            if (!tbodyMatch || !tbodyMatch[1]) return
+
+            const rowMatch = tbodyMatch[1].match(/<tr[^>]*>(.*?)<\/tr>/)
+            if (!rowMatch || !rowMatch[1]) return
+
+            const cellRegex = /<td[^>]*>(.*?)<\/td>/g
+            const cells: string[] = []
+            let cellMatch: RegExpExecArray | null
+
+            while ((cellMatch = cellRegex.exec(rowMatch[1])) !== null) {
+              const cellText = cellMatch[1]
+                .replace(/<[^>]*>/g, '')
+                .replace(/&nbsp;/g, '')
+                .replace(/&amp;/g, '&')
+                .trim()
+              cells.push(cellText)
+            }
+
+            if (cells.length < 4) return
+
+            const date = cells[0]
+            const nav = parseFloat(cells[1]) || 0
+            const growthPercent = parseFloat(cells[3]) || 0
+
+            const quoteData = {
+              code,
+              name: `基金${code}`,
+              nav,
+              change: 0,
+              changePercent: growthPercent,
+              date: date || new Date().toISOString().split('T')[0],
+              updateTime: buildUpdateTime(date),
+            }
+
+            results[code] = quoteData
+            fundCache.set(code, { data: quoteData, timestamp: now })
+            console.log(`✅ Fund ${code} (F10 fallback): nav=${nav}, date=${date}, change=${growthPercent}%`)
+          } catch (error) {
+            console.warn(`❌ F10 fallback failed for fund ${code}:`, (error instanceof Error) ? error.message : error)
+          }
+        }),
+      )
+    }
+
     // 返回结果
     const finalResults = uniqueCodes
       .map(code => results[code])
