@@ -35,6 +35,7 @@ export const GLOBAL_INDEXES: GlobalIndexConfig[] = [
   { symbol: '^IXIC', code: 'IXIC', nameEn: 'NASDAQ', nameCn: '纳斯达克', market: 'US', timezone: 'America/New_York' },
   // 亚太
   { symbol: '^N225', code: 'N225', nameEn: 'Nikkei 225', nameCn: '日经225', market: 'JP', timezone: 'Asia/Tokyo' },
+  { symbol: '^KS11', code: 'KOSPI', nameEn: 'KOSPI', nameCn: '韩国综合指数', market: 'KR', timezone: 'Asia/Seoul' },
   { symbol: '^HSI', code: 'HSI', nameEn: 'Hang Seng', nameCn: '恒生指数', market: 'HK', timezone: 'Asia/Hong_Kong' },
   // 中国
   { symbol: '000001.SS', code: 'SSE', nameEn: 'SSE Composite', nameCn: '上证指数', market: 'CN', timezone: 'Asia/Shanghai' },

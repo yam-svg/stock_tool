@@ -11,6 +11,8 @@ function getMarketSessionMinutes(market: string): {
       return { start: 9 * 60 + 30, end: 16 * 60, lunchStart: 12 * 60, lunchEnd: 13 * 60 }
     case 'JP':
       return { start: 9 * 60, end: 15 * 60, lunchStart: 11 * 60 + 30, lunchEnd: 12 * 60 + 30 }
+    case 'KR':
+      return { start: 9 * 60, end: 15 * 60 + 30 }
     case 'US':
       return { start: 9 * 60 + 30, end: 16 * 60 }
     case 'UK':

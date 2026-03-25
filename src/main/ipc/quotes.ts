@@ -2,12 +2,47 @@ import axios from 'axios'
 import { ipcMain } from 'electron'
 import iconv from 'iconv-lite'
 import { isMarketOpenByTimezone, parseSinaData } from '../utils'
-import { API_TOKEN, GLOBAL_INDEXES, SINA_SYMBOL_MAP } from '../utils/constants'
+import { GLOBAL_INDEXES, SINA_SYMBOL_MAP } from '../utils/constants'
 
 /**
  * 注册 IPC：获取全球指数行情
  */
 export async function registerGlobalIndexQuoteHandlers() {
+  const yahooSymbolMap: Record<string, string> = {
+    '^N225': '^N225',
+    '^KS11': '^KS11',
+  }
+
+  const fetchYahooIndexQuote = async (symbol: string) => {
+    const yahooSymbol = yahooSymbolMap[symbol]
+    if (!yahooSymbol) return null
+
+    const encodedSymbol = encodeURIComponent(yahooSymbol)
+    const response = await axios.get(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=1d&range=7d`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+        },
+        timeout: 10000,
+      },
+    )
+
+    const result = response.data?.chart?.result?.[0]
+    const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
+    const validCloses = closes.filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0)
+    if (validCloses.length === 0) return null
+
+    const price = validCloses[validCloses.length - 1]
+    const prevClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : price
+    const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0
+
+    return {
+      price,
+      changePercent,
+    }
+  }
+
   ipcMain.handle("db-get-global-index-quotes", async () => {
     const symbols = Object.values(SINA_SYMBOL_MAP).join(",")
     const sinaUrl = `http://hq.sinajs.cn/list=${symbols}`
@@ -31,26 +66,25 @@ export async function registerGlobalIndexQuoteHandlers() {
       console.warn("新浪接口获取失败", err)
     }
     
-    // 2️⃣ 日经225通过Twelve Data API（免费注册Token）
-    try {
-      const tdRes = await axios.get(
-        `https://api.twelvedata.com/quote?symbol=XYM/JPY&apikey=${API_TOKEN}`
-      )
-      const data = tdRes.data
-      if (data && data.price) {
-        quoteMap.set("gb_nky", {
-          price: parseFloat(data.price),
-          changePercent: parseFloat(data.change_percent),
-        })
+    // 2️⃣ 对新浪无返回或未配置新浪映射的指数做 Yahoo 兜底（覆盖日经225、韩国综合指数）
+    for (const item of GLOBAL_INDEXES) {
+      const sinaSymbol = SINA_SYMBOL_MAP[item.symbol]
+      if (sinaSymbol && quoteMap.has(sinaSymbol)) continue
+
+      try {
+        const yahooQuote = await fetchYahooIndexQuote(item.symbol)
+        if (yahooQuote) {
+          quoteMap.set(item.symbol, yahooQuote)
+        }
+      } catch (err) {
+        console.warn(`Yahoo 兜底接口失败 (${item.symbol})`, err)
       }
-    } catch (err) {
-      console.warn("Twelve Data 日经接口失败", err)
     }
     
     // 3️⃣ 构建统一返回结果
     return GLOBAL_INDEXES.map((item) => {
       const sinaSymbol = SINA_SYMBOL_MAP[item.symbol]
-      const quote = quoteMap.get(sinaSymbol)
+      const quote = (sinaSymbol ? quoteMap.get(sinaSymbol) : undefined) || quoteMap.get(item.symbol)
       
       return {
         symbol: item.symbol,
