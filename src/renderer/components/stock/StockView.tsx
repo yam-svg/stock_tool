@@ -25,6 +25,7 @@ interface StockViewProps {
   darkMode: boolean
   stockViewMode: 'card' | 'list'
   setStockViewMode: (mode: 'card' | 'list') => void
+  totalStockHoldingCount: number
   visibleStocks: Stock[]
   stockGroups: StockGroup[]
   stockQuotes: Record<string, StockQuote>
@@ -40,6 +41,7 @@ export const StockView: React.FC<StockViewProps> = ({
   darkMode,
   stockViewMode,
   setStockViewMode,
+  totalStockHoldingCount,
   visibleStocks,
   stockGroups,
   stockQuotes,
@@ -51,10 +53,7 @@ export const StockView: React.FC<StockViewProps> = ({
   onReorder,
 }) => {
   const [localStocks, setLocalStocks] = React.useState(visibleStocks)
-  const totalPositionQuantity = React.useMemo(
-    () => visibleStocks.reduce((sum, stock) => sum + (stock.quantity || 0), 0),
-    [visibleStocks]
-  )
+  const totalPositionCount = totalStockHoldingCount
   
   // 走势图模态框状态
   const [showChart, setShowChart] = React.useState(false)
@@ -233,8 +232,8 @@ export const StockView: React.FC<StockViewProps> = ({
                 darkMode ? 'bg-gray-800/50' : 'bg-white/50'
               } border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
             >
-              <div className="text-xs text-gray-500">持仓数量</div>
-              <div className="font-bold text-blue-500">{totalPositionQuantity}</div>
+              <div className="text-xs text-gray-500">持仓个数</div>
+              <div className="font-bold text-blue-500">{totalPositionCount}</div>
             </div>
           )}
         </div>

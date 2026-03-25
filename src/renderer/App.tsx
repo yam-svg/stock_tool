@@ -247,6 +247,7 @@ const App: React.FC = () => {
               darkMode={darkMode}
               stockViewMode={stockViewMode}
               setStockViewMode={setStockViewMode}
+              totalStockHoldingCount={stocks.filter((s) => (s.quantity || 0) > 0).length}
               visibleStocks={visibleStocks}
               stockGroups={stockGroups}
               stockQuotes={stockQuotes}

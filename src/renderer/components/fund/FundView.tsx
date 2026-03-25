@@ -40,9 +40,9 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
   }, [funds, selectedFundGroup])
   
   const [localFunds, setLocalFunds] = React.useState(filteredFunds)
-  const totalPositionShares = React.useMemo(
-    () => filteredFunds.reduce((sum, fund) => sum + (fund.shares || 0), 0),
-    [filteredFunds]
+  const totalPositionCount = React.useMemo(
+    () => funds.filter((fund) => (fund.shares || 0) > 0).length,
+    [funds]
   )
   
   // 排序状态
@@ -220,8 +220,8 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
           } border ${
             darkMode ? 'border-gray-700' : 'border-gray-200'
           }`}>
-            <div className="text-xs text-gray-500">持仓数量</div>
-            <div className="font-bold text-blue-500">{totalPositionShares.toFixed(2)}</div>
+            <div className="text-xs text-gray-500">持仓个数</div>
+            <div className="font-bold text-blue-500">{totalPositionCount}</div>
           </div>
         </div>
       </div>
