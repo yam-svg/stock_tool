@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { X, FolderInput } from 'lucide-react'
 import { Button, IconButton } from '../../ui'
 
@@ -28,20 +29,30 @@ export const MoveModal: React.FC<MoveModalProps> = ({
 }) => {
   if (!isOpen) return null
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <>
       {/* 背景遮罩 */}
       <div 
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-        onClick={onClose}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation()
+          onClose()
+        }}
       />
       
       {/* 模态框 */}
-      <div className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-xl shadow-2xl z-50 ${
+      <div
+        className={`fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-xl shadow-2xl z-50 ${
         darkMode 
           ? 'bg-gray-800 border border-gray-700' 
           : 'bg-white border border-gray-200'
-      }`}>
+      }`}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* 头部 */}
         <div className={`flex items-center justify-between px-6 py-4 border-b ${
           darkMode ? 'border-gray-700' : 'border-gray-200'
@@ -120,5 +131,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({
         </div>
       </div>
     </>
+    ,
+    document.body
   )
 }
