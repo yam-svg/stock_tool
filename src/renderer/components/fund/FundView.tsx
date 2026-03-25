@@ -44,6 +44,16 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
     () => funds.filter((fund) => (fund.shares || 0) > 0).length,
     [funds]
   )
+  const totalMarketValue = React.useMemo(
+    () =>
+      funds.reduce((sum, fund) => {
+        const shares = fund.shares || 0
+        if (shares <= 0) return sum
+        const nav = fundQuotes[fund.code]?.nav || 0
+        return sum + nav * shares
+      }, 0),
+    [funds, fundQuotes]
+  )
   
   // 排序状态
   type SortField = 'code' | 'name' | 'shares' | 'costNav' | 'currentNav' | 'marketValue' | 'profit' | null
@@ -222,6 +232,15 @@ export const FundView: React.FC<FundViewProps> = ({ darkMode, onEditFund }) => {
           }`}>
             <div className="text-xs text-gray-500">持仓个数</div>
             <div className="font-bold text-blue-500">{totalPositionCount}</div>
+          </div>
+
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
+            darkMode ? 'bg-gray-800/50' : 'bg-white/50'
+          } border ${
+            darkMode ? 'border-gray-700' : 'border-gray-200'
+          }`}>
+            <div className="text-xs text-gray-500">持仓金额(市值)</div>
+            <div className="font-bold text-blue-500">¥{totalMarketValue.toFixed(2)}</div>
           </div>
         </div>
       </div>

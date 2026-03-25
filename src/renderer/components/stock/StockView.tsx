@@ -26,6 +26,7 @@ interface StockViewProps {
   stockViewMode: 'card' | 'list'
   setStockViewMode: (mode: 'card' | 'list') => void
   totalStockHoldingCount: number
+  totalStockMarketValue: number
   visibleStocks: Stock[]
   stockGroups: StockGroup[]
   stockQuotes: Record<string, StockQuote>
@@ -42,6 +43,7 @@ export const StockView: React.FC<StockViewProps> = ({
   stockViewMode,
   setStockViewMode,
   totalStockHoldingCount,
+  totalStockMarketValue,
   visibleStocks,
   stockGroups,
   stockQuotes,
@@ -226,15 +228,25 @@ export const StockView: React.FC<StockViewProps> = ({
             </button>
           </div>
 
-          {localStocks.length > 0 && (
-            <div
-              className={`flex gap-2 items-center px-3 py-1 rounded-md text-sm ${
-                darkMode ? 'bg-gray-800/50' : 'bg-white/50'
-              } border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
-            >
-              <div className="text-xs text-gray-500">持仓个数</div>
-              <div className="font-bold text-blue-500">{totalPositionCount}</div>
-            </div>
+          {totalPositionCount > 0 && (
+            <>
+              <div
+                className={`flex gap-2 items-center px-3 py-1 rounded-md text-sm ${
+                  darkMode ? 'bg-gray-800/50' : 'bg-white/50'
+                } border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
+              >
+                <div className="text-xs text-gray-500">持仓个数</div>
+                <div className="font-bold text-blue-500">{totalPositionCount}</div>
+              </div>
+              <div
+                className={`flex gap-2 items-center px-3 py-1 rounded-md text-sm ${
+                  darkMode ? 'bg-gray-800/50' : 'bg-white/50'
+                } border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
+              >
+                <div className="text-xs text-gray-500">持仓金额(市值)</div>
+                <div className="font-bold text-blue-500">¥{totalStockMarketValue.toFixed(2)}</div>
+              </div>
+            </>
           )}
         </div>
       </div>

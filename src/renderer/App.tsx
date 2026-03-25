@@ -1,5 +1,5 @@
 import { Menu } from 'lucide-react'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { EditModal, FundView, GlobalMarketView, Header, MoveModal, SearchFundModal, SearchStockModal, Sidebar, StockView } from './components'
 import { useStore } from './store'
 import { useAppLifecycle, useGroupActions, useHoldingActions, usePortfolioMetrics } from './hooks'
@@ -93,6 +93,22 @@ const App: React.FC = () => {
     stockGroups,
     fundGroups,
   })
+
+  const totalStockHoldingCount = useMemo(
+    () => stocks.filter((s) => (s.quantity || 0) > 0).length,
+    [stocks],
+  )
+
+  const totalStockMarketValue = useMemo(
+    () =>
+      stocks.reduce((sum, stock) => {
+        const quantity = stock.quantity || 0
+        if (quantity <= 0) return sum
+        const currentPrice = stockQuotes[stock.symbol]?.price || 0
+        return sum + currentPrice * quantity
+      }, 0),
+    [stocks, stockQuotes],
+  )
 
   const {
     handleCreateGroup,
@@ -247,7 +263,8 @@ const App: React.FC = () => {
               darkMode={darkMode}
               stockViewMode={stockViewMode}
               setStockViewMode={setStockViewMode}
-              totalStockHoldingCount={stocks.filter((s) => (s.quantity || 0) > 0).length}
+              totalStockHoldingCount={totalStockHoldingCount}
+              totalStockMarketValue={totalStockMarketValue}
               visibleStocks={visibleStocks}
               stockGroups={stockGroups}
               stockQuotes={stockQuotes}
