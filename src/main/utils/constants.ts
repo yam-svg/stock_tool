@@ -37,6 +37,7 @@ export const GLOBAL_INDEXES: GlobalIndexConfig[] = [
   { symbol: '^N225', code: 'N225', nameEn: 'Nikkei 225', nameCn: '日经225', market: 'JP', timezone: 'Asia/Tokyo' },
   { symbol: '^KS11', code: 'KOSPI', nameEn: 'KOSPI', nameCn: '韩国综合指数', market: 'KR', timezone: 'Asia/Seoul' },
   { symbol: '^HSI', code: 'HSI', nameEn: 'Hang Seng', nameCn: '恒生指数', market: 'HK', timezone: 'Asia/Hong_Kong' },
+  { symbol: '^HSTECH', code: 'HSTECH', nameEn: 'Hang Seng TECH', nameCn: '恒生科技指数', market: 'HK', timezone: 'Asia/Hong_Kong' },
   // 中国
   { symbol: '000001.SS', code: 'SSE', nameEn: 'SSE Composite', nameCn: '上证指数', market: 'CN', timezone: 'Asia/Shanghai' },
   { symbol: '399001.SZ', code: 'SZSE', nameEn: 'SZSE Component', nameCn: '深证成指', market: 'CN', timezone: 'Asia/Shanghai' },
@@ -50,6 +51,7 @@ export const SINA_SYMBOL_MAP: Record<string, string> = {
   '^GSPC': 'gb_$inx',
   '^N225': 'gb_nky',
   '^HSI': 'rt_hkHSI',
+  '^HSTECH': 'rt_hkHSTECH',
   '000001.SS': 'sh000001',
   '399001.SZ': 'sz399001',
   '000300.SS': 'sh000300',

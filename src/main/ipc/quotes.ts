@@ -11,6 +11,8 @@ export async function registerGlobalIndexQuoteHandlers() {
   const yahooSymbolMap: Record<string, string> = {
     '^N225': '^N225',
     '^KS11': '^KS11',
+    '^HSI': '^HSI',
+    '^HSTECH': '^HSTECH',
   }
 
   const fetchYahooIndexQuote = async (symbol: string) => {
