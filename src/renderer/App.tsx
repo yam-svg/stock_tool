@@ -5,6 +5,7 @@ import { useStore } from './store'
 import { useAppLifecycle, useGroupActions, useHoldingActions, usePortfolioMetrics } from './hooks'
 import { EditableHolding } from './types/hooks'
 import { IconButton } from './ui'
+import { ALL_STOCK_GROUP_ID, isHoldingStockGroup } from '../shared/groupConstants'
 
 const App: React.FC = () => {
   const {
@@ -270,7 +271,10 @@ const App: React.FC = () => {
               stockQuotes={stockQuotes}
               selectedStockGroup={selectedStockGroup}
               onOpenSearchModal={() => {
-                setAddTargetGroupId(selectedStockGroup || stockGroups[0]?.id || null)
+                const targetGroupId = isHoldingStockGroup(selectedStockGroup)
+                  ? stockGroups.find((g) => g.id === ALL_STOCK_GROUP_ID)?.id || null
+                  : selectedStockGroup || stockGroups[0]?.id || null
+                setAddTargetGroupId(targetGroupId)
                 setSearchStockModalOpen(true)
               }}
               onDelete={handleDeleteStock}

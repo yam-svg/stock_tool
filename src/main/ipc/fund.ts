@@ -1,7 +1,11 @@
 import { ipcMain } from 'electron'
 import { generateId } from '../../shared/utils'
 import { getDatabase } from '../database'
-import { ALL_FUND_GROUP_ID } from '../../shared/groupConstants'
+import {
+  ALL_FUND_GROUP_ID,
+  HOLDING_FUND_GROUP_ID,
+  isSystemFundGroup,
+} from '../../shared/groupConstants'
 
 /**
  * 基金分组 IPC handlers
@@ -23,20 +27,20 @@ export function registerFundGroupHandlers() {
     const stmt = db.prepare(
       `SELECT *
        FROM fund_groups
-       ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, created_at`
+       ORDER BY CASE WHEN id = ? THEN 0 WHEN id = ? THEN 1 ELSE 2 END, created_at`
     )
-    return stmt.all(ALL_FUND_GROUP_ID)
+    return stmt.all(ALL_FUND_GROUP_ID, HOLDING_FUND_GROUP_ID)
   })
 
   ipcMain.handle('db-update-fund-group', async (_event, id: string, name: string) => {
-    if (id === ALL_FUND_GROUP_ID) return
+    if (isSystemFundGroup(id)) return
     const db = getDatabase()
     const stmt = db.prepare('UPDATE fund_groups SET name = ? WHERE id = ?')
     stmt.run(name, id)
   })
 
   ipcMain.handle('db-delete-fund-group', async (_event, id: string) => {
-    if (id === ALL_FUND_GROUP_ID) return
+    if (isSystemFundGroup(id)) return
     const db = getDatabase()
     // 先删除组内基金
     const deleteFundsStmt = db.prepare('DELETE FROM funds WHERE group_id = ?')

@@ -1,5 +1,10 @@
 import { UseGroupActionsParams } from '../types/hooks'
-import { isSystemFundGroup, isSystemStockGroup } from '../../shared/groupConstants'
+import {
+  isAllFundGroup,
+  isAllStockGroup,
+  isSystemFundGroup,
+  isSystemStockGroup,
+} from '../../shared/groupConstants'
 
 export function useGroupActions({
   activeTab,
@@ -100,6 +105,12 @@ export function useGroupActions({
   // 记录“添加目标分组”，并按当前 tab 打开对应搜索弹窗。
   const handleAddToGroup = (groupId: string) => {
     if (activeTab === 'global') return
+    if (
+      (activeTab === 'stock' && isSystemStockGroup(groupId) && !isAllStockGroup(groupId)) ||
+      (activeTab === 'fund' && isSystemFundGroup(groupId) && !isAllFundGroup(groupId))
+    ) {
+      return
+    }
     setAddTargetGroupId(groupId)
     if (activeTab === 'stock') {
       setSearchStockModalOpen(true)

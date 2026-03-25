@@ -6,6 +6,10 @@ import {
   ALL_FUND_GROUP_NAME,
   ALL_STOCK_GROUP_ID,
   ALL_STOCK_GROUP_NAME,
+  HOLDING_FUND_GROUP_ID,
+  HOLDING_FUND_GROUP_NAME,
+  HOLDING_STOCK_GROUP_ID,
+  HOLDING_STOCK_GROUP_NAME,
 } from '../../shared/groupConstants'
 
 let db: Database.Database | null = null
@@ -93,7 +97,9 @@ export function initializeDatabase() {
 
     const now = Date.now()
     upsertStockSystemGroupStmt.run(ALL_STOCK_GROUP_ID, ALL_STOCK_GROUP_NAME, now)
+    upsertStockSystemGroupStmt.run(HOLDING_STOCK_GROUP_ID, HOLDING_STOCK_GROUP_NAME, now)
     upsertFundSystemGroupStmt.run(ALL_FUND_GROUP_ID, ALL_FUND_GROUP_NAME, now)
+    upsertFundSystemGroupStmt.run(HOLDING_FUND_GROUP_ID, HOLDING_FUND_GROUP_NAME, now)
 
     // 升级兼容：把无效分组引用回收到系统分组，避免“看不见持仓”。
     db.prepare(

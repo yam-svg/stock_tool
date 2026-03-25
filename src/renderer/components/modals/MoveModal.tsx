@@ -2,6 +2,7 @@ import React from 'react'
 import { createPortal } from 'react-dom'
 import { X, FolderInput } from 'lucide-react'
 import { Button, IconButton } from '../../ui'
+import { isSystemFundGroup, isSystemStockGroup } from '../../../shared/groupConstants'
 
 interface Group {
   id: string
@@ -30,6 +31,10 @@ export const MoveModal: React.FC<MoveModalProps> = ({
   if (!isOpen) return null
 
   if (typeof document === 'undefined') return null
+
+  const movableGroups = groups.filter(
+    (g) => g.id !== currentGroupId && !isSystemStockGroup(g.id) && !isSystemFundGroup(g.id),
+  )
 
   return createPortal(
     <>
@@ -82,7 +87,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({
               选择目标分组
             </label>
             <div className="max-h-64 overflow-y-auto space-y-1">
-              {groups.filter(g => g.id !== currentGroupId).map(group => (
+              {movableGroups.map(group => (
                 <button
                   key={group.id}
                   onClick={() => {
@@ -106,7 +111,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({
                 </button>
               ))}
               
-              {groups.filter(g => g.id !== currentGroupId).length === 0 && (
+              {movableGroups.length === 0 && (
                 <div className={`text-center py-8 text-sm ${
                   darkMode ? 'text-gray-400' : 'text-gray-500'
                 }`}>

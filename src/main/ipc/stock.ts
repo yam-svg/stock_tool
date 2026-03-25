@@ -1,7 +1,11 @@
 import { ipcMain } from 'electron'
 import { generateId } from '../../shared/utils'
 import { getDatabase } from '../database'
-import { ALL_STOCK_GROUP_ID } from '../../shared/groupConstants'
+import {
+  ALL_STOCK_GROUP_ID,
+  HOLDING_STOCK_GROUP_ID,
+  isSystemStockGroup,
+} from '../../shared/groupConstants'
 
 /**
  * 股票分组 IPC handlers
@@ -23,20 +27,20 @@ export function registerStockGroupHandlers() {
     const stmt = db.prepare(
       `SELECT *
        FROM stock_groups
-       ORDER BY CASE WHEN id = ? THEN 0 ELSE 1 END, created_at`
+       ORDER BY CASE WHEN id = ? THEN 0 WHEN id = ? THEN 1 ELSE 2 END, created_at`
     )
-    return stmt.all(ALL_STOCK_GROUP_ID)
+    return stmt.all(ALL_STOCK_GROUP_ID, HOLDING_STOCK_GROUP_ID)
   })
 
   ipcMain.handle('db-update-stock-group', async (_event, id: string, name: string) => {
-    if (id === ALL_STOCK_GROUP_ID) return
+    if (isSystemStockGroup(id)) return
     const db = getDatabase()
     const stmt = db.prepare('UPDATE stock_groups SET name = ? WHERE id = ?')
     stmt.run(name, id)
   })
 
   ipcMain.handle('db-delete-stock-group', async (_event, id: string) => {
-    if (id === ALL_STOCK_GROUP_ID) return
+    if (isSystemStockGroup(id)) return
     const db = getDatabase()
     // 先删除组内股票
     const deleteStocksStmt = db.prepare('DELETE FROM stocks WHERE group_id = ?')

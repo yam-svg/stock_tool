@@ -1,7 +1,12 @@
 import { ChevronLeft, FolderPlus, Plus } from 'lucide-react'
 import React from 'react'
 import { GroupItem } from '../group'
-import { isSystemFundGroup, isSystemStockGroup } from '../../../shared/groupConstants'
+import {
+  isAllFundGroup,
+  isAllStockGroup,
+  isSystemFundGroup,
+  isSystemStockGroup,
+} from '../../../shared/groupConstants'
 
 interface Group {
   id: string
@@ -114,8 +119,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onEdit={(newName) => onUpdateGroup?.(group.id, newName)}
                 onDelete={() => onDeleteGroup?.(group.id)}
                 onMove={(targetId) => onMoveGroup?.(group.id, targetId)}
-                groups={groups}
-                onAdd={() => onAddToGroup?.(group.id)}
+                groups={groups.filter((g) =>
+                  activeTab === 'stock' ? !isSystemStockGroup(g.id) : !isSystemFundGroup(g.id)
+                )}
+                onAdd={
+                  (activeTab === 'stock' ? isAllStockGroup(group.id) : isAllFundGroup(group.id))
+                    ? () => onAddToGroup?.(group.id)
+                    : undefined
+                }
               />
             ))}
           </div>

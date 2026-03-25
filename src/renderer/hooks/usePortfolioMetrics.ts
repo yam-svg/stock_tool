@@ -1,6 +1,11 @@
 import { useMemo } from 'react'
 import { UsePortfolioMetricsParams } from '../types/hooks'
-import { isSystemFundGroup, isSystemStockGroup } from '../../shared/groupConstants'
+import {
+  isAllFundGroup,
+  isAllStockGroup,
+  isHoldingFundGroup,
+  isHoldingStockGroup,
+} from '../../shared/groupConstants'
 
 export function usePortfolioMetrics({
   activeTab,
@@ -42,7 +47,8 @@ export function usePortfolioMetrics({
   const visibleStocks = useMemo(
     () => {
       if (!selectedStockGroup) return []
-      if (isSystemStockGroup(selectedStockGroup)) return stocks
+      if (isAllStockGroup(selectedStockGroup)) return stocks
+      if (isHoldingStockGroup(selectedStockGroup)) return stocks.filter((s) => (s.quantity || 0) > 0)
       return stocks.filter((s) => s.groupId === selectedStockGroup)
     },
     [stocks, selectedStockGroup],
@@ -52,13 +58,25 @@ export function usePortfolioMetrics({
   const groupCounts = useMemo(() => {
     if (activeTab === 'stock') {
       return stockGroups.reduce((acc, group) => {
-        acc[group.id] = isSystemStockGroup(group.id) ? stocks.length : stocks.filter((s) => s.groupId === group.id).length
+        if (isAllStockGroup(group.id)) {
+          acc[group.id] = stocks.length
+        } else if (isHoldingStockGroup(group.id)) {
+          acc[group.id] = stocks.filter((s) => (s.quantity || 0) > 0).length
+        } else {
+          acc[group.id] = stocks.filter((s) => s.groupId === group.id).length
+        }
         return acc
       }, {} as Record<string, number>)
     }
 
     return fundGroups.reduce((acc, group) => {
-      acc[group.id] = isSystemFundGroup(group.id) ? funds.length : funds.filter((f) => f.groupId === group.id).length
+      if (isAllFundGroup(group.id)) {
+        acc[group.id] = funds.length
+      } else if (isHoldingFundGroup(group.id)) {
+        acc[group.id] = funds.filter((f) => (f.shares || 0) > 0).length
+      } else {
+        acc[group.id] = funds.filter((f) => f.groupId === group.id).length
+      }
       return acc
     }, {} as Record<string, number>)
   }, [activeTab, stockGroups, fundGroups, stocks, funds])
