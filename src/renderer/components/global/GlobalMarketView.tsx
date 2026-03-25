@@ -64,21 +64,21 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
           暂无全球市场数据
         </div>
       ) : viewMode === 'card' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5">
           {indexes.map((item) => (
             <div
               key={item.symbol}
-              className={`rounded-lg border p-4 ${
+              className={`rounded-md border px-3 py-2.5 ${
                 darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white/70'
               }`}
             >
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between mb-2">
                 <div>
-                  <div className="text-sm font-semibold">{item.name}</div>
-                  <div className="text-xs text-gray-500">{item.code}</div>
+                  <div className="text-xs font-semibold leading-5">{item.name}</div>
+                  <div className="text-[11px] text-gray-500">{item.code}</div>
                 </div>
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
                     item.isOpen
                       ? 'bg-green-500/20 text-green-500'
                       : 'bg-gray-500/20 text-gray-500'
@@ -87,8 +87,8 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
                   {item.isOpen ? '开市' : '休市'}
                 </span>
               </div>
-              <div className="text-xl font-bold mb-1">{item.value > 0 ? item.value.toFixed(2) : '-'}</div>
-              <div className={`text-sm font-medium ${item.changePercent >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+              <div className="text-lg font-bold leading-6 mb-0.5">{item.value > 0 ? item.value.toFixed(2) : '-'}</div>
+              <div className={`text-xs font-medium ${item.changePercent >= 0 ? 'text-red-500' : 'text-green-500'}`}>
                 {item.value > 0 ? `${item.changePercent >= 0 ? '+' : ''}${item.changePercent.toFixed(2)}%` : '-'}
               </div>
             </div>
