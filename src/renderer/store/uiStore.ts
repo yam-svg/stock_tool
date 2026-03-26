@@ -2,17 +2,19 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 interface UIState {
-  activeTab: 'stock' | 'fund' | 'global'
+  activeTab: 'stock' | 'fund' | 'future' | 'global'
   darkMode: boolean
   stockViewMode: 'card' | 'list'
   fundViewMode: 'card' | 'list'
+  futureViewMode: 'card' | 'list'
   globalViewMode: 'card' | 'list'
   sidebarCollapsed: boolean
 
-  setActiveTab: (tab: 'stock' | 'fund' | 'global') => void
+  setActiveTab: (tab: 'stock' | 'fund' | 'future' | 'global') => void
   toggleDarkMode: () => void
   setStockViewMode: (mode: 'card' | 'list') => void
   setFundViewMode: (mode: 'card' | 'list') => void
+  setFutureViewMode: (mode: 'card' | 'list') => void
   setGlobalViewMode: (mode: 'card' | 'list') => void
   toggleSidebar: () => void
   setSidebarCollapsed: (collapsed: boolean) => void
@@ -26,6 +28,7 @@ export const useUIStore = create<UIState>()(
       darkMode: false,
       stockViewMode: 'card',
       fundViewMode: 'card',
+      futureViewMode: 'card',
       globalViewMode: 'card',
       sidebarCollapsed: false,
 
@@ -46,6 +49,11 @@ export const useUIStore = create<UIState>()(
       setFundViewMode: (mode: 'card' | 'list') => {
         set({ fundViewMode: mode })
         localStorage.setItem('fundViewMode', mode)
+      },
+
+      setFutureViewMode: (mode: 'card' | 'list') => {
+        set({ futureViewMode: mode })
+        localStorage.setItem('futureViewMode', mode)
       },
 
       setGlobalViewMode: (mode: 'card' | 'list') => {

@@ -1,8 +1,10 @@
 import { useMemo } from 'react'
 import { UsePortfolioMetricsParams } from '../types/hooks'
 import {
+  isAllFutureGroup,
   isAllFundGroup,
   isAllStockGroup,
+  isHoldingFutureGroup,
   isHoldingFundGroup,
   isHoldingStockGroup,
 } from '../../shared/groupConstants'
@@ -13,9 +15,12 @@ export function usePortfolioMetrics({
   stockQuotes,
   funds,
   fundQuotes,
+  futures,
+  futureQuotes,
   selectedStockGroup,
   stockGroups,
   fundGroups,
+  futureGroups,
 }: UsePortfolioMetricsParams) {
   // 股票总收益：基于实时价与成本价差额汇总。
   const stockProfit = useMemo(
@@ -41,6 +46,18 @@ export function usePortfolioMetrics({
         return acc + (marketValue - cost)
       }, 0),
     [funds, fundQuotes],
+  )
+
+  const futureProfit = useMemo(
+    () =>
+      futures.reduce((acc, future) => {
+        const quote = futureQuotes[future.symbol]
+        const currentPrice = quote?.price || 0
+        const cost = future.entryPrice * future.quantity
+        const marketValue = currentPrice * future.quantity
+        return acc + (marketValue - cost)
+      }, 0),
+    [futures, futureQuotes],
   )
 
   // 当前选中股票分组下的可见列表。
@@ -69,6 +86,19 @@ export function usePortfolioMetrics({
       }, {} as Record<string, number>)
     }
 
+    if (activeTab === 'future') {
+      return futureGroups.reduce((acc, group) => {
+        if (isAllFutureGroup(group.id)) {
+          acc[group.id] = futures.length
+        } else if (isHoldingFutureGroup(group.id)) {
+          acc[group.id] = futures.filter((f) => (f.quantity || 0) > 0).length
+        } else {
+          acc[group.id] = futures.filter((f) => f.groupId === group.id).length
+        }
+        return acc
+      }, {} as Record<string, number>)
+    }
+
     return fundGroups.reduce((acc, group) => {
       if (isAllFundGroup(group.id)) {
         acc[group.id] = funds.length
@@ -79,11 +109,12 @@ export function usePortfolioMetrics({
       }
       return acc
     }, {} as Record<string, number>)
-  }, [activeTab, stockGroups, fundGroups, stocks, funds])
+  }, [activeTab, stockGroups, fundGroups, futureGroups, stocks, funds, futures])
 
   return {
     stockProfit,
     fundProfit,
+    futureProfit,
     visibleStocks,
     groupCounts,
   }

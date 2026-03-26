@@ -1,6 +1,6 @@
 import { Menu } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
-import { EditModal, FundView, GlobalMarketView, Header, MoveModal, SearchFundModal, SearchStockModal, Sidebar, StockView } from './components'
+import { EditModal, FundView, FutureView, GlobalMarketView, Header, MoveModal, SearchFundModal, SearchFutureModal, SearchStockModal, Sidebar, StockView } from './components'
 import { useStore } from './store'
 import { useAppLifecycle, useGroupActions, useHoldingActions, usePortfolioMetrics } from './hooks'
 import { EditableHolding } from './types/hooks'
@@ -16,6 +16,7 @@ const App: React.FC = () => {
     setActiveTab,
     refreshStockQuotes,
     refreshFundQuotes,
+    refreshFutureQuotes,
     toggleRefresh,
     isMarketOpen,
     nextMarketOpenTime,
@@ -24,30 +25,44 @@ const App: React.FC = () => {
     refreshGlobalIndexes,
     stockGroups,
     fundGroups,
+    futureGroups,
     stocks,
     stockQuotes,
     stockRefreshing,
     fundRefreshing,
+    futureRefreshing,
     createStockGroup,
     createFundGroup,
+    createFutureGroup,
     updateStockGroup,
     updateFundGroup,
+    updateFutureGroup,
     deleteStockGroup,
     deleteFundGroup,
+    deleteFutureGroup,
     addStock,
     addFund,
+    addFuture,
     updateStock,
     updateFund,
+    updateFuture,
     deleteStock,
+    deleteFund,
+    deleteFuture,
     moveStockToGroup,
     moveFundToGroup,
+    moveFutureToGroup,
     reorderStocks,
     selectedStockGroup,
     selectedFundGroup,
+    selectedFutureGroup,
     selectStockGroup,
     selectFundGroup,
+    selectFutureGroup,
     funds,
     fundQuotes,
+    futures,
+    futureQuotes,
     stockViewMode,
     globalViewMode,
     setStockViewMode,
@@ -57,31 +72,35 @@ const App: React.FC = () => {
     setSidebarCollapsed,
     initialize,
   } = useStore()
-  
+
   const [newGroupName, setNewGroupName] = useState('')
   const [moveModalOpen, setMoveModalOpen] = useState(false)
   const [moveItemId, setMoveItemId] = useState<string | null>(null)
   const [isAddingStock, setIsAddingStock] = useState(false)
   const [isAddingFund, setIsAddingFund] = useState(false)
+  const [isAddingFuture, setIsAddingFuture] = useState(false)
   const [addTargetGroupId, setAddTargetGroupId] = useState<string | null>(null)
   const [searchStockModalOpen, setSearchStockModalOpen] = useState(false)
   const [searchFundModalOpen, setSearchFundModalOpen] = useState(false)
-  
+  const [searchFutureModalOpen, setSearchFutureModalOpen] = useState(false)
+
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingItem, setEditItem] = useState<EditableHolding | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
-  
+
   useAppLifecycle({
     initialize,
     refreshConfig,
     refreshStockQuotes,
     refreshFundQuotes,
+    refreshFutureQuotes,
     setSidebarCollapsed,
   })
-  
+
   const {
     stockProfit,
     fundProfit,
+    futureProfit,
     visibleStocks,
     groupCounts,
   } = usePortfolioMetrics({
@@ -90,9 +109,12 @@ const App: React.FC = () => {
     stockQuotes,
     funds,
     fundQuotes,
+    futures,
+    futureQuotes,
     selectedStockGroup,
     stockGroups,
     fundGroups,
+    futureGroups,
   })
 
   const totalStockHoldingCount = useMemo(
@@ -124,19 +146,26 @@ const App: React.FC = () => {
     setNewGroupName,
     createStockGroup,
     createFundGroup,
+    createFutureGroup,
     selectStockGroup,
     selectFundGroup,
+    selectFutureGroup,
     updateStockGroup,
     updateFundGroup,
+    updateFutureGroup,
     deleteStockGroup,
     deleteFundGroup,
+    deleteFutureGroup,
     moveStockToGroup,
     moveFundToGroup,
+    moveFutureToGroup,
     stocks,
     funds,
+    futures,
     setAddTargetGroupId,
     setSearchStockModalOpen,
     setSearchFundModalOpen,
+    setSearchFutureModalOpen,
   })
 
   const {
@@ -147,6 +176,7 @@ const App: React.FC = () => {
     handleUpdateItem,
     handleStockSubmit,
     handleFundSubmit,
+    handleFutureSubmit,
   } = useHoldingActions({
     activeTab,
     editingItem,
@@ -158,16 +188,23 @@ const App: React.FC = () => {
     setIsUpdating,
     setIsAddingStock,
     setIsAddingFund,
+    setIsAddingFuture,
     setSearchStockModalOpen,
     setSearchFundModalOpen,
+    setSearchFutureModalOpen,
     setAddTargetGroupId,
     moveStockToGroup,
     moveFundToGroup,
+    moveFutureToGroup,
     updateStock,
     updateFund,
+    updateFuture,
     deleteStock,
+    deleteFund,
+    deleteFuture,
     addStock,
     addFund,
+    addFuture,
   })
 
   // 仅在存在开市市场时自动刷新全球指数
@@ -190,6 +227,7 @@ const App: React.FC = () => {
     }
     void refreshStockQuotes()
     void refreshFundQuotes()
+    void refreshFutureQuotes()
   }
 
   return (
@@ -205,9 +243,11 @@ const App: React.FC = () => {
         activeTab={activeTab}
         stockProfit={stockProfit}
         fundProfit={fundProfit}
+        futureProfit={futureProfit}
         refreshConfig={refreshConfig}
         stockRefreshing={stockRefreshing}
         fundRefreshing={fundRefreshing}
+        futureRefreshing={futureRefreshing}
         globalRefreshing={globalRefreshing}
         isMarketOpen={isMarketOpen}
         nextMarketOpenTime={nextMarketOpenTime}
@@ -241,8 +281,8 @@ const App: React.FC = () => {
         {activeTab !== 'global' && (
           <Sidebar
             darkMode={darkMode}
-            activeTab={activeTab === 'fund' ? 'fund' : 'stock'}
-            groups={activeTab === 'stock' ? stockGroups : fundGroups}
+            activeTab={activeTab === 'stock' ? 'stock' : activeTab === 'fund' ? 'fund' : 'future'}
+            groups={activeTab === 'stock' ? stockGroups : activeTab === 'fund' ? fundGroups : futureGroups}
             newGroupName={newGroupName}
             onGroupSelect={handleGroupSelect}
             onGroupCreate={handleCreateGroup}
@@ -251,7 +291,13 @@ const App: React.FC = () => {
             onUpdateGroup={handleUpdateGroup}
             onDeleteGroup={handleDeleteGroup}
             onMoveGroup={handleMoveGroup}
-            selectedGroupId={activeTab === 'stock' ? selectedStockGroup : selectedFundGroup}
+            selectedGroupId={
+              activeTab === 'stock'
+                ? selectedStockGroup
+                : activeTab === 'fund'
+                ? selectedFundGroup
+                : selectedFutureGroup
+            }
             onAddToGroup={handleAddToGroup}
             collapsed={sidebarCollapsed}
             onToggleCollapse={toggleSidebar}
@@ -284,6 +330,8 @@ const App: React.FC = () => {
             />
           ) : activeTab === 'fund' ? (
             <FundView darkMode={darkMode} onEditFund={handleEditItem} />
+          ) : activeTab === 'future' ? (
+            <FutureView darkMode={darkMode} onEditFuture={handleEditItem} />
           ) : (
             <GlobalMarketView
               darkMode={darkMode}
@@ -302,11 +350,21 @@ const App: React.FC = () => {
           setEditModalOpen(false)
           setEditItem(null)
         }}
-        title={`编辑${activeTab === 'stock' ? '股票' : '基金'}`}
+        title={`编辑${activeTab === 'stock' ? '股票' : activeTab === 'fund' ? '基金' : '期货'}`}
         initialData={{
           name: editingItem?.name || '',
-          price: activeTab === 'stock' ? (editingItem?.costPrice ?? 0) : (editingItem?.costNav ?? 0),
-          quantity: activeTab === 'stock' ? (editingItem?.quantity ?? 0) : (editingItem?.shares ?? 0),
+          price:
+            activeTab === 'stock'
+              ? (editingItem?.costPrice ?? 0)
+              : activeTab === 'fund'
+              ? (editingItem?.costNav ?? 0)
+              : (editingItem?.entryPrice ?? 0),
+          quantity:
+            activeTab === 'stock'
+              ? (editingItem?.quantity ?? 0)
+              : activeTab === 'fund'
+              ? (editingItem?.shares ?? 0)
+              : (editingItem?.quantity ?? 0),
         }}
         onSubmit={handleUpdateItem}
         isSubmitting={isUpdating}
@@ -320,9 +378,9 @@ const App: React.FC = () => {
           setMoveItemId(null)
         }}
         onMove={handleMoveModalConfirm}
-        groups={activeTab === 'stock' ? stockGroups : fundGroups}
+        groups={activeTab === 'stock' ? stockGroups : activeTab === 'fund' ? fundGroups : futureGroups}
         currentGroupId={undefined}
-        title={`移动到${activeTab === 'stock' ? '股票' : '基金'}分组`}
+        title={`移动到${activeTab === 'stock' ? '股票' : activeTab === 'fund' ? '基金' : '期货'}分组`}
       />
 
       {activeTab === 'stock' && (
@@ -333,7 +391,7 @@ const App: React.FC = () => {
             setSearchStockModalOpen(false)
             setAddTargetGroupId(null)
           }}
-          group={stockGroups.find(g => g.id === addTargetGroupId)}
+          group={stockGroups.find((g) => g.id === addTargetGroupId)}
           isSubmitting={isAddingStock}
           onSubmit={handleStockSubmit}
         />
@@ -347,9 +405,23 @@ const App: React.FC = () => {
             setSearchFundModalOpen(false)
             setAddTargetGroupId(null)
           }}
-          group={fundGroups.find(g => g.id === addTargetGroupId)}
+          group={fundGroups.find((g) => g.id === addTargetGroupId)}
           isSubmitting={isAddingFund}
           onSubmit={handleFundSubmit}
+        />
+      )}
+
+      {activeTab === 'future' && (
+        <SearchFutureModal
+          darkMode={darkMode}
+          isOpen={searchFutureModalOpen}
+          onClose={() => {
+            setSearchFutureModalOpen(false)
+            setAddTargetGroupId(null)
+          }}
+          group={futureGroups.find((g) => g.id === addTargetGroupId)}
+          isSubmitting={isAddingFuture}
+          onSubmit={handleFutureSubmit}
         />
       )}
     </div>

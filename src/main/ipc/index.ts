@@ -4,6 +4,7 @@
  */
 export { registerAllStockHandlers } from './stock'
 export { registerAllFundHandlers } from './fund'
+export { registerAllFutureHandlers } from './future'
 export { registerAllQuoteHandlers } from './quotes'
 export { registerAllSearchHandlers } from './search'
 
@@ -13,11 +14,13 @@ export { registerAllSearchHandlers } from './search'
 export function registerAllIpcHandlers() {
   const { registerAllStockHandlers } = require('./stock')
   const { registerAllFundHandlers } = require('./fund')
+  const { registerAllFutureHandlers } = require('./future')
   const { registerAllQuoteHandlers } = require('./quotes')
   const { registerAllSearchHandlers } = require('./search')
 
   registerAllStockHandlers()
   registerAllFundHandlers()
+  registerAllFutureHandlers()
   registerAllQuoteHandlers()
   registerAllSearchHandlers()
 }

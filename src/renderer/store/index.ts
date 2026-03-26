@@ -5,6 +5,7 @@
 import { useUIStore } from './uiStore'
 import { useStockStore } from './stockStore'
 import { useFundStore } from './fundStore'
+import { useFutureStore } from './futureStore'
 import { useRefreshStore } from './refreshStore'
 import { useGlobalMarketStore } from './globalMarketStore'
 
@@ -16,6 +17,7 @@ export const useStore = () => {
   const uiStore = useUIStore()
   const stockStore = useStockStore()
   const fundStore = useFundStore()
+  const futureStore = useFutureStore()
   const refreshStore = useRefreshStore()
   const globalMarketStore = useGlobalMarketStore()
 
@@ -25,12 +27,14 @@ export const useStore = () => {
     darkMode: uiStore.darkMode,
     stockViewMode: uiStore.stockViewMode,
     fundViewMode: uiStore.fundViewMode,
+    futureViewMode: uiStore.futureViewMode,
     globalViewMode: uiStore.globalViewMode,
     sidebarCollapsed: uiStore.sidebarCollapsed,
     setActiveTab: uiStore.setActiveTab,
     toggleDarkMode: uiStore.toggleDarkMode,
     setStockViewMode: uiStore.setStockViewMode,
     setFundViewMode: uiStore.setFundViewMode,
+    setFutureViewMode: uiStore.setFutureViewMode,
     setGlobalViewMode: uiStore.setGlobalViewMode,
     toggleSidebar: uiStore.toggleSidebar,
     setSidebarCollapsed: uiStore.setSidebarCollapsed,
@@ -76,17 +80,35 @@ export const useStore = () => {
     reorderFunds: fundStore.reorderFunds,
     refreshFundQuotes: fundStore.refreshFundQuotes,
 
+    // Future Store
+    futureGroups: futureStore.futureGroups,
+    futures: futureStore.futures,
+    futureQuotes: futureStore.futureQuotes,
+    selectedFutureGroup: futureStore.selectedFutureGroup,
+    futureRefreshing: futureStore.refreshing,
+    createFutureGroup: futureStore.createFutureGroup,
+    selectFutureGroup: futureStore.selectFutureGroup,
+    updateFutureGroup: futureStore.updateFutureGroup,
+    deleteFutureGroup: futureStore.deleteFutureGroup,
+    addFuture: futureStore.addFuture,
+    updateFuture: futureStore.updateFuture,
+    deleteFuture: futureStore.deleteFuture,
+    moveFutureToGroup: futureStore.moveFutureToGroup,
+    reorderFutures: futureStore.reorderFutures,
+    refreshFutureQuotes: futureStore.refreshFutureQuotes,
+
     // Global Market Store
     globalIndexes: globalMarketStore.globalIndexes,
     globalRefreshing: globalMarketStore.refreshing,
     refreshGlobalIndexes: globalMarketStore.refreshGlobalIndexes,
 
     // 全局加载状态和错误
-    loading: stockStore.loading || fundStore.loading || refreshStore.loading || globalMarketStore.loading,
-    error: stockStore.error || fundStore.error || refreshStore.error || globalMarketStore.error,
+    loading: stockStore.loading || fundStore.loading || futureStore.loading || refreshStore.loading || globalMarketStore.loading,
+    error: stockStore.error || fundStore.error || futureStore.error || refreshStore.error || globalMarketStore.error,
     clearError: () => {
       stockStore.clearError()
       fundStore.clearError()
+      futureStore.clearError()
       refreshStore.clearError()
       globalMarketStore.clearError()
     },
@@ -97,6 +119,7 @@ export const useStore = () => {
         refreshStore.initialize(),
         stockStore.initialize(),
         fundStore.initialize(),
+        futureStore.initialize(),
         globalMarketStore.initialize(),
       ])
       loadUIConfig()
@@ -110,6 +133,7 @@ function loadUIConfig() {
   const savedDarkMode = localStorage.getItem('darkMode') === 'true'
   const savedStockViewMode = localStorage.getItem('stockViewMode') as 'card' | 'list' | null
   const savedFundViewMode = localStorage.getItem('fundViewMode') as 'card' | 'list' | null
+  const savedFutureViewMode = localStorage.getItem('futureViewMode') as 'card' | 'list' | null
   const savedGlobalViewMode = localStorage.getItem('globalViewMode') as 'card' | 'list' | null
   const savedSidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true'
 
@@ -122,6 +146,9 @@ function loadUIConfig() {
   if (savedFundViewMode && savedFundViewMode !== uiStore.fundViewMode) {
     uiStore.setFundViewMode(savedFundViewMode)
   }
+  if (savedFutureViewMode && savedFutureViewMode !== uiStore.futureViewMode) {
+    uiStore.setFutureViewMode(savedFutureViewMode)
+  }
   if (savedGlobalViewMode && savedGlobalViewMode !== uiStore.globalViewMode) {
     uiStore.setGlobalViewMode(savedGlobalViewMode)
   }
@@ -131,4 +158,4 @@ function loadUIConfig() {
 }
 
 // 直接导出子Store以便需要时单独使用
-export { useUIStore, useStockStore, useFundStore, useRefreshStore, useGlobalMarketStore }
+export { useUIStore, useStockStore, useFundStore, useFutureStore, useRefreshStore, useGlobalMarketStore }

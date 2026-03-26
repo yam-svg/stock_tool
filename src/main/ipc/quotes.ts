@@ -710,6 +710,103 @@ export function registerFundQuoteHandlers() {
 }
 
 /**
+ * 获取期货行情数据
+ */
+export function registerFutureQuoteHandlers() {
+  const parseFutureUpdateTime = (datePart?: string, timePart?: string) => {
+    const date = String(datePart || '').trim()
+    const time = String(timePart || '').trim()
+    if (date && time) return `${date} ${time}`
+    return date || time || ''
+  }
+
+  ipcMain.handle('db-get-future-quotes', async (_event, symbols: string[]) => {
+    if (symbols.length === 0) return []
+
+    try {
+      const fullSymbols = symbols
+        .map((symbol) => String(symbol || '').trim())
+        .filter(Boolean)
+        .map((symbol) => {
+          const lower = symbol.toLowerCase()
+          if (lower.startsWith('nf_') || lower.startsWith('hf_')) return lower
+          return symbol
+        })
+
+      const response = await axios.get(`https://hq.sinajs.cn/list=${fullSymbols.join(',')}`, {
+        headers: {
+          Referer: 'https://finance.sina.com.cn',
+          'User-Agent': 'Mozilla/5.0',
+        },
+        responseType: 'arraybuffer',
+        timeout: 10000,
+      })
+
+      const decoder = new TextDecoder('gbk')
+      const text = decoder.decode(response.data)
+      const lines = text.split('\n').filter((line) => line.trim())
+
+      return lines
+        .map((line) => {
+          const match = line.match(/var hq_str_([^=]+)="([^"]*)"/)
+          if (!match || !match[2]) return null
+
+          const symbol = match[1]
+          const fields = match[2].split(',')
+          if (fields.length < 4) return null
+
+          if (symbol.startsWith('nf_')) {
+            const name = fields[0] || symbol
+            const priceCandidates = [fields[8], fields[6], fields[3], fields[2], fields[1]]
+            const preCloseCandidates = [fields[7], fields[9], fields[3], fields[2]]
+            const price = priceCandidates.map((v) => Number(v)).find((v) => Number.isFinite(v) && v > 0) || 0
+            const preClose = preCloseCandidates.map((v) => Number(v)).find((v) => Number.isFinite(v) && v > 0) || 0
+            const change = preClose > 0 ? price - preClose : 0
+            const changePercent = preClose > 0 ? (change / preClose) * 100 : 0
+            const date = fields[17]
+            const rawTime = fields[1] || ''
+            const time = /^\d{6}$/.test(rawTime)
+              ? `${rawTime.slice(0, 2)}:${rawTime.slice(2, 4)}:${rawTime.slice(4, 6)}`
+              : rawTime
+
+            return {
+              symbol,
+              name,
+              price,
+              change,
+              changePercent,
+              updateTime: parseFutureUpdateTime(date, time),
+            }
+          }
+
+          if (symbol.startsWith('hf_')) {
+            const name = fields[13] || symbol
+            const price = Number(fields[0]) || 0
+            const preClose = Number(fields[2]) || 0
+            const change = preClose > 0 ? price - preClose : 0
+            const changePercent = preClose > 0 ? (change / preClose) * 100 : 0
+
+            return {
+              symbol,
+              name,
+              price,
+              change,
+              changePercent,
+              updateTime: parseFutureUpdateTime(fields[12], fields[6]),
+            }
+          }
+
+          return null
+        })
+        .filter((quote) => quote !== null)
+    } catch (error) {
+      console.error('Fetch future quotes failed:', error)
+      return []
+    }
+  })
+}
+
+/**
  * 获取股票分时数据（今天的走势）
  */
 export function registerStockIntradayHandler() {
@@ -831,6 +928,7 @@ export function registerStockIntradayHandler() {
 export function registerAllQuoteHandlers() {
   registerStockQuoteHandlers()
   registerFundQuoteHandlers()
+  registerFutureQuoteHandlers()
   registerGlobalIndexQuoteHandlers()
   registerStockIntradayHandler()
 }

@@ -2,8 +2,10 @@ import { ChevronLeft, FolderPlus, Plus } from 'lucide-react'
 import React from 'react'
 import { GroupItem } from '../group'
 import {
+  isHoldingFutureGroup,
   isHoldingFundGroup,
   isHoldingStockGroup,
+  isSystemFutureGroup,
   isSystemFundGroup,
   isSystemStockGroup,
 } from '../../../shared/groupConstants'
@@ -15,7 +17,7 @@ interface Group {
 
 interface SidebarProps {
   darkMode: boolean
-  activeTab: 'stock' | 'fund'
+  activeTab: 'stock' | 'fund' | 'future'
   groups: Group[]
   newGroupName: string
   collapsed: boolean
@@ -86,7 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               value={newGroupName}
               onChange={(e) => onGroupNameChange(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && onGroupCreate()}
-              placeholder={`新建${activeTab === 'stock' ? '股票' : '基金'}分组`}
+              placeholder={`新建${activeTab === 'stock' ? '股票' : activeTab === 'fund' ? '基金' : '期货'}分组`}
               className={`w-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 darkMode
                   ? 'bg-transparent text-white placeholder-gray-400'
@@ -112,7 +114,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 key={group.id}
                 darkMode={darkMode}
                 group={group}
-                isSystemGroup={activeTab === 'stock' ? isSystemStockGroup(group.id) : isSystemFundGroup(group.id)}
+                isSystemGroup={
+                  activeTab === 'stock'
+                    ? isSystemStockGroup(group.id)
+                    : activeTab === 'fund'
+                      ? isSystemFundGroup(group.id)
+                      : isSystemFutureGroup(group.id)
+                }
                 isSelected={selectedGroupId === group.id}
                 itemCount={stocksCount?.[group.id] || 0}
                 onSelect={() => onGroupSelect(group.id)}
@@ -120,10 +128,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onDelete={() => onDeleteGroup?.(group.id)}
                 onMove={(targetId) => onMoveGroup?.(group.id, targetId)}
                 groups={groups.filter((g) =>
-                  activeTab === 'stock' ? !isSystemStockGroup(g.id) : !isSystemFundGroup(g.id)
+                  activeTab === 'stock'
+                    ? !isSystemStockGroup(g.id)
+                    : activeTab === 'fund'
+                      ? !isSystemFundGroup(g.id)
+                      : !isSystemFutureGroup(g.id)
                 )}
                 onAdd={
-                  !(activeTab === 'stock' ? isHoldingStockGroup(group.id) : isHoldingFundGroup(group.id))
+                  !(
+                    activeTab === 'stock'
+                      ? isHoldingStockGroup(group.id)
+                      : activeTab === 'fund'
+                        ? isHoldingFundGroup(group.id)
+                        : isHoldingFutureGroup(group.id)
+                  )
                     ? () => onAddToGroup?.(group.id)
                     : undefined
                 }

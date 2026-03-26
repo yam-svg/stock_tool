@@ -1,6 +1,7 @@
 import {
   EditableHolding,
   FundSubmitPayload,
+  FutureSubmitPayload,
   StockSubmitPayload,
   UpdatePayload,
   UseHoldingActionsParams,
@@ -17,19 +18,32 @@ export function useHoldingActions({
   setIsUpdating,
   setIsAddingStock,
   setIsAddingFund,
+  setIsAddingFuture,
   setSearchStockModalOpen,
   setSearchFundModalOpen,
+  setSearchFutureModalOpen,
   setAddTargetGroupId,
   moveStockToGroup,
   moveFundToGroup,
+  moveFutureToGroup,
   updateStock,
   updateFund,
+  updateFuture,
   deleteStock,
+  deleteFund,
+  deleteFuture,
   addStock,
   addFund,
+  addFuture,
 }: UseHoldingActionsParams) {
   const handleDeleteStock = (id: string) => {
-    void deleteStock(id)
+    if (activeTab === 'stock') {
+      void deleteStock(id)
+    } else if (activeTab === 'fund') {
+      void deleteFund(id)
+    } else if (activeTab === 'future') {
+      void deleteFuture(id)
+    }
   }
 
   // 单项移动完成后统一收敛弹窗状态，避免残留上下文。
@@ -37,8 +51,10 @@ export function useHoldingActions({
     if (activeTab === 'global') return
     if (activeTab === 'stock') {
       void moveStockToGroup(itemId, newGroupId)
-    } else {
+    } else if (activeTab === 'fund') {
       void moveFundToGroup(itemId, newGroupId)
+    } else {
+      void moveFutureToGroup(itemId, newGroupId)
     }
     setMoveModalOpen(false)
     setMoveItemId(null)
@@ -70,11 +86,17 @@ export function useHoldingActions({
           costPrice: data.price,
           quantity: data.quantity,
         })
-      } else {
+      } else if (activeTab === 'fund') {
         await updateFund(editingItem.id, {
           name: data.name,
           costNav: data.price,
           shares: data.quantity,
+        })
+      } else {
+        await updateFuture(editingItem.id, {
+          name: data.name,
+          entryPrice: data.price,
+          quantity: data.quantity,
         })
       }
       setEditModalOpen(false)
@@ -131,6 +153,27 @@ export function useHoldingActions({
     }
   }
 
+  const handleFutureSubmit = async (payload: FutureSubmitPayload) => {
+    if (activeTab === 'global') return
+    const { code, name, buyPrice, quantity, groupId } = payload
+    if (!groupId) return
+
+    setIsAddingFuture(true)
+    try {
+      await addFuture({
+        symbol: code,
+        name,
+        groupId,
+        entryPrice: buyPrice || 0,
+        quantity: quantity || 0,
+      })
+      setSearchFutureModalOpen(false)
+      setAddTargetGroupId(null)
+    } finally {
+      setIsAddingFuture(false)
+    }
+  }
+
   return {
     handleDeleteStock,
     handleMoveItem,
@@ -139,5 +182,6 @@ export function useHoldingActions({
     handleUpdateItem,
     handleStockSubmit,
     handleFundSubmit,
+    handleFutureSubmit,
   }
 }

@@ -4,10 +4,14 @@ import { app } from 'electron'
 import {
   ALL_FUND_GROUP_ID,
   ALL_FUND_GROUP_NAME,
+  ALL_FUTURE_GROUP_ID,
+  ALL_FUTURE_GROUP_NAME,
   ALL_STOCK_GROUP_ID,
   ALL_STOCK_GROUP_NAME,
   HOLDING_FUND_GROUP_ID,
   HOLDING_FUND_GROUP_NAME,
+  HOLDING_FUTURE_GROUP_ID,
+  HOLDING_FUTURE_GROUP_NAME,
   HOLDING_STOCK_GROUP_ID,
   HOLDING_STOCK_GROUP_NAME,
 } from '../../shared/groupConstants'
@@ -70,6 +74,30 @@ export function initializeDatabase() {
       )
     `)
 
+        // 创建期货分组表
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS future_groups (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            created_at INTEGER NOT NULL
+          )
+        `)
+
+        // 创建期货表
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS futures (
+            id TEXT PRIMARY KEY,
+            symbol TEXT NOT NULL,
+            name TEXT NOT NULL,
+            group_id TEXT NOT NULL,
+            entry_price REAL NOT NULL,
+            quantity REAL NOT NULL,
+            created_at INTEGER NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            FOREIGN KEY (group_id) REFERENCES future_groups (id)
+          )
+        `)
+
     // 迁移逻辑：如果表已存在但没有 sort_order 列，则添加
     try {
       db.exec(`ALTER TABLE stocks ADD COLUMN sort_order INTEGER DEFAULT 0`)
@@ -79,6 +107,12 @@ export function initializeDatabase() {
     
     try {
       db.exec(`ALTER TABLE funds ADD COLUMN sort_order INTEGER DEFAULT 0`)
+    } catch (e) {
+      // 列已存在，忽略错误
+    }
+
+    try {
+      db.exec(`ALTER TABLE futures ADD COLUMN sort_order INTEGER DEFAULT 0`)
     } catch (e) {
       // 列已存在，忽略错误
     }
@@ -94,12 +128,19 @@ export function initializeDatabase() {
        VALUES (?, ?, ?)
        ON CONFLICT(id) DO UPDATE SET name = excluded.name`
     )
+    const upsertFutureSystemGroupStmt = db.prepare(
+      `INSERT INTO future_groups (id, name, created_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET name = excluded.name`
+    )
 
     const now = Date.now()
     upsertStockSystemGroupStmt.run(ALL_STOCK_GROUP_ID, ALL_STOCK_GROUP_NAME, now)
     upsertStockSystemGroupStmt.run(HOLDING_STOCK_GROUP_ID, HOLDING_STOCK_GROUP_NAME, now)
     upsertFundSystemGroupStmt.run(ALL_FUND_GROUP_ID, ALL_FUND_GROUP_NAME, now)
     upsertFundSystemGroupStmt.run(HOLDING_FUND_GROUP_ID, HOLDING_FUND_GROUP_NAME, now)
+    upsertFutureSystemGroupStmt.run(ALL_FUTURE_GROUP_ID, ALL_FUTURE_GROUP_NAME, now)
+    upsertFutureSystemGroupStmt.run(HOLDING_FUTURE_GROUP_ID, HOLDING_FUTURE_GROUP_NAME, now)
 
     // 升级兼容：把无效分组引用回收到系统分组，避免“看不见持仓”。
     db.prepare(
@@ -113,6 +154,12 @@ export function initializeDatabase() {
        SET group_id = ?
        WHERE group_id NOT IN (SELECT id FROM fund_groups)`
     ).run(ALL_FUND_GROUP_ID)
+
+    db.prepare(
+      `UPDATE futures
+       SET group_id = ?
+       WHERE group_id NOT IN (SELECT id FROM future_groups)`
+    ).run(ALL_FUTURE_GROUP_ID)
 
     console.log('Database initialized successfully')
   } catch (error) {

@@ -1,20 +1,22 @@
-import { Activity, Globe, Moon, PieChart, RefreshCw, Sun, TrendingUp } from 'lucide-react'
+import { Activity, CandlestickChart, Globe, Moon, PieChart, RefreshCw, Sun, TrendingUp } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import { FaChartLine } from 'react-icons/fa'
 import { Tabs, IconButton } from '../../ui'
 
 interface HeaderProps {
   darkMode: boolean
-  activeTab: 'stock' | 'fund' | 'global'
+  activeTab: 'stock' | 'fund' | 'future' | 'global'
   stockProfit?: number
   fundProfit?: number
+  futureProfit?: number
   refreshConfig: { enabled: boolean }
   stockRefreshing?: boolean
   fundRefreshing?: boolean
+  futureRefreshing?: boolean
   globalRefreshing?: boolean
   isMarketOpen?: boolean
   nextMarketOpenTime?: string
-  setActiveTab: (tab: 'stock' | 'fund' | 'global') => void
+  setActiveTab: (tab: 'stock' | 'fund' | 'future' | 'global') => void
   toggleDarkMode: () => void
   toggleRefresh: (enabled: boolean) => void
   onManualRefresh: () => void
@@ -25,9 +27,11 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   stockProfit,
   fundProfit,
+  futureProfit,
   refreshConfig,
   stockRefreshing = false,
   fundRefreshing = false,
+  futureRefreshing = false,
   globalRefreshing = false,
   isMarketOpen = true,
   nextMarketOpenTime = '',
@@ -45,6 +49,8 @@ export const Header: React.FC<HeaderProps> = ({
         return fundRefreshing
       case 'global':
         return globalRefreshing
+      case 'future':
+        return futureRefreshing
       default:
         return false
     }
@@ -104,10 +110,11 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Tab 切换 */}
           <Tabs
             activeTab={activeTab as string}
-            onChange={(tab) => setActiveTab(tab as 'stock' | 'fund' | 'global')}
+            onChange={(tab) => setActiveTab(tab as 'stock' | 'fund' | 'future' | 'global')}
             tabs={[
               { id: 'stock', label: '股票', icon: <TrendingUp /> },
               { id: 'fund', label: '基金', icon: <PieChart /> },
+              { id: 'future', label: '期货', icon: <CandlestickChart /> },
               { id: 'global', label: '全球市场', icon: <Globe /> },
             ]}
             size="md"
@@ -153,6 +160,25 @@ export const Header: React.FC<HeaderProps> = ({
                     }`}
                   >
                     ¥{fundProfit.toFixed(2)}
+                  </div>
+                </div>
+              )}
+
+              {activeTab !== 'global' && futureProfit !== undefined && (
+                <div
+                  className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
+                    darkMode ? 'bg-gray-800/50' : 'bg-white/50'
+                  } border ${
+                    darkMode ? 'border-gray-700' : 'border-gray-200'
+                  } whitespace-nowrap`}
+                >
+                  <div className="font-medium text-xs text-gray-500">期货收益</div>
+                  <div
+                    className={`font-bold text-sm ${
+                      futureProfit >= 0 ? 'text-red-500' : 'text-green-500'
+                    }`}
+                  >
+                    ¥{futureProfit.toFixed(2)}
                   </div>
                 </div>
               )}

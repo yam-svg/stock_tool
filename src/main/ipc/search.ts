@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import axios from 'axios'
+import { FUTURE_CONTRACTS } from '../../shared/futureContracts'
 
 /**
  * 基金搜索 handler
@@ -69,10 +70,31 @@ export function registerStockSearchHandler() {
 }
 
 /**
+ * 期货搜索 handler
+ */
+export function registerFutureSearchHandler() {
+  ipcMain.handle('future-search', async (_event, keyword: string) => {
+    const trimmed = keyword.trim().toLowerCase()
+    if (!trimmed) return []
+
+    return FUTURE_CONTRACTS.filter((item) => {
+      if (item.symbol.toLowerCase().includes(trimmed)) return true
+      if (item.name.toLowerCase().includes(trimmed)) return true
+      return (item.aliases || []).some((alias) => alias.toLowerCase().includes(trimmed))
+    }).map((item) => ({
+      symbol: item.symbol,
+      name: item.name,
+      market: item.market,
+    }))
+  })
+}
+
+/**
  * 注册所有搜索相关的 IPC handlers
  */
 export function registerAllSearchHandlers() {
   registerFundSearchHandler()
   registerStockSearchHandler()
+  registerFutureSearchHandler()
 }
 

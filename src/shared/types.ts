@@ -40,6 +40,13 @@ export interface FundGroup {
   createdAt: number
 }
 
+// 期货分组接口
+export interface FutureGroup {
+  id: string
+  name: string
+  createdAt: number
+}
+
 // 基金持仓接口
 export interface Fund {
   id: string
@@ -56,6 +63,18 @@ export interface Fund {
   manager?: string         // 基金经理
 }
 
+// 期货持仓接口
+export interface Future {
+  id: string
+  symbol: string
+  name: string
+  groupId: string
+  entryPrice: number
+  quantity: number
+  createdAt: number
+  sortOrder?: number
+}
+
 //基金行情数据接口
 export interface FundQuote {
   code: string
@@ -64,6 +83,16 @@ export interface FundQuote {
   change: number
   changePercent: number
   date: string
+  updateTime: string
+}
+
+//期货行情数据接口
+export interface FutureQuote {
+  symbol: string
+  name: string
+  price: number
+  change: number
+  changePercent: number
   updateTime: string
 }
 
@@ -108,6 +137,13 @@ export interface FundBaseInfo {
   NAVURL: string
 }
 
+//期货搜索结果接口
+export interface FutureSearchResult {
+  symbol: string
+  name: string
+  market: 'CN' | 'INTL'
+}
+
 //持仓收益计算结果接口
 export interface PositionProfit {
   cost: number
@@ -125,11 +161,12 @@ export interface RefreshConfig {
 
 //应用状态接口
 export interface AppState {
-  activeTab: 'stock' | 'fund' | 'global'
+  activeTab: 'stock' | 'fund' | 'future' | 'global'
   refreshConfig: RefreshConfig
   darkMode: boolean
   stockViewMode?: 'card' | 'list'
   fundViewMode?: 'card' | 'list'
+  futureViewMode?: 'card' | 'list'
   globalViewMode?: 'card' | 'list'
 }
 
@@ -150,30 +187,42 @@ export interface DatabaseAPI {
   // 分组操作
   createStockGroup: (name: string) => Promise<StockGroup>
   createFundGroup: (name: string) => Promise<FundGroup>
+  createFutureGroup: (name: string) => Promise<FutureGroup>
   getStockGroups: () => Promise<StockGroup[]>
   getFundGroups: () => Promise<FundGroup[]>
+  getFutureGroups: () => Promise<FutureGroup[]>
   updateStockGroup: (id: string, name: string) => Promise<void>
   updateFundGroup: (id: string, name: string) => Promise<void>
+  updateFutureGroup: (id: string, name: string) => Promise<void>
   deleteStockGroup: (id: string) => Promise<void>
   deleteFundGroup: (id: string) => Promise<void>
-  
-  //操作
+  deleteFutureGroup: (id: string) => Promise<void>
+
+  //股票操作
   createStock: (stock: Omit<Stock, 'id' | 'createdAt'>) => Promise<Stock>
   getStocks: (groupId?: string) => Promise<Stock[]>
   updateStock: (id: string, updates: Partial<Omit<Stock, 'id' | 'createdAt'>>) => Promise<void>
   deleteStock: (id: string) => Promise<void>
   updateStocksSortOrder: (updates: Array<{ id: string; sortOrder: number }>) => Promise<void>
-  
-  //基操作
+
+  //基金操作
   createFund: (fund: Omit<Fund, 'id' | 'createdAt'>) => Promise<Fund>
   getFunds: (groupId?: string) => Promise<Fund[]>
   updateFund: (id: string, updates: Partial<Omit<Fund, 'id' | 'createdAt'>>) => Promise<void>
   deleteFund: (id: string) => Promise<void>
   updateFundsSortOrder: (updates: Array<{ id: string; sortOrder: number }>) => Promise<void>
-  
+
+  //期货操作
+  createFuture: (future: Omit<Future, 'id' | 'createdAt'>) => Promise<Future>
+  getFutures: (groupId?: string) => Promise<Future[]>
+  updateFuture: (id: string, updates: Partial<Omit<Future, 'id' | 'createdAt'>>) => Promise<void>
+  deleteFuture: (id: string) => Promise<void>
+  updateFuturesSortOrder: (updates: Array<{ id: string; sortOrder: number }>) => Promise<void>
+
   //行数据
   getStockQuotes: (symbols: string[]) => Promise<StockQuote[]>
   getFundQuotes: (codes: string[]) => Promise<FundQuote[]>
+  getFutureQuotes: (symbols: string[]) => Promise<FutureQuote[]>
   getGlobalIndexQuotes: () => Promise<GlobalIndexQuote[]>
   getStockIntraday: (symbol: string) => Promise<{
     success: boolean
@@ -183,10 +232,11 @@ export interface DatabaseAPI {
     }
     error?: string
   }>
-  
+
   // 搜索
   searchStocks: (keyword: string) => Promise<StockSearchResult[]>
   searchFunds: (keyword: string) => Promise<FundSearchResult[]>
+  searchFutures: (keyword: string) => Promise<FutureSearchResult[]>
 }
 
 // Electron API声明

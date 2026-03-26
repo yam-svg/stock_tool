@@ -2,7 +2,7 @@ import React from 'react'
 import { createPortal } from 'react-dom'
 import { X, FolderInput } from 'lucide-react'
 import { Button, IconButton } from '../../ui'
-import { isSystemFundGroup, isSystemStockGroup } from '../../../shared/groupConstants'
+import { isSystemFundGroup, isSystemFutureGroup, isSystemStockGroup } from '../../../shared/groupConstants'
 
 interface Group {
   id: string
@@ -33,7 +33,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({
   if (typeof document === 'undefined') return null
 
   const movableGroups = groups.filter(
-    (g) => g.id !== currentGroupId && !isSystemStockGroup(g.id) && !isSystemFundGroup(g.id),
+    (g) => g.id !== currentGroupId && !isSystemStockGroup(g.id) && !isSystemFundGroup(g.id) && !isSystemFutureGroup(g.id),
   )
 
   return createPortal(

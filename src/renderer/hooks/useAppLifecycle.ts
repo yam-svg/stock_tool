@@ -6,6 +6,7 @@ interface UseAppLifecycleParams {
   refreshConfig: RefreshConfig
   refreshStockQuotes: () => Promise<void>
   refreshFundQuotes: () => Promise<void>
+  refreshFutureQuotes: () => Promise<void>
   setSidebarCollapsed: (collapsed: boolean) => void
 }
 
@@ -14,17 +15,20 @@ export function useAppLifecycle({
   refreshConfig,
   refreshStockQuotes,
   refreshFundQuotes,
+  refreshFutureQuotes,
   setSidebarCollapsed,
 }: UseAppLifecycleParams) {
   const initializedRef = useRef(false)
   const refreshStockQuotesRef = useRef(refreshStockQuotes)
   const refreshFundQuotesRef = useRef(refreshFundQuotes)
+  const refreshFutureQuotesRef = useRef(refreshFutureQuotes)
 
   // 保持最新回调引用，避免定时器 effect 因函数引用变化而重复重建。
   useEffect(() => {
     refreshStockQuotesRef.current = refreshStockQuotes
     refreshFundQuotesRef.current = refreshFundQuotes
-  }, [refreshStockQuotes, refreshFundQuotes])
+    refreshFutureQuotesRef.current = refreshFutureQuotes
+  }, [refreshStockQuotes, refreshFundQuotes, refreshFutureQuotes])
 
   // 仅初始化一次，避免由于上层函数引用变化导致反复初始化卡顿。
   useEffect(() => {
@@ -45,9 +49,14 @@ export function useAppLifecycle({
       void refreshFundQuotesRef.current()
     }, refreshConfig.fundInterval)
 
+    const futureTimer = setInterval(() => {
+      void refreshFutureQuotesRef.current()
+    }, refreshConfig.fundInterval)
+
     return () => {
       clearInterval(stockTimer)
       clearInterval(fundTimer)
+      clearInterval(futureTimer)
     }
   }, [
     refreshConfig.enabled,
