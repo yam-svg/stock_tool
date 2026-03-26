@@ -55,6 +55,19 @@ npm run package
 | **拖拽排序**    | @dnd-kit/core     | 6.3.1   |
 | **拖拽排序**    | @dnd-kit/sortable | 9.1.0   |
 
+## 页面截图
+
+### 股票
+
+![股票页面](./public/images/股票页面.png)
+
+### 基金
+
+![基金页面](./public/images/基金页面.png)
+
+### 期货
+
+![期货页面](./public/images/期货页面.png)
 
 ## 更新日志
 
@@ -73,12 +86,9 @@ npm run package
 - 新增韩国综合指数与恒生科技指数
 
 
-## 页面截图
+### 1.6.2
 
-### 股票
+2026-4-1 更新内容如下
 
-![股票页面](./public/images/股票页面.png)
+- 新增期货功能
 
-### 基金
-
-![基金页面](./public/images/基金页面.png)
