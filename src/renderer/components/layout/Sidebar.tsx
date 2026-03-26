@@ -2,8 +2,8 @@ import { ChevronLeft, FolderPlus, Plus } from 'lucide-react'
 import React from 'react'
 import { GroupItem } from '../group'
 import {
-  isAllFundGroup,
-  isAllStockGroup,
+  isHoldingFundGroup,
+  isHoldingStockGroup,
   isSystemFundGroup,
   isSystemStockGroup,
 } from '../../../shared/groupConstants'
@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   activeTab === 'stock' ? !isSystemStockGroup(g.id) : !isSystemFundGroup(g.id)
                 )}
                 onAdd={
-                  (activeTab === 'stock' ? isAllStockGroup(group.id) : isAllFundGroup(group.id))
+                  !(activeTab === 'stock' ? isHoldingStockGroup(group.id) : isHoldingFundGroup(group.id))
                     ? () => onAddToGroup?.(group.id)
                     : undefined
                 }

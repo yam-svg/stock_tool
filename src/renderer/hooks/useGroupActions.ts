@@ -1,7 +1,7 @@
 import { UseGroupActionsParams } from '../types/hooks'
 import {
-  isAllFundGroup,
-  isAllStockGroup,
+  isHoldingFundGroup,
+  isHoldingStockGroup,
   isSystemFundGroup,
   isSystemStockGroup,
 } from '../../shared/groupConstants'
@@ -102,12 +102,13 @@ export function useGroupActions({
     }
   }
 
-  // 记录“添加目标分组”，并按当前 tab 打开对应搜索弹窗。
+  // 记录"添加目标分组"，并按当前 tab 打开对应搜索弹窗。
+  // 只阻止"我的持有"分组添加，允许自建分组和"全部"分组添加
   const handleAddToGroup = (groupId: string) => {
     if (activeTab === 'global') return
     if (
-      (activeTab === 'stock' && isSystemStockGroup(groupId) && !isAllStockGroup(groupId)) ||
-      (activeTab === 'fund' && isSystemFundGroup(groupId) && !isAllFundGroup(groupId))
+      (activeTab === 'stock' && isHoldingStockGroup(groupId)) ||
+      (activeTab === 'fund' && isHoldingFundGroup(groupId))
     ) {
       return
     }
