@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware'
 import { Future, FutureGroup, FutureQuote } from '../../shared/types'
 import FutureService from '../services/futureService'
 import { ALL_FUTURE_GROUP_ID, isSystemFutureGroup } from '../../shared/groupConstants'
+import { normalizeFutureSymbol } from '../utils/futureQuote'
 
 interface FutureState {
   futureGroups: FutureGroup[]
@@ -212,7 +213,11 @@ export const useFutureStore = create<FutureState>()(
           const quotes = await FutureService.getFutureQuotes(symbols)
           const quoteMap: Record<string, FutureQuote> = {}
           quotes.forEach((quote) => {
+            const normalized = normalizeFutureSymbol(quote.symbol)
             quoteMap[quote.symbol] = quote
+            quoteMap[normalized] = quote
+            quoteMap[normalized.toLowerCase()] = quote
+            quoteMap[normalized.toUpperCase()] = quote
           })
           console.log(quoteMap)
           set({ futureQuotes: quoteMap })

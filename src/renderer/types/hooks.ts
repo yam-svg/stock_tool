@@ -10,7 +10,6 @@ export interface EditableHolding {
   quantity?: number
   costNav?: number
   shares?: number
-  entryPrice?: number
 }
 
 export interface UpdatePayload {
@@ -33,13 +32,15 @@ export interface FundSubmitPayload extends StockSubmitPayload {
   manager?: string
 }
 
-export interface FutureSubmitPayload extends StockSubmitPayload {
+export interface FutureSubmitPayload {
+  code: string
+  name: string
+  groupId: string
   market?: 'CN' | 'INTL'
 }
 
 export type StockEditableFields = Pick<Stock, 'name' | 'costPrice' | 'quantity'>
 export type FundEditableFields = Pick<Fund, 'name' | 'costNav' | 'shares'>
-export type FutureEditableFields = Pick<Future, 'name' | 'entryPrice' | 'quantity'>
 
 export type GroupedEntity = Pick<Stock, 'id' | 'groupId'>
 
@@ -64,7 +65,6 @@ export interface UseHoldingActionsParams {
   moveFutureToGroup: (futureId: string, groupId: string) => Promise<void>
   updateStock: (id: string, updates: Partial<StockEditableFields>) => Promise<void>
   updateFund: (id: string, updates: Partial<FundEditableFields>) => Promise<void>
-  updateFuture: (id: string, updates: Partial<FutureEditableFields>) => Promise<void>
   deleteStock: (id: string) => Promise<void>
   deleteFund: (id: string) => Promise<void>
   deleteFuture: (id: string) => Promise<void>

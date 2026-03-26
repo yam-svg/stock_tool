@@ -28,7 +28,6 @@ export function useHoldingActions({
   moveFutureToGroup,
   updateStock,
   updateFund,
-  updateFuture,
   deleteStock,
   deleteFund,
   deleteFuture,
@@ -68,7 +67,7 @@ export function useHoldingActions({
   }
 
   const handleEditItem = (item: EditableHolding) => {
-    if (activeTab === 'global') return
+    if (activeTab === 'global' || activeTab === 'future') return
     setEditItem(item)
     setEditModalOpen(true)
   }
@@ -91,12 +90,6 @@ export function useHoldingActions({
           name: data.name,
           costNav: data.price,
           shares: data.quantity,
-        })
-      } else {
-        await updateFuture(editingItem.id, {
-          name: data.name,
-          entryPrice: data.price,
-          quantity: data.quantity,
         })
       }
       setEditModalOpen(false)
@@ -155,7 +148,7 @@ export function useHoldingActions({
 
   const handleFutureSubmit = async (payload: FutureSubmitPayload) => {
     if (activeTab === 'global') return
-    const { code, name, buyPrice, quantity, groupId } = payload
+    const { code, name, groupId } = payload
     if (!groupId) return
 
     setIsAddingFuture(true)
@@ -164,8 +157,6 @@ export function useHoldingActions({
         symbol: code,
         name,
         groupId,
-        entryPrice: buyPrice || 0,
-        quantity: quantity || 0,
       })
       setSearchFutureModalOpen(false)
       setAddTargetGroupId(null)

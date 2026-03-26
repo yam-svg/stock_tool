@@ -18,8 +18,10 @@ const App: React.FC = () => {
     refreshFundQuotes,
     refreshFutureQuotes,
     toggleRefresh,
-    isMarketOpen,
-    nextMarketOpenTime,
+    stockMarketOpen,
+    futureMarketOpen,
+    stockNextMarketOpenTime,
+    futureNextMarketOpenTime,
     globalIndexes,
     globalRefreshing,
     refreshGlobalIndexes,
@@ -45,7 +47,6 @@ const App: React.FC = () => {
     addFuture,
     updateStock,
     updateFund,
-    updateFuture,
     deleteStock,
     deleteFund,
     deleteFuture,
@@ -198,7 +199,6 @@ const App: React.FC = () => {
     moveFutureToGroup,
     updateStock,
     updateFund,
-    updateFuture,
     deleteStock,
     deleteFund,
     deleteFuture,
@@ -220,6 +220,12 @@ const App: React.FC = () => {
     return () => clearInterval(timer)
   }, [activeTab, globalIndexes, refreshGlobalIndexes])
 
+  // 切换到期货页时立即拉取一次最新行情，避免首屏看到旧数据。
+  useEffect(() => {
+    if (activeTab !== 'future') return
+    void refreshFutureQuotes()
+  }, [activeTab, refreshFutureQuotes])
+
   const handleManualRefresh = () => {
     if (activeTab === 'global') {
       void refreshGlobalIndexes()
@@ -229,6 +235,9 @@ const App: React.FC = () => {
     void refreshFundQuotes()
     void refreshFutureQuotes()
   }
+
+  const currentTabMarketOpen = activeTab === 'future' ? futureMarketOpen : stockMarketOpen
+  const currentTabNextOpenTime = activeTab === 'future' ? futureNextMarketOpenTime : stockNextMarketOpenTime
 
   return (
     <div
@@ -249,8 +258,8 @@ const App: React.FC = () => {
         fundRefreshing={fundRefreshing}
         futureRefreshing={futureRefreshing}
         globalRefreshing={globalRefreshing}
-        isMarketOpen={isMarketOpen}
-        nextMarketOpenTime={nextMarketOpenTime}
+        isMarketOpen={currentTabMarketOpen}
+        nextMarketOpenTime={currentTabNextOpenTime}
         setActiveTab={setActiveTab}
         toggleDarkMode={toggleDarkMode}
         toggleRefresh={toggleRefresh}
@@ -331,7 +340,7 @@ const App: React.FC = () => {
           ) : activeTab === 'fund' ? (
             <FundView darkMode={darkMode} onEditFund={handleEditItem} />
           ) : activeTab === 'future' ? (
-            <FutureView darkMode={darkMode} onEditFuture={handleEditItem} />
+            <FutureView darkMode={darkMode} />
           ) : (
             <GlobalMarketView
               darkMode={darkMode}
@@ -350,7 +359,7 @@ const App: React.FC = () => {
           setEditModalOpen(false)
           setEditItem(null)
         }}
-        title={`编辑${activeTab === 'stock' ? '股票' : activeTab === 'fund' ? '基金' : '期货'}`}
+        title={`编辑${activeTab === 'stock' ? '股票' : '基金'}`}
         initialData={{
           name: editingItem?.name || '',
           price:
@@ -358,13 +367,13 @@ const App: React.FC = () => {
               ? (editingItem?.costPrice ?? 0)
               : activeTab === 'fund'
               ? (editingItem?.costNav ?? 0)
-              : (editingItem?.entryPrice ?? 0),
+              : 0,
           quantity:
             activeTab === 'stock'
               ? (editingItem?.quantity ?? 0)
               : activeTab === 'fund'
               ? (editingItem?.shares ?? 0)
-              : (editingItem?.quantity ?? 0),
+              : 0,
         }}
         onSubmit={handleUpdateItem}
         isSubmitting={isUpdating}

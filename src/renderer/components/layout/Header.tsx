@@ -2,6 +2,7 @@ import { Activity, CandlestickChart, Globe, Moon, PieChart, RefreshCw, Sun, Tren
 import React, { useEffect, useRef, useState } from 'react'
 import { FaChartLine } from 'react-icons/fa'
 import { Tabs, IconButton } from '../../ui'
+import { MarketType } from '../../../shared/marketTime'
 
 interface HeaderProps {
   darkMode: boolean
@@ -18,7 +19,7 @@ interface HeaderProps {
   nextMarketOpenTime?: string
   setActiveTab: (tab: 'stock' | 'fund' | 'future' | 'global') => void
   toggleDarkMode: () => void
-  toggleRefresh: (enabled: boolean) => void
+  toggleRefresh: (enabled: boolean, marketType?: MarketType) => void
   onManualRefresh: () => void
 }
 
@@ -206,8 +207,8 @@ export const Header: React.FC<HeaderProps> = ({
                 className={darkMode ? 'text-yellow-400' : ''}
               />
 
-              {/* 刷新开关 - 仅在股票页面显示 */}
-              {activeTab === 'stock' && (
+              {/* 刷新开关 - 股票与期货页面显示 */}
+              {(activeTab === 'stock' || activeTab === 'future') && (
                 <div
                   className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
                     darkMode ? 'bg-black/10' : 'bg-black/5'
@@ -226,7 +227,7 @@ export const Header: React.FC<HeaderProps> = ({
                   {!isMarketOpen ? nextMarketOpenTime : '自动刷新'}
                 </span>
                 <button
-                  onClick={() => toggleRefresh(!refreshConfig.enabled)}
+                  onClick={() => toggleRefresh(!refreshConfig.enabled, activeTab === 'future' ? 'future' : 'stock')}
                   disabled={!isMarketOpen}
                   className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors duration-200 ${
                     refreshConfig.enabled ? 'bg-green-500' : 'bg-gray-300'

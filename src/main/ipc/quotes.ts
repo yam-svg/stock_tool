@@ -318,7 +318,6 @@ export function registerFundQuoteHandlers() {
             results[fundCode] = quoteData
             fundCache.set(fundCode, { data: quoteData, timestamp: now })
             
-            console.log(`✅ Fund ${fundCode} (EastMoney): nav=${nav}, change=${changePercent.toFixed(2)}%`)
           } catch (error) {
             console.warn(`❌ EastMoney API failed for fund ${code}:`, (error instanceof Error) ? error.message : error)
           }
@@ -378,7 +377,6 @@ export function registerFundQuoteHandlers() {
             results[code] = quoteData
             fundCache.set(code, { data: quoteData, timestamp: now })
             
-            console.log(`✅ Fund ${code} (Sina): nav=${nav}, change=${changePercent.toFixed(2)}%`)
           })
         } catch (error) {
           console.warn('❌ Sina API batch fetch failed:', (error instanceof Error) ? error.message : error)
@@ -497,7 +495,6 @@ export function registerFundQuoteHandlers() {
             results[code] = quoteData
             fundCache.set(code, { data: quoteData, timestamp: now })
             
-            console.log(`✅ QDII ${code} (EastMoney F10): nav=${nav}, date=${date}, change=${growthPercent}%`)
           } catch (error) {
             console.warn(`❌ EastMoney F10 API failed for QDII ${code}:`, (error instanceof Error) ? error.message : error)
           }
@@ -559,7 +556,6 @@ export function registerFundQuoteHandlers() {
               results[fundCode] = quoteData
               fundCache.set(fundCode, { data: quoteData, timestamp: now })
               
-              console.log(`✅ QDII ${fundCode} (EastMoney): nav=${nav}, change=${changePercent.toFixed(2)}%`)
             } catch (error) {
               console.warn(`❌ EastMoney API failed for QDII ${code}:`, (error instanceof Error) ? error.message : error)
             }
@@ -620,7 +616,6 @@ export function registerFundQuoteHandlers() {
             results[code] = quoteData
             fundCache.set(code, { data: quoteData, timestamp: now })
             
-            console.log(`✅ QDII ${code} (Sina): nav=${nav}, change=${changePercent.toFixed(2)}%`)
           })
         } catch (error) {
           console.warn('❌ Sina API batch fetch failed for QDII:', (error instanceof Error) ? error.message : error)
@@ -685,7 +680,6 @@ export function registerFundQuoteHandlers() {
 
             results[code] = quoteData
             fundCache.set(code, { data: quoteData, timestamp: now })
-            console.log(`✅ Fund ${code} (F10 fallback): nav=${nav}, date=${date}, change=${growthPercent}%`)
           } catch (error) {
             console.warn(`❌ F10 fallback failed for fund ${code}:`, (error instanceof Error) ? error.message : error)
           }
@@ -713,6 +707,18 @@ export function registerFundQuoteHandlers() {
  * 获取期货行情数据
  */
 export function registerFutureQuoteHandlers() {
+  const normalizeFutureSymbol = (raw: string) => {
+    const value = String(raw || '').trim()
+    if (!value) return ''
+
+    if (value.startsWith('nf_') || value.startsWith('hf_')) {
+      const [prefix, body] = value.split('_')
+      return `${prefix.toLowerCase()}_${(body || '').toUpperCase()}`
+    }
+
+    return `nf_${value.toUpperCase()}`
+  }
+
   const parseFutureUpdateTime = (datePart?: string, timePart?: string) => {
     const date = String(datePart || '').trim()
     const time = String(timePart || '').trim()
@@ -724,14 +730,7 @@ export function registerFutureQuoteHandlers() {
     if (symbols.length === 0) return []
 
     try {
-      const fullSymbols = symbols
-        .map((symbol) => String(symbol || '').trim())
-        .filter(Boolean)
-        .map((symbol) => {
-          const lower = symbol.toLowerCase()
-          if (lower.startsWith('nf_') || lower.startsWith('hf_')) return lower
-          return symbol
-        })
+      const fullSymbols = Array.from(new Set(symbols.map(normalizeFutureSymbol).filter(Boolean)))
 
       const response = await axios.get(`https://hq.sinajs.cn/list=${fullSymbols.join(',')}`, {
         headers: {
@@ -745,26 +744,40 @@ export function registerFutureQuoteHandlers() {
       const decoder = new TextDecoder('gbk')
       const text = decoder.decode(response.data)
       const lines = text.split('\n').filter((line) => line.trim())
-
       return lines
         .map((line) => {
           const match = line.match(/var hq_str_([^=]+)="([^"]*)"/)
           if (!match || !match[2]) return null
 
-          const symbol = match[1]
+          const symbol = normalizeFutureSymbol(match[1])
           const fields = match[2].split(',')
           if (fields.length < 4) return null
 
           if (symbol.startsWith('nf_')) {
-            const name = fields[0] || symbol
-            const priceCandidates = [fields[8], fields[6], fields[3], fields[2], fields[1]]
-            const preCloseCandidates = [fields[7], fields[9], fields[3], fields[2]]
+            const firstValue = Number(fields[0])
+            const isIndexFutureFormat = Number.isFinite(firstValue) && firstValue > 0
+
+            const name = isIndexFutureFormat
+              ? (fields[47] || fields[46] || symbol)
+              : (fields[0] || symbol)
+
+            const priceCandidates = isIndexFutureFormat
+              ? [fields[0], fields[3], fields[2], fields[14], fields[13]]
+              : [fields[8], fields[6], fields[3], fields[2], fields[1]]
+
+            const preCloseCandidates = isIndexFutureFormat
+              // 股指期货：优先昨结/昨收
+              ? [fields[14], fields[15], fields[2], fields[13], fields[3]]
+              // 商品期货：优先昨结，其次昨收/结算
+              : [fields[10], fields[2], fields[7], fields[27], fields[9], fields[3]]
+
             const price = priceCandidates.map((v) => Number(v)).find((v) => Number.isFinite(v) && v > 0) || 0
             const preClose = preCloseCandidates.map((v) => Number(v)).find((v) => Number.isFinite(v) && v > 0) || 0
             const change = preClose > 0 ? price - preClose : 0
             const changePercent = preClose > 0 ? (change / preClose) * 100 : 0
-            const date = fields[17]
-            const rawTime = fields[1] || ''
+
+            const date = isIndexFutureFormat ? fields[37] : fields[17]
+            const rawTime = isIndexFutureFormat ? (fields[38] || '') : (fields[1] || '')
             const time = /^\d{6}$/.test(rawTime)
               ? `${rawTime.slice(0, 2)}:${rawTime.slice(2, 4)}:${rawTime.slice(4, 6)}`
               : rawTime
@@ -782,7 +795,8 @@ export function registerFutureQuoteHandlers() {
           if (symbol.startsWith('hf_')) {
             const name = fields[13] || symbol
             const price = Number(fields[0]) || 0
-            const preClose = Number(fields[2]) || 0
+            // 海外期货：优先昨结算价(字段7)，无则回退昨收(字段2)
+            const preClose = Number(fields[7]) || Number(fields[2]) || Number(fields[8]) || 0
             const change = preClose > 0 ? price - preClose : 0
             const changePercent = preClose > 0 ? (change / preClose) * 100 : 0
 

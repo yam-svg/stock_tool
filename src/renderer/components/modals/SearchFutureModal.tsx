@@ -9,7 +9,7 @@ interface SearchFutureModalProps {
   isOpen: boolean
   onClose: () => void
   group?: FutureGroup
-  onSubmit: (data: { code: string; name: string; buyPrice: number; quantity: number; groupId: string; market?: 'CN' | 'INTL' }) => void
+  onSubmit: (data: { code: string; name: string; groupId: string; market?: 'CN' | 'INTL' }) => void
   isSubmitting?: boolean
 }
 
@@ -24,8 +24,6 @@ export const SearchFutureModal: React.FC<SearchFutureModalProps> = ({
   const [keyword, setKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<FutureSearchResult[]>([])
   const [selectedFuture, setSelectedFuture] = useState<FutureSearchResult | null>(null)
-  const [buyPrice, setBuyPrice] = useState<number>(0)
-  const [quantity, setQuantity] = useState<number>(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSearching, setIsSearching] = useState(false)
 
@@ -34,8 +32,6 @@ export const SearchFutureModal: React.FC<SearchFutureModalProps> = ({
     setKeyword('')
     setSearchResults([])
     setSelectedFuture(null)
-    setBuyPrice(0)
-    setQuantity(0)
     setErrors({})
   }, [isOpen])
 
@@ -66,8 +62,6 @@ export const SearchFutureModal: React.FC<SearchFutureModalProps> = ({
   const handleSubmit = () => {
     const newErrors: Record<string, string> = {}
     if (!selectedFuture) newErrors.future = '请选择一个期货合约'
-    if (buyPrice && buyPrice <= 0) newErrors.buyPrice = '开仓价格必须大于0'
-    if (quantity && quantity <= 0) newErrors.quantity = '持仓手数必须大于0'
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length > 0) return
@@ -76,8 +70,6 @@ export const SearchFutureModal: React.FC<SearchFutureModalProps> = ({
       onSubmit({
         code: selectedFuture.symbol,
         name: selectedFuture.name,
-        buyPrice,
-        quantity,
         groupId: group.id,
         market: selectedFuture.market,
       })
@@ -144,28 +136,9 @@ export const SearchFutureModal: React.FC<SearchFutureModalProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="开仓价格"
-              type="number"
-              value={buyPrice}
-              onChange={(e) => setBuyPrice(parseFloat(e.target.value) || 0)}
-              placeholder="0.00"
-              darkMode={darkMode}
-              error={errors.buyPrice}
-              disabled={!selectedFuture}
-            />
-            <Input
-              label="持仓手数"
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
-              placeholder="1"
-              darkMode={darkMode}
-              error={errors.quantity}
-              disabled={!selectedFuture}
-            />
-          </div>
+          <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            添加后仅展示该合约实时基础行情，不记录持仓、成本与方向信息。
+          </p>
         </div>
 
         <div className={`px-6 py-4 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}>

@@ -1,5 +1,5 @@
 import React from 'react'
-import { Edit2, FolderInput, MoreVertical, Trash2 } from 'lucide-react'
+import { FolderInput, MoreVertical, Trash2 } from 'lucide-react'
 import { Future, FutureGroup } from '../../../shared/types'
 import { MoveModal } from '../modals'
 
@@ -9,7 +9,6 @@ interface FutureActionMenuProps {
   groups: FutureGroup[]
   isOpen: boolean
   onToggle: (e: React.MouseEvent) => void
-  onEdit: (future: Future) => void
   onMove: (futureId: string, groupId: string) => void
   onDelete: (id: string) => void
 }
@@ -20,7 +19,6 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
   groups,
   isOpen,
   onToggle,
-  onEdit,
   onMove,
   onDelete,
 }) => {
@@ -59,18 +57,6 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            <button
-              onClick={() => {
-                onEdit(future)
-                onToggle({} as any)
-              }}
-              className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 ${
-                darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              }`}
-            >
-              <Edit2 className="w-3.5 h-3.5" />
-              <span>编辑</span>
-            </button>
 
             <button
               onClick={() => {

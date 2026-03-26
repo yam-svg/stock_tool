@@ -49,11 +49,26 @@ export function registerFutureHandlers() {
     const createdAt = Date.now()
 
     db.prepare(
-      `INSERT INTO futures (id, symbol, name, group_id, entry_price, quantity, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ).run(id, future.symbol, future.name, future.groupId, future.entryPrice, future.quantity, createdAt)
+      `INSERT INTO futures (id, symbol, name, group_id, entry_price, quantity, direction, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      id,
+      future.symbol,
+      future.name,
+      future.groupId,
+      0,
+      0,
+      'long',
+      createdAt,
+    )
 
-    return { id, ...future, createdAt }
+    return {
+      id,
+      symbol: future.symbol,
+      name: future.name,
+      groupId: future.groupId,
+      createdAt,
+    }
   })
 
   ipcMain.handle('db-get-futures', async (_event, groupId?: string) => {
@@ -61,14 +76,14 @@ export function registerFutureHandlers() {
     if (groupId) {
       return db
         .prepare(
-          'SELECT id, symbol, name, group_id AS groupId, entry_price AS entryPrice, quantity, created_at AS createdAt, sort_order AS sortOrder FROM futures WHERE group_id = ? ORDER BY sort_order, created_at',
+          'SELECT id, symbol, name, group_id AS groupId, created_at AS createdAt, sort_order AS sortOrder FROM futures WHERE group_id = ? ORDER BY sort_order, created_at',
         )
         .all(groupId)
     }
 
     return db
       .prepare(
-        'SELECT id, symbol, name, group_id AS groupId, entry_price AS entryPrice, quantity, created_at AS createdAt, sort_order AS sortOrder FROM futures ORDER BY sort_order, created_at',
+        'SELECT id, symbol, name, group_id AS groupId, created_at AS createdAt, sort_order AS sortOrder FROM futures ORDER BY sort_order, created_at',
       )
       .all()
   })
@@ -78,7 +93,6 @@ export function registerFutureHandlers() {
     const updateFields = Object.keys(updates)
       .map((key) => {
         if (key === 'groupId') return 'group_id = ?'
-        if (key === 'entryPrice') return 'entry_price = ?'
         if (key === 'sortOrder') return 'sort_order = ?'
         return `${key} = ?`
       })

@@ -16,7 +16,7 @@ export function usePortfolioMetrics({
   funds,
   fundQuotes,
   futures,
-  futureQuotes,
+  futureQuotes: _futureQuotes,
   selectedStockGroup,
   stockGroups,
   fundGroups,
@@ -49,15 +49,8 @@ export function usePortfolioMetrics({
   )
 
   const futureProfit = useMemo(
-    () =>
-      futures.reduce((acc, future) => {
-        const quote = futureQuotes[future.symbol]
-        const currentPrice = quote?.price || 0
-        const cost = future.entryPrice * future.quantity
-        const marketValue = currentPrice * future.quantity
-        return acc + (marketValue - cost)
-      }, 0),
-    [futures, futureQuotes],
+    () => undefined,
+    [],
   )
 
   // 当前选中股票分组下的可见列表。
@@ -91,7 +84,7 @@ export function usePortfolioMetrics({
         if (isAllFutureGroup(group.id)) {
           acc[group.id] = futures.length
         } else if (isHoldingFutureGroup(group.id)) {
-          acc[group.id] = futures.filter((f) => (f.quantity || 0) > 0).length
+          acc[group.id] = 0
         } else {
           acc[group.id] = futures.filter((f) => f.groupId === group.id).length
         }

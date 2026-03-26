@@ -63,14 +63,12 @@ export interface Fund {
   manager?: string         // 基金经理
 }
 
-// 期货持仓接口
+// 期货基础数据接口
 export interface Future {
   id: string
   symbol: string
   name: string
   groupId: string
-  entryPrice: number
-  quantity: number
   createdAt: number
   sortOrder?: number
 }

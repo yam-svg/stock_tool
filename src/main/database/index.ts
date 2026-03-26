@@ -92,6 +92,7 @@ export function initializeDatabase() {
             group_id TEXT NOT NULL,
             entry_price REAL NOT NULL,
             quantity REAL NOT NULL,
+                direction TEXT NOT NULL DEFAULT 'long',
             created_at INTEGER NOT NULL,
             sort_order INTEGER DEFAULT 0,
             FOREIGN KEY (group_id) REFERENCES future_groups (id)
@@ -113,6 +114,12 @@ export function initializeDatabase() {
 
     try {
       db.exec(`ALTER TABLE futures ADD COLUMN sort_order INTEGER DEFAULT 0`)
+    } catch (e) {
+      // 列已存在，忽略错误
+    }
+
+    try {
+      db.exec(`ALTER TABLE futures ADD COLUMN direction TEXT NOT NULL DEFAULT 'long'`)
     } catch (e) {
       // 列已存在，忽略错误
     }
