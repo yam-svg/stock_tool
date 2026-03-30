@@ -57,6 +57,85 @@ const fetchUnifiedPreviousClose = async (symbol: string) => {
   return normalizedValue
 }
 
+const fetchCnIndexTodayTrendFromSina = async (symbol: string) => {
+  const sinaSymbol = SINA_SYMBOL_MAP[symbol]
+  if (!sinaSymbol || (!sinaSymbol.startsWith('sh') && !sinaSymbol.startsWith('sz'))) {
+    return null
+  }
+
+  const baseResponse = await axios.get(`http://hq.sinajs.cn/list=${sinaSymbol}`, {
+    headers: {
+      Referer: 'https://finance.sina.com.cn',
+      'User-Agent': 'Mozilla/5.0',
+    },
+    responseType: 'arraybuffer',
+    timeout: 10000,
+  })
+  const baseText = iconv.decode(baseResponse.data, 'gbk')
+  const baseMatch = baseText.match(/var hq_str_[^=]+="([^"]*)"/)
+  const baseFields = baseMatch ? baseMatch[1].split(',') : []
+  const previousClose = Number(baseFields[2]) || 0
+
+  const trendResponse = await axios.get(
+    `https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.getKLineData?symbol=${sinaSymbol}&scale=1&ma=no&datalen=1024`,
+    {
+      headers: {
+        Referer: 'https://finance.sina.com.cn',
+        'User-Agent': 'Mozilla/5.0',
+      },
+      timeout: 10000,
+    },
+  )
+
+  const rows = Array.isArray(trendResponse.data) ? trendResponse.data : []
+  const normalizedRows = rows
+    .map((row: any) => {
+      const dateTime = String(row?.day || '').trim()
+      const close = Number(row?.close)
+      const open = Number(row?.open)
+      const high = Number(row?.high)
+      const low = Number(row?.low)
+      if (!dateTime || !Number.isFinite(close) || close <= 0) return null
+      const ts = new Date(dateTime).getTime()
+      if (!Number.isFinite(ts) || ts <= 0) return null
+
+      return {
+        ts,
+        dateKey: dateTime.split(' ')[0] || '',
+        close,
+        open: Number.isFinite(open) && open > 0 ? open : close,
+        high: Number.isFinite(high) && high > 0 ? high : close,
+        low: Number.isFinite(low) && low > 0 ? low : close,
+      }
+    })
+    .filter((item): item is { ts: number; dateKey: string; close: number; open: number; high: number; low: number } => item !== null)
+
+  if (normalizedRows.length === 0) return null
+
+  const latestDateKey = normalizedRows[normalizedRows.length - 1].dateKey
+  const points = normalizedRows
+    .filter((row) => row.dateKey === latestDateKey)
+    .map((row) => {
+      const dt = new Date(row.ts)
+      return {
+        timestamp: row.ts,
+        value: Number(row.close.toFixed(4)),
+        label: `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`,
+        open: Number(row.open.toFixed(4)),
+        high: Number(row.high.toFixed(4)),
+        low: Number(row.low.toFixed(4)),
+        close: Number(row.close.toFixed(4)),
+      }
+    })
+
+  if (points.length === 0) return null
+
+  return {
+    points,
+    previousClose: previousClose > 0 ? previousClose : points[0].open,
+  }
+}
+
 /**
  * 注册 IPC：获取全球指数行情
  */
@@ -172,6 +251,27 @@ export function registerGlobalIndexTrendHandler() {
     }
 
     try {
+      if (period === 'today') {
+        try {
+          const cnTodayData = await fetchCnIndexTodayTrendFromSina(symbol)
+          if (cnTodayData) {
+            const indexInfo = GLOBAL_INDEXES.find((item) => item.symbol === symbol)
+            return {
+              success: true,
+              data: {
+                symbol,
+                name: indexInfo ? `${indexInfo.nameCn} (${indexInfo.nameEn})` : symbol,
+                period,
+                points: cnTodayData.points,
+                previousClose: Number(cnTodayData.previousClose.toFixed(4)),
+              },
+            }
+          }
+        } catch (error) {
+          console.warn(`Sina today trend fallback to Yahoo for ${symbol}:`, error)
+        }
+      }
+
       const { interval, range } = GLOBAL_TREND_PERIOD_CONFIG[period]
       const encodedSymbol = encodeURIComponent(symbol)
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=${interval}&range=${range}`

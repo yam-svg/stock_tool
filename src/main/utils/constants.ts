@@ -41,6 +41,7 @@ export const GLOBAL_INDEXES: GlobalIndexConfig[] = [
   // 中国
   { symbol: '000001.SS', code: 'SSE', nameEn: 'SSE Composite', nameCn: '上证指数', market: 'CN', timezone: 'Asia/Shanghai' },
   { symbol: '399001.SZ', code: 'SZSE', nameEn: 'SZSE Component', nameCn: '深证成指', market: 'CN', timezone: 'Asia/Shanghai' },
+  { symbol: '399006.SZ', code: 'CYB', nameEn: 'ChiNext', nameCn: '创业板指', market: 'CN', timezone: 'Asia/Shanghai' },
   { symbol: '000300.SS', code: 'CSI300', nameEn: 'CSI 300', nameCn: '沪深300', market: 'CN', timezone: 'Asia/Shanghai' },
 ]
 
@@ -54,6 +55,7 @@ export const SINA_SYMBOL_MAP: Record<string, string> = {
   '^HSTECH': 'rt_hkHSTECH',
   '000001.SS': 'sh000001',
   '399001.SZ': 'sz399001',
+  '399006.SZ': 'sz399006',
   '000300.SS': 'sh000300',
   '^FTSE': 'gb_ftse',
   '^GDAXI': 'gb_dax',
