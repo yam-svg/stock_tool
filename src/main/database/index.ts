@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3'
+import * as fs from 'fs'
 import * as path from 'path'
 import { app } from 'electron'
 import {
@@ -18,12 +19,79 @@ import {
 
 let db: Database.Database | null = null
 
+function tryMigrateLegacyDatabase(targetDbPath: string) {
+  if (fs.existsSync(targetDbPath)) {
+    const currentSize = fs.statSync(targetDbPath).size
+    // A fresh empty SQLite file is usually very small; keep real data files intact.
+    if (currentSize > 32 * 1024) return
+  }
+
+  const userDataDir = path.dirname(targetDbPath)
+  const appDataDir = app.getPath('appData')
+  const legacyDirs = [
+    path.join(appDataDir, 'Stock666'),
+    path.join(appDataDir, 'my-electron-app'),
+  ]
+
+  const preferredDbNames = ['stocklite.db', 'stock666.db', 'stocks.db', 'database.db']
+
+  const pickLegacyDb = (dir: string) => {
+    if (!fs.existsSync(dir)) return ''
+
+    for (const fileName of preferredDbNames) {
+      const fullPath = path.join(dir, fileName)
+      if (fs.existsSync(fullPath)) return fullPath
+    }
+
+    const dbFiles = fs
+      .readdirSync(dir)
+      .filter((name) => name.toLowerCase().endsWith('.db'))
+      .map((name) => {
+        const fullPath = path.join(dir, name)
+        return { fullPath, size: fs.statSync(fullPath).size }
+      })
+      .sort((a, b) => b.size - a.size)
+
+    return dbFiles[0]?.fullPath || ''
+  }
+
+  for (const legacyDir of legacyDirs) {
+    const sourceDbPath = pickLegacyDb(legacyDir)
+    if (!sourceDbPath) continue
+
+    try {
+      fs.mkdirSync(userDataDir, { recursive: true })
+
+      if (fs.existsSync(targetDbPath)) {
+        fs.renameSync(targetDbPath, `${targetDbPath}.bak`)
+      }
+
+      fs.copyFileSync(sourceDbPath, targetDbPath)
+
+      const sidecars = ['-wal', '-shm']
+      sidecars.forEach((suffix) => {
+        const sourceSidecar = `${sourceDbPath}${suffix}`
+        const targetSidecar = `${targetDbPath}${suffix}`
+        if (fs.existsSync(sourceSidecar) && !fs.existsSync(targetSidecar)) {
+          fs.copyFileSync(sourceSidecar, targetSidecar)
+        }
+      })
+
+      console.log(`Migrated legacy database from ${sourceDbPath} to ${targetDbPath}`)
+      return
+    } catch (error) {
+      console.warn(`Failed to migrate legacy database from ${sourceDbPath}:`, error)
+    }
+  }
+}
+
 /**
  * 初始化数据库
  */
 export function initializeDatabase() {
   try {
     const dbPath = path.join(app.getPath('userData'), 'stocklite.db')
+    tryMigrateLegacyDatabase(dbPath)
     db = new Database(dbPath)
 
     // 创建股票分组表

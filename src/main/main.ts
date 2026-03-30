@@ -104,7 +104,7 @@ function createTray() {
   if (tray) return tray
 
   tray = new Tray(createTrayIcon())
-  tray.setToolTip('Stock666')
+  tray.setToolTip('StockLite')
   tray.on('click', () => {
     if (!showMainWindow()) {
       const mainWindow = createWindow()
