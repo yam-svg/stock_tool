@@ -190,7 +190,16 @@ export const FutureChartModal: React.FC<FutureChartModalProps> = ({
                   />
                   <Tooltip
                     formatter={(value) => [Number(value || 0).toFixed(3), '价格']}
-                    labelFormatter={(label) => `时间: ${String(label || '')}`}
+                    labelFormatter={(label, payload) => {
+                      const point = payload?.[0]?.payload as FutureIntradayPoint | undefined
+                      const price = Number(point?.price)
+                      if (yesterdayClose > 0 && Number.isFinite(price) && price > 0) {
+                        const changePercent = ((price - yesterdayClose) / yesterdayClose) * 100
+                        const sign = changePercent >= 0 ? '+' : ''
+                        return `时间: ${String(label || '')} | 涨跌幅: ${sign}${changePercent.toFixed(2)}%`
+                      }
+                      return `时间: ${String(label || '')}`
+                    }}
                     cursor={{ stroke: darkMode ? '#6B7280' : '#9CA3AF', strokeWidth: 1 }}
                     contentStyle={{
                       borderRadius: '8px',

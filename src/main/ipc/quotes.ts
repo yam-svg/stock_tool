@@ -1235,18 +1235,39 @@ export function registerFutureIntradayHandler() {
       const rows: GlobalFutureLineRaw[] = Array.isArray(response.data?.minLine_1d)
         ? response.data.minLine_1d
         : []
+      let currentDate = ''
       const validRows = rows
         .map((row: GlobalFutureLineRaw) => {
-          const date = String(row?.[0] || '').trim()
-          const price = Number(row?.[1])
-          const time = String(row?.[4] || '').trim()
-          const volume = Number(row?.[6])
-          const dateTime = String(row?.[9] || `${date} ${time}`).trim()
-          if (!dateTime || !Number.isFinite(price) || price <= 0) return null
+          if (!Array.isArray(row) || row.length < 2) return null
+
+          const values = row.map((item) => String(item ?? '').trim())
+          let dateTime: string
+          let dateKey: string
+          let price: number
+          let volume: number
+
+          // Sina 全球期货分时存在两种格式：
+          // 1) 首条: [date, preClose, exchange, -, time, price, volume, ... , dateTime]
+          // 2) 其余: [time, price, volume, ..., avgPrice, dateTime]
+          if (values.length >= 10) {
+            currentDate = values[0] || currentDate
+            price = Number(values[5])
+            volume = Number(values[6])
+            dateTime = values[9] || `${currentDate} ${values[4]}`
+          } else {
+            price = Number(values[1])
+            volume = Number(values[2])
+            dateTime = values[5] || `${currentDate} ${values[0]}`
+          }
+
+          const dateMatch = dateTime.match(/\d{4}-\d{2}-\d{2}/)
+          dateKey = dateMatch?.[0] || currentDate
+
+          if (!dateTime || !dateKey || !Number.isFinite(price) || price <= 0) return null
 
           return {
             dateTime,
-            dateKey: (dateTime.split(' ')[0] || date).trim(),
+            dateKey,
             price,
             volume: Number.isFinite(volume) && volume >= 0 ? volume : 0,
           }
