@@ -64,6 +64,14 @@ npm run package
 
 ![期货页面](./public/images/期货页面.png)
 
+### 全球市场
+
+![全球市场页面](./public/images/全球市场.png)
+
+### 资讯
+
+![资讯页面](./public/images/资讯页面.png)
+
 ## 更新日志
 
 ### 1.6.0
