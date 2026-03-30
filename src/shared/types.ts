@@ -180,6 +180,22 @@ export interface GlobalIndexQuote {
   updateTime: number
 }
 
+export type GlobalTrendPeriod = 'today' | 'history'
+
+export interface GlobalIndexTrendPoint {
+  timestamp: number
+  value: number
+  label: string
+}
+
+export interface GlobalIndexTrendData {
+  symbol: string
+  name: string
+  period: GlobalTrendPeriod
+  points: GlobalIndexTrendPoint[]
+  previousClose: number
+}
+
 // 数据库API接口
 export interface DatabaseAPI {
   // 分组操作
@@ -222,6 +238,11 @@ export interface DatabaseAPI {
   getFundQuotes: (codes: string[]) => Promise<FundQuote[]>
   getFutureQuotes: (symbols: string[]) => Promise<FutureQuote[]>
   getGlobalIndexQuotes: () => Promise<GlobalIndexQuote[]>
+  getGlobalIndexTrend: (symbol: string, period: GlobalTrendPeriod) => Promise<{
+    success: boolean
+    data?: GlobalIndexTrendData
+    error?: string
+  }>
   getStockIntraday: (symbol: string) => Promise<{
     success: boolean
     data?: {

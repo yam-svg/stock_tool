@@ -1,8 +1,61 @@
 import axios from 'axios'
 import { ipcMain } from 'electron'
 import iconv from 'iconv-lite'
+import { GlobalTrendPeriod } from '../../shared/types'
 import { isMarketOpenByTimezone, parseSinaData } from '../utils'
 import { GLOBAL_INDEXES, SINA_SYMBOL_MAP } from '../utils/constants'
+
+const GLOBAL_TREND_PERIOD_CONFIG: Record<GlobalTrendPeriod, { interval: string; range: string }> = {
+  today: { interval: '1m', range: '5d' },
+  history: { interval: '1d', range: '5y' },
+}
+
+const globalPreviousCloseCache = new Map<string, { value: number; timestamp: number }>()
+const GLOBAL_PREVIOUS_CLOSE_CACHE_TTL = 60 * 1000
+
+const fetchUnifiedPreviousClose = async (symbol: string) => {
+  const cached = globalPreviousCloseCache.get(symbol)
+  const now = Date.now()
+  if (cached && now - cached.timestamp < GLOBAL_PREVIOUS_CLOSE_CACHE_TTL) {
+    return cached.value
+  }
+
+  const encodedSymbol = encodeURIComponent(symbol)
+  const response = await axios.get(
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=1d&range=10d`,
+    {
+      headers: {
+        'User-Agent': 'Mozilla/5.0',
+      },
+      timeout: 10000,
+    },
+  )
+
+  const result = response.data?.chart?.result?.[0]
+  const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
+  const validCloses = closes.filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0)
+
+  // Use the last two daily closes as the canonical previous-close source.
+  // Yahoo meta.chartPreviousClose may vary by query range and cause drift.
+  let previousClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : NaN
+  if (!Number.isFinite(previousClose) || previousClose <= 0) {
+    previousClose = validCloses.length === 1 ? validCloses[0] : NaN
+  }
+  if (!Number.isFinite(previousClose) || previousClose <= 0) {
+    previousClose = Number(result?.meta?.regularMarketPreviousClose)
+  }
+  if (!Number.isFinite(previousClose) || previousClose <= 0) {
+    previousClose = Number(result?.meta?.chartPreviousClose)
+  }
+
+  if (!Number.isFinite(previousClose) || previousClose <= 0) {
+    throw new Error('No valid previous close from unified source')
+  }
+
+  const normalizedValue = Number(previousClose.toFixed(4))
+  globalPreviousCloseCache.set(symbol, { value: normalizedValue, timestamp: now })
+  return normalizedValue
+}
 
 /**
  * 注册 IPC：获取全球指数行情
@@ -99,6 +152,118 @@ export async function registerGlobalIndexQuoteHandlers() {
         updateTime: now,
       }
     })
+  })
+}
+
+/**
+ * 获取全球指数走势数据
+ */
+export function registerGlobalIndexTrendHandler() {
+  ipcMain.handle('db-get-global-index-trend', async (_event, rawSymbol: string, rawPeriod: GlobalTrendPeriod) => {
+    const symbol = String(rawSymbol || '').trim()
+    const period = (rawPeriod || 'today') as GlobalTrendPeriod
+
+    if (!symbol) {
+      return { success: false, error: '指数代码不能为空' }
+    }
+
+    if (!GLOBAL_TREND_PERIOD_CONFIG[period]) {
+      return { success: false, error: '不支持的走势周期' }
+    }
+
+    try {
+      const { interval, range } = GLOBAL_TREND_PERIOD_CONFIG[period]
+      const encodedSymbol = encodeURIComponent(symbol)
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=${interval}&range=${range}`
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+        },
+        timeout: 12000,
+      })
+
+      const result = response.data?.chart?.result?.[0]
+      const timestamps = (result?.timestamp as number[] | undefined) || []
+      const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
+      const gmtOffsetSeconds = Number(result?.meta?.gmtoffset) || 0
+
+      const toExchangeDateKey = (timestampSeconds: number) => {
+        const exchangeDate = new Date((timestampSeconds + gmtOffsetSeconds) * 1000)
+        const year = exchangeDate.getUTCFullYear()
+        const month = String(exchangeDate.getUTCMonth() + 1).padStart(2, '0')
+        const day = String(exchangeDate.getUTCDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
+      let sourcePoints = timestamps
+        .map((timestamp, index) => {
+          const close = closes[index]
+          if (!Number.isFinite(close) || (close as number) <= 0) return null
+          return {
+            timestampSeconds: timestamp,
+            value: Number((close as number).toFixed(4)),
+          }
+        })
+        .filter((item): item is { timestampSeconds: number; value: number } => item !== null)
+
+      if (period === 'today' && sourcePoints.length > 0) {
+        const latestDateKey = toExchangeDateKey(sourcePoints[sourcePoints.length - 1].timestampSeconds)
+        sourcePoints = sourcePoints.filter((item) => toExchangeDateKey(item.timestampSeconds) === latestDateKey)
+      }
+
+      const points = sourcePoints.map((item) => {
+        const time = new Date(item.timestampSeconds * 1000)
+        const label =
+          period === 'today'
+            ? `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`
+            : `${time.getMonth() + 1}/${time.getDate()}`
+
+        return {
+          timestamp: item.timestampSeconds * 1000,
+          value: item.value,
+          label,
+        }
+      })
+
+      if (points.length === 0) {
+        return { success: false, error: '该指数暂无可用走势数据' }
+      }
+
+      let previousClose: number
+      try {
+        previousClose = await fetchUnifiedPreviousClose(symbol)
+      } catch (error) {
+        const regularPreviousClose = Number(result?.meta?.regularMarketPreviousClose)
+        const chartPreviousClose = Number(result?.meta?.chartPreviousClose)
+        previousClose = Number.isFinite(regularPreviousClose) && regularPreviousClose > 0
+          ? regularPreviousClose
+          : Number.isFinite(chartPreviousClose) && chartPreviousClose > 0
+            ? chartPreviousClose
+            : points.length > 1
+              ? points[points.length - 2].value
+              : points[points.length - 1].value
+        console.warn(`Fallback previous close for ${symbol}:`, error)
+      }
+
+      const indexInfo = GLOBAL_INDEXES.find((item) => item.symbol === symbol)
+
+      return {
+        success: true,
+        data: {
+          symbol,
+          name: indexInfo ? `${indexInfo.nameCn} (${indexInfo.nameEn})` : symbol,
+          period,
+          points,
+          previousClose: Number(previousClose.toFixed(4)),
+        },
+      }
+    } catch (error) {
+      console.error('Fetch global index trend failed:', error)
+      return {
+        success: false,
+        error: '获取全球指数走势失败',
+      }
+    }
   })
 }
 
@@ -944,5 +1109,6 @@ export function registerAllQuoteHandlers() {
   registerFundQuoteHandlers()
   registerFutureQuoteHandlers()
   registerGlobalIndexQuoteHandlers()
+  registerGlobalIndexTrendHandler()
   registerStockIntradayHandler()
 }

@@ -75,9 +75,22 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
     if (data.length === 0) return []
     
     const times = data.map(d => d.time)
+    const tickSet = new Set<string>()
     const ticks: string[] = []
-    
-    // 关键时间点：开盘、午休前、午休后
+    const targetTickCount = 10
+
+    // 均匀抽样，避免横坐标只显示少量刻度。
+    if (times.length <= targetTickCount) {
+      times.forEach((time) => tickSet.add(time))
+    } else {
+      const step = (times.length - 1) / (targetTickCount - 1)
+      for (let i = 0; i < targetTickCount; i += 1) {
+        const index = Math.round(i * step)
+        tickSet.add(times[index])
+      }
+    }
+
+    // 保留关键时间点：开盘、午休前、午休后
     const keyTimes = ['09:30', '11:30', '13:00']
     
     keyTimes.forEach(keyTime => {
@@ -93,16 +106,17 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
         }
       }
       
-      if (closest && !ticks.includes(closest)) {
-        ticks.push(closest)
+      if (closest) {
+        tickSet.add(closest)
       }
     })
     
-    // 始终添加最后一个时间点（当前最新时间或收盘时间）
+    // 始终确保最后一个时间点存在（当前最新时间或收盘时间）
     const lastTime = times[times.length - 1]
-    if (!ticks.includes(lastTime)) {
-      ticks.push(lastTime)
-    }
+    tickSet.add(lastTime)
+
+    ticks.push(...Array.from(tickSet))
+    ticks.sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
     
     return ticks
   }

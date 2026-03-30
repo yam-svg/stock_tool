@@ -1,11 +1,12 @@
 import { Menu } from 'lucide-react'
 import React, { useEffect, useMemo, useState } from 'react'
-import { EditModal, FundView, FutureView, GlobalMarketView, Header, MoveModal, SearchFundModal, SearchFutureModal, SearchStockModal, Sidebar, StockView } from './components'
+import { EditModal, FundView, FutureView, GlobalIndexTrendModal, GlobalMarketView, Header, MoveModal, SearchFundModal, SearchFutureModal, SearchStockModal, Sidebar, StockView } from './components'
 import { useStore } from './store'
 import { useAppLifecycle, useGroupActions, useHoldingActions, usePortfolioMetrics } from './hooks'
 import { EditableHolding } from './types/hooks'
 import { IconButton } from './ui'
 import { ALL_STOCK_GROUP_ID, isHoldingStockGroup } from '../shared/groupConstants'
+import { GlobalIndexQuote } from '../shared/types'
 
 const App: React.FC = () => {
   const {
@@ -84,6 +85,8 @@ const App: React.FC = () => {
   const [searchStockModalOpen, setSearchStockModalOpen] = useState(false)
   const [searchFundModalOpen, setSearchFundModalOpen] = useState(false)
   const [searchFutureModalOpen, setSearchFutureModalOpen] = useState(false)
+  const [globalTrendModalOpen, setGlobalTrendModalOpen] = useState(false)
+  const [selectedGlobalIndex, setSelectedGlobalIndex] = useState<GlobalIndexQuote | null>(null)
 
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingItem, setEditItem] = useState<EditableHolding | null>(null)
@@ -347,6 +350,10 @@ const App: React.FC = () => {
               indexes={globalIndexes}
               viewMode={globalViewMode}
               setViewMode={setGlobalViewMode}
+              onSelectIndex={(index) => {
+                setSelectedGlobalIndex(index)
+                setGlobalTrendModalOpen(true)
+              }}
             />
           )}
         </div>
@@ -433,6 +440,16 @@ const App: React.FC = () => {
           onSubmit={handleFutureSubmit}
         />
       )}
+
+      <GlobalIndexTrendModal
+        isOpen={globalTrendModalOpen}
+        darkMode={darkMode}
+        index={selectedGlobalIndex}
+        onClose={() => {
+          setGlobalTrendModalOpen(false)
+          setSelectedGlobalIndex(null)
+        }}
+      />
     </div>
   )
 }

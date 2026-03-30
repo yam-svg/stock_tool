@@ -5,4 +5,5 @@ export { SearchStockModal } from './SearchStockModal'
 export { SearchFundModal } from './SearchFundModal'
 export { SearchFutureModal } from './SearchFutureModal'
 export { StockChartModal } from './StockChartModal'
+export { GlobalIndexTrendModal } from './GlobalIndexTrendModal'
 

@@ -7,6 +7,7 @@ interface GlobalMarketViewProps {
   indexes: GlobalIndexQuote[]
   viewMode: 'card' | 'list'
   setViewMode: (mode: 'card' | 'list') => void
+  onSelectIndex: (index: GlobalIndexQuote) => void
 }
 
 export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
@@ -14,6 +15,7 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
   indexes,
   viewMode,
   setViewMode,
+  onSelectIndex,
 }) => {
   return (
     <div className="space-y-6">
@@ -68,8 +70,19 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
           {indexes.map((item) => (
             <div
               key={item.symbol}
-              className={`rounded-md border px-3 py-2.5 ${
-                darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white/70'
+              role="button"
+              tabIndex={0}
+              onClick={() => onSelectIndex(item)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onSelectIndex(item)
+                }
+              }}
+              className={`rounded-md border px-3 py-2.5 cursor-pointer transition-colors ${
+                darkMode
+                  ? 'border-gray-700 bg-gray-800/50 hover:bg-gray-700/50'
+                  : 'border-gray-200 bg-white/70 hover:bg-gray-100/80'
               }`}
             >
               <div className="flex items-start justify-between mb-2">
@@ -109,7 +122,22 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
           </div>
           <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
             {indexes.map((item) => (
-              <div key={item.symbol} className="grid gap-4 px-4 py-3 text-sm" style={{ gridTemplateColumns: '1.4fr 0.8fr 1fr 0.8fr 0.8fr' }}>
+              <div
+                key={item.symbol}
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelectIndex(item)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onSelectIndex(item)
+                  }
+                }}
+                className={`grid gap-4 px-4 py-3 text-sm cursor-pointer transition-colors ${
+                  darkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100/60'
+                }`}
+                style={{ gridTemplateColumns: '1.4fr 0.8fr 1fr 0.8fr 0.8fr' }}
+              >
                 <div className="font-medium">{item.name}</div>
                 <div className="text-gray-500">{item.code}</div>
                 <div className="text-right font-semibold">{item.value > 0 ? item.value.toFixed(2) : '-'}</div>

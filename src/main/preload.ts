@@ -47,6 +47,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getFundQuotes: (codes: string[]) => ipcRenderer.invoke('db-get-fund-quotes', codes),
     getFutureQuotes: (symbols: string[]) => ipcRenderer.invoke('db-get-future-quotes', symbols),
     getGlobalIndexQuotes: () => ipcRenderer.invoke('db-get-global-index-quotes'),
+    getGlobalIndexTrend: (symbol: string, period: 'today' | 'history') =>
+      ipcRenderer.invoke('db-get-global-index-trend', symbol, period),
     getStockIntraday: (symbol: string) => ipcRenderer.invoke('db-get-stock-intraday', symbol),
     
     //搜索
