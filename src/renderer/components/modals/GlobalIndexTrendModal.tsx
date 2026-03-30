@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
+import { CandlestickData, CandlestickSeries, Time, createChart } from 'lightweight-charts'
 import { TrendingUp, X } from 'lucide-react'
 import { GlobalIndexQuote, GlobalIndexTrendData, GlobalTrendPeriod } from '../../../shared/types'
 
@@ -45,6 +46,94 @@ const getTargetTickCount = (period: GlobalTrendPeriod) => {
   return 8
 }
 
+interface HistoryCandlestickChartProps {
+  points: GlobalIndexTrendData['points']
+  darkMode: boolean
+  previousClose: number
+}
+
+const HistoryCandlestickChart: React.FC<HistoryCandlestickChartProps> = ({ points, darkMode, previousClose }) => {
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
+
+  const candleData = useMemo(
+    () => points
+      .filter(
+        (point) =>
+          Number.isFinite(point.open) &&
+          Number.isFinite(point.high) &&
+          Number.isFinite(point.low) &&
+          Number.isFinite(point.close),
+      )
+      .map(
+        (point) => ({
+          time: Math.floor(point.timestamp / 1000) as Time,
+          open: Number(point.open),
+          high: Number(point.high),
+          low: Number(point.low),
+          close: Number(point.close),
+        } satisfies CandlestickData<Time>),
+      ),
+    [points],
+  )
+
+  useEffect(() => {
+    const element = containerRef.current
+    if (!element || candleData.length === 0) return
+
+    const chart = createChart(element, {
+      autoSize: true,
+      layout: {
+        background: { color: darkMode ? '#1f2937' : '#ffffff' },
+        textColor: darkMode ? '#d1d5db' : '#6b7280',
+      },
+      grid: {
+        vertLines: { color: darkMode ? '#374151' : '#e5e7eb' },
+        horzLines: { color: darkMode ? '#374151' : '#e5e7eb' },
+      },
+      rightPriceScale: {
+        borderColor: darkMode ? '#4b5563' : '#d1d5db',
+      },
+      timeScale: {
+        borderColor: darkMode ? '#4b5563' : '#d1d5db',
+        timeVisible: true,
+      },
+    })
+
+    const series = chart.addSeries(CandlestickSeries, {
+      upColor: '#ef4444',
+      downColor: '#10b981',
+      borderVisible: false,
+      wickUpColor: '#ef4444',
+      wickDownColor: '#10b981',
+    })
+
+    series.setData(candleData)
+
+    if (Number.isFinite(previousClose) && previousClose > 0) {
+      series.createPriceLine({
+        price: previousClose,
+        color: darkMode ? '#9ca3af' : '#6b7280',
+        lineWidth: 1,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: '昨收',
+      })
+    }
+
+    chart.timeScale().fitContent()
+
+    return () => {
+      chart.remove()
+    }
+  }, [candleData, darkMode, previousClose])
+
+  if (candleData.length === 0) {
+    return <div className="h-[420px] flex items-center justify-center text-sm text-gray-500">历史数据暂不支持K线显示</div>
+  }
+
+  return <div ref={containerRef} className="h-[420px] w-full" />
+}
+
 export const GlobalIndexTrendModal: React.FC<GlobalIndexTrendModalProps> = ({
   isOpen,
   onClose,
@@ -52,6 +141,7 @@ export const GlobalIndexTrendModal: React.FC<GlobalIndexTrendModalProps> = ({
   index,
 }) => {
   const [period, setPeriod] = useState<GlobalTrendPeriod>('today')
+  const [historyChartType, setHistoryChartType] = useState<'line' | 'candlestick'>('line')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [trendData, setTrendData] = useState<GlobalIndexTrendData | null>(null)
@@ -64,6 +154,7 @@ export const GlobalIndexTrendModal: React.FC<GlobalIndexTrendModalProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setPeriod('today')
+      setHistoryChartType('line')
       setError(null)
       setTrendData(null)
     }
@@ -213,6 +304,37 @@ export const GlobalIndexTrendModal: React.FC<GlobalIndexTrendModalProps> = ({
                 {option.label}
               </button>
             ))}
+
+            {period === 'history' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setHistoryChartType('line')}
+                  className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    historyChartType === 'line'
+                      ? 'bg-indigo-500 text-white'
+                      : darkMode
+                      ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  折线图
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHistoryChartType('candlestick')}
+                  className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    historyChartType === 'candlestick'
+                      ? 'bg-indigo-500 text-white'
+                      : darkMode
+                      ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  K线图
+                </button>
+              </>
+            )}
           </div>
 
           {!loading && !error && trendData && (
@@ -262,53 +384,61 @@ export const GlobalIndexTrendModal: React.FC<GlobalIndexTrendModalProps> = ({
           )}
 
           {!loading && !error && trendData && trendData.points.length > 0 && (
-            <div className="h-[420px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData.points} margin={{ top: 10, right: 20, left: 6, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#E5E7EB'} />
-                  <XAxis
-                    dataKey="timestamp"
-                    type="number"
-                    domain={['dataMin', 'dataMax']}
-                    ticks={xAxisTicks}
-                    stroke={darkMode ? '#9CA3AF' : '#6B7280'}
-                    tick={{ fontSize: 12 }}
-                    tickFormatter={(value) => formatXAxisTime(Number(value), period)}
-                    minTickGap={8}
-                  />
-                  <YAxis
-                    stroke={darkMode ? '#9CA3AF' : '#6B7280'}
-                    tick={{ fontSize: 12 }}
-                    domain={['auto', 'auto']}
-                    tickFormatter={(value: number) => value.toFixed(2)}
-                    width={72}
-                  />
-                  <Tooltip
-                    content={renderTooltip}
-                    cursor={{ stroke: darkMode ? '#6B7280' : '#9CA3AF', strokeWidth: 1 }}
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: darkMode ? '1px solid #374151' : '1px solid #E5E7EB',
-                      backgroundColor: darkMode ? '#111827' : '#FFFFFF',
-                      color: darkMode ? '#F3F4F6' : '#111827',
-                    }}
-                  />
-                  <ReferenceLine
-                    y={trendData.previousClose}
-                    stroke={darkMode ? '#6B7280' : '#9CA3AF'}
-                    strokeDasharray="3 3"
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke={change >= 0 ? '#EF4444' : '#10B981'}
-                    strokeWidth={2}
-                    dot={false}
-                    isAnimationActive={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            period === 'history' && historyChartType === 'candlestick' ? (
+              <HistoryCandlestickChart
+                points={trendData.points}
+                darkMode={darkMode}
+                previousClose={trendData.previousClose}
+              />
+            ) : (
+              <div className="h-[420px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={trendData.points} margin={{ top: 10, right: 20, left: 6, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={darkMode ? '#374151' : '#E5E7EB'} />
+                    <XAxis
+                      dataKey="timestamp"
+                      type="number"
+                      domain={['dataMin', 'dataMax']}
+                      ticks={xAxisTicks}
+                      stroke={darkMode ? '#9CA3AF' : '#6B7280'}
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => formatXAxisTime(Number(value), period)}
+                      minTickGap={8}
+                    />
+                    <YAxis
+                      stroke={darkMode ? '#9CA3AF' : '#6B7280'}
+                      tick={{ fontSize: 12 }}
+                      domain={['auto', 'auto']}
+                      tickFormatter={(value: number) => value.toFixed(2)}
+                      width={72}
+                    />
+                    <Tooltip
+                      content={renderTooltip}
+                      cursor={{ stroke: darkMode ? '#6B7280' : '#9CA3AF', strokeWidth: 1 }}
+                      contentStyle={{
+                        borderRadius: '8px',
+                        border: darkMode ? '1px solid #374151' : '1px solid #E5E7EB',
+                        backgroundColor: darkMode ? '#111827' : '#FFFFFF',
+                        color: darkMode ? '#F3F4F6' : '#111827',
+                      }}
+                    />
+                    <ReferenceLine
+                      y={trendData.previousClose}
+                      stroke={darkMode ? '#6B7280' : '#9CA3AF'}
+                      strokeDasharray="3 3"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={change >= 0 ? '#EF4444' : '#10B981'}
+                      strokeWidth={2}
+                      dot={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )
           )}
         </div>
       </div>

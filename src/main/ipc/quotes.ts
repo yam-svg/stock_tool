@@ -184,6 +184,9 @@ export function registerGlobalIndexTrendHandler() {
 
       const result = response.data?.chart?.result?.[0]
       const timestamps = (result?.timestamp as number[] | undefined) || []
+      const opens = (result?.indicators?.quote?.[0]?.open as Array<number | null> | undefined) || []
+      const highs = (result?.indicators?.quote?.[0]?.high as Array<number | null> | undefined) || []
+      const lows = (result?.indicators?.quote?.[0]?.low as Array<number | null> | undefined) || []
       const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
       const gmtOffsetSeconds = Number(result?.meta?.gmtoffset) || 0
 
@@ -197,14 +200,27 @@ export function registerGlobalIndexTrendHandler() {
 
       let sourcePoints = timestamps
         .map((timestamp, index) => {
+          const open = opens[index]
+          const high = highs[index]
+          const low = lows[index]
           const close = closes[index]
           if (!Number.isFinite(close) || (close as number) <= 0) return null
+
+          const normalizedOpen = Number.isFinite(open) && (open as number) > 0 ? Number(open) : Number(close)
+          const normalizedHigh = Number.isFinite(high) && (high as number) > 0 ? Number(high) : Number(close)
+          const normalizedLow = Number.isFinite(low) && (low as number) > 0 ? Number(low) : Number(close)
+          const normalizedClose = Number(close)
+
           return {
             timestampSeconds: timestamp,
             value: Number((close as number).toFixed(4)),
+            open: Number(normalizedOpen.toFixed(4)),
+            high: Number(Math.max(normalizedHigh, normalizedOpen, normalizedClose).toFixed(4)),
+            low: Number(Math.min(normalizedLow, normalizedOpen, normalizedClose).toFixed(4)),
+            close: Number(normalizedClose.toFixed(4)),
           }
         })
-        .filter((item): item is { timestampSeconds: number; value: number } => item !== null)
+        .filter((item): item is { timestampSeconds: number; value: number; open: number; high: number; low: number; close: number } => item !== null)
 
       if (period === 'today' && sourcePoints.length > 0) {
         const latestDateKey = toExchangeDateKey(sourcePoints[sourcePoints.length - 1].timestampSeconds)
@@ -222,6 +238,10 @@ export function registerGlobalIndexTrendHandler() {
           timestamp: item.timestampSeconds * 1000,
           value: item.value,
           label,
+          open: item.open,
+          high: item.high,
+          low: item.low,
+          close: item.close,
         }
       })
 
