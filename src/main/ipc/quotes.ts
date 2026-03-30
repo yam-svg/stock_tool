@@ -1006,6 +1006,184 @@ export function registerFutureQuoteHandlers() {
 }
 
 /**
+ * 获取期货分时数据（当日走势，尽可能保留高密度采样点）
+ */
+export function registerFutureIntradayHandler() {
+  const normalizeFutureSymbol = (raw: string) => {
+    const value = String(raw || '').trim()
+    if (!value) return ''
+
+    if (value.startsWith('nf_') || value.startsWith('hf_')) {
+      const [prefix, body] = value.split('_')
+      return `${prefix.toLowerCase()}_${(body || '').toUpperCase()}`
+    }
+
+    return `nf_${value.toUpperCase()}`
+  }
+
+  const toMinuteLabel = (value: string) => {
+    const normalized = String(value || '').trim()
+    const match = normalized.match(/(\d{2}:\d{2})/)
+    return match ? match[1] : normalized
+  }
+
+  ipcMain.handle('db-get-future-intraday', async (_event, symbol: string) => {
+    const fullSymbol = normalizeFutureSymbol(symbol)
+    if (!fullSymbol) {
+      return { success: false, error: '期货代码不能为空' }
+    }
+
+    try {
+      // 先取昨结/昨收作为涨跌基准。
+      const quoteResponse = await axios.get(`https://hq.sinajs.cn/list=${fullSymbol}`, {
+        headers: {
+          Referer: 'https://finance.sina.com.cn',
+          'User-Agent': 'Mozilla/5.0',
+        },
+        responseType: 'arraybuffer',
+        timeout: 10000,
+      })
+
+      const quoteText = new TextDecoder('gbk').decode(quoteResponse.data)
+      const quoteMatch = quoteText.match(/var hq_str_[^=]+="([^"]*)"/)
+      if (!quoteMatch) {
+        return { success: false, error: '期货基础行情解析失败' }
+      }
+
+      const quoteFields = quoteMatch[1].split(',')
+      const isDomestic = fullSymbol.startsWith('nf_')
+      const isIndexFutureFormat = isDomestic
+        ? Number.isFinite(Number(quoteFields[0])) && Number(quoteFields[0]) > 0
+        : false
+
+      const preCloseCandidates = isDomestic
+        ? (isIndexFutureFormat
+          ? [quoteFields[14], quoteFields[15], quoteFields[2], quoteFields[13], quoteFields[3]]
+          : [quoteFields[10], quoteFields[2], quoteFields[7], quoteFields[27], quoteFields[9], quoteFields[3]])
+        : [quoteFields[7], quoteFields[2], quoteFields[8], quoteFields[3]]
+
+      const yesterdayClose = preCloseCandidates
+        .map((item) => Number(item))
+        .find((value) => Number.isFinite(value) && value > 0) || 0
+
+      if (isDomestic) {
+        const contract = fullSymbol.replace(/^nf_/i, '')
+        const response = await axios.get(
+          `https://stock2.finance.sina.com.cn/futures/api/json.php/InnerFuturesNewService.getFewMinLine?symbol=${contract}&type=1`,
+          {
+            headers: {
+              Referer: 'https://finance.sina.com.cn',
+              'User-Agent': 'Mozilla/5.0',
+            },
+            timeout: 10000,
+          },
+        )
+
+        const rows = Array.isArray(response.data) ? response.data : []
+        const validRows = rows
+          .map((row: any) => {
+            const dateTime = String(row?.d || '').trim()
+            const price = Number(row?.c)
+            const volume = Number(row?.v)
+            if (!dateTime || !Number.isFinite(price) || price <= 0) return null
+            return {
+              dateTime,
+              dateKey: dateTime.split(' ')[0] || '',
+              price,
+              volume: Number.isFinite(volume) && volume >= 0 ? volume : 0,
+            }
+          })
+          .filter((item): item is { dateTime: string; dateKey: string; price: number; volume: number } => item !== null)
+
+        if (validRows.length === 0) {
+          return { success: false, error: '该期货暂无分时数据' }
+        }
+
+        const latestDateKey = validRows[validRows.length - 1].dateKey
+        const points = validRows
+          .filter((row) => row.dateKey === latestDateKey)
+          .map((row) => ({
+            time: toMinuteLabel(row.dateTime),
+            price: Number(row.price.toFixed(3)),
+            volume: row.volume,
+          }))
+
+        return {
+          success: true,
+          data: {
+            points,
+            yesterdayClose,
+          },
+        }
+      }
+
+      const contract = fullSymbol.replace(/^hf_/i, '')
+      const response = await axios.get(
+        `https://stock2.finance.sina.com.cn/futures/api/json.php/GlobalFuturesService.getGlobalFuturesMinLine?symbol=${contract}`,
+        {
+          headers: {
+            Referer: 'https://finance.sina.com.cn',
+            'User-Agent': 'Mozilla/5.0',
+          },
+          timeout: 10000,
+        },
+      )
+
+      type GlobalFutureLineRaw = unknown[]
+      type GlobalFutureLinePoint = { dateTime: string; dateKey: string; price: number; volume: number }
+
+      const rows: GlobalFutureLineRaw[] = Array.isArray(response.data?.minLine_1d)
+        ? response.data.minLine_1d
+        : []
+      const validRows = rows
+        .map((row: GlobalFutureLineRaw) => {
+          const date = String(row?.[0] || '').trim()
+          const price = Number(row?.[1])
+          const time = String(row?.[4] || '').trim()
+          const volume = Number(row?.[6])
+          const dateTime = String(row?.[9] || `${date} ${time}`).trim()
+          if (!dateTime || !Number.isFinite(price) || price <= 0) return null
+
+          return {
+            dateTime,
+            dateKey: (dateTime.split(' ')[0] || date).trim(),
+            price,
+            volume: Number.isFinite(volume) && volume >= 0 ? volume : 0,
+          }
+        })
+        .filter((item): item is GlobalFutureLinePoint => item !== null)
+
+      if (validRows.length === 0) {
+        return { success: false, error: '该期货暂无分时数据' }
+      }
+
+      const latestDateKey = validRows[validRows.length - 1].dateKey
+      const points = validRows
+        .filter((row: GlobalFutureLinePoint) => row.dateKey === latestDateKey)
+        .map((row: GlobalFutureLinePoint) => ({
+          time: toMinuteLabel(row.dateTime),
+          price: Number(row.price.toFixed(3)),
+          volume: row.volume,
+        }))
+
+      return {
+        success: true,
+        data: {
+          points,
+          yesterdayClose,
+        },
+      }
+    } catch (error) {
+      console.error('Fetch future intraday failed:', error)
+      return {
+        success: false,
+        error: '获取期货分时数据失败',
+      }
+    }
+  })
+}
+
+/**
  * 获取股票分时数据（今天的走势）
  */
 export function registerStockIntradayHandler() {
@@ -1142,6 +1320,7 @@ export function registerAllQuoteHandlers() {
   registerStockQuoteHandlers()
   registerFundQuoteHandlers()
   registerFutureQuoteHandlers()
+  registerFutureIntradayHandler()
   registerGlobalIndexQuoteHandlers()
   registerGlobalIndexTrendHandler()
   registerStockIntradayHandler()

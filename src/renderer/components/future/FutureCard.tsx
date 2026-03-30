@@ -9,6 +9,7 @@ interface FutureCardProps {
   groups: FutureGroup[]
   onDelete: (id: string) => void
   onMove: (futureId: string, groupId: string) => void
+  onShowChart?: (symbol: string, name: string) => void
 }
 
 export const FutureCard: React.FC<FutureCardProps> = ({
@@ -18,6 +19,7 @@ export const FutureCard: React.FC<FutureCardProps> = ({
   groups,
   onDelete,
   onMove,
+  onShowChart,
 }) => {
   const [showMenu, setShowMenu] = React.useState(false)
   const currentPrice = quote?.price || 0
@@ -27,7 +29,8 @@ export const FutureCard: React.FC<FutureCardProps> = ({
     <div
       className={`rounded-lg p-3 relative border backdrop-blur-sm ${
         darkMode ? 'bg-gray-800/50 border-gray-700/50' : 'bg-white/50 border-gray-200/50'
-      }`}
+      } cursor-pointer`}
+      onClick={() => onShowChart?.(future.symbol, future.name)}
     >
       <div className="flex items-center justify-between mb-2">
         <div>
@@ -46,7 +49,10 @@ export const FutureCard: React.FC<FutureCardProps> = ({
             future={future}
             groups={groups}
             isOpen={showMenu}
-            onToggle={() => setShowMenu((v) => !v)}
+            onToggle={(event) => {
+              event.stopPropagation()
+              setShowMenu((v) => !v)
+            }}
             onMove={onMove}
             onDelete={onDelete}
           />

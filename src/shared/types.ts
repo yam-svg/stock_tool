@@ -255,6 +255,14 @@ export interface DatabaseAPI {
     }
     error?: string
   }>
+  getFutureIntraday: (symbol: string) => Promise<{
+    success: boolean
+    data?: {
+      points: Array<{ time: string; price: number; volume: number }>
+      yesterdayClose: number
+    }
+    error?: string
+  }>
 
   // 搜索
   searchStocks: (keyword: string) => Promise<StockSearchResult[]>

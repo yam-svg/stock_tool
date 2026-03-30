@@ -3,6 +3,7 @@ import { CandlestickChart, LayoutGrid, List } from 'lucide-react'
 import { useFutureStore, useUIStore } from '../../store'
 import { FutureCard } from './FutureCard'
 import { FutureList } from './FutureList'
+import { FutureChartModal } from '../modals/FutureChartModal'
 import { isAllFutureGroup, isHoldingFutureGroup } from '../../../shared/groupConstants'
 import { getFutureQuote } from '../../utils/futureQuote'
 
@@ -11,6 +12,9 @@ interface FutureViewProps {
 }
 
 export const FutureView: React.FC<FutureViewProps> = ({ darkMode }) => {
+  const [chartModalOpen, setChartModalOpen] = React.useState(false)
+  const [chartTarget, setChartTarget] = React.useState<{ symbol: string; name: string } | null>(null)
+
   const futures = useFutureStore((state) => state.futures)
   const futureQuotes = useFutureStore((state) => state.futureQuotes)
   const futureGroups = useFutureStore((state) => state.futureGroups)
@@ -27,6 +31,11 @@ export const FutureView: React.FC<FutureViewProps> = ({ darkMode }) => {
     if (isHoldingFutureGroup(selectedFutureGroup)) return []
     return futures.filter((f) => f.groupId === selectedFutureGroup)
   }, [futures, selectedFutureGroup])
+
+  const handleShowChart = React.useCallback((symbol: string, name: string) => {
+    setChartTarget({ symbol, name })
+    setChartModalOpen(true)
+  }, [])
 
   if (futures.length === 0) {
     return (
@@ -96,6 +105,7 @@ export const FutureView: React.FC<FutureViewProps> = ({ darkMode }) => {
               groups={futureGroups}
               onDelete={deleteFuture}
               onMove={moveFutureToGroup}
+              onShowChart={handleShowChart}
             />
           ))}
         </div>
@@ -107,8 +117,20 @@ export const FutureView: React.FC<FutureViewProps> = ({ darkMode }) => {
           groups={futureGroups}
           onDelete={deleteFuture}
           onMove={moveFutureToGroup}
+          onShowChart={handleShowChart}
         />
       )}
+
+      <FutureChartModal
+        isOpen={chartModalOpen}
+        darkMode={darkMode}
+        symbol={chartTarget?.symbol || ''}
+        name={chartTarget?.name || ''}
+        onClose={() => {
+          setChartModalOpen(false)
+          setChartTarget(null)
+        }}
+      />
     </div>
   )
 }

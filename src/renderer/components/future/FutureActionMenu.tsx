@@ -44,7 +44,10 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
     <>
       <div className="relative" ref={menuRef}>
         <button
-          onClick={onToggle}
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggle(event)
+          }}
           className={`p-1.5 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
         >
           <MoreVertical className="w-4 h-4" />
@@ -59,7 +62,8 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
           >
 
             <button
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation()
                 setShowMoveModal(true)
                 onToggle({} as any)
               }}
@@ -72,7 +76,8 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
             </button>
 
             <button
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation()
                 if (confirm(`确定要删除${future.name}吗？`)) {
                   onDelete(future.id)
                   onToggle({} as any)

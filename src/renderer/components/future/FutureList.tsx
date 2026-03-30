@@ -10,6 +10,7 @@ interface FutureListProps {
   groups: FutureGroup[]
   onDelete: (id: string) => void
   onMove: (futureId: string, groupId: string) => void
+  onShowChart?: (symbol: string, name: string) => void
 }
 
 export const FutureList: React.FC<FutureListProps> = ({
@@ -19,6 +20,7 @@ export const FutureList: React.FC<FutureListProps> = ({
   groups,
   onDelete,
   onMove,
+  onShowChart,
 }) => {
   const [showMenuId, setShowMenuId] = React.useState<string | null>(null)
 
@@ -39,7 +41,12 @@ export const FutureList: React.FC<FutureListProps> = ({
           const currentPrice = quote?.price || 0
 
           return (
-            <div key={future.id} className={`grid gap-3 px-4 py-3 text-sm ${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'}`} style={{ gridTemplateColumns: '2fr 2fr 1.1fr 1.1fr 1.2fr 1.5fr 1fr' }}>
+            <div
+              key={future.id}
+              className={`grid gap-3 px-4 py-3 text-sm cursor-pointer ${darkMode ? 'hover:bg-gray-700/30' : 'hover:bg-gray-50/50'}`}
+              style={{ gridTemplateColumns: '2fr 2fr 1.1fr 1.1fr 1.2fr 1.5fr 1fr' }}
+              onClick={() => onShowChart?.(future.symbol, future.name)}
+            >
               <div className="text-gray-500">{future.symbol}</div>
               <div className="font-medium">{future.name}</div>
               <div className="text-right">{currentPrice ? currentPrice.toFixed(2) : '-'}</div>
@@ -54,7 +61,10 @@ export const FutureList: React.FC<FutureListProps> = ({
                   future={future}
                   groups={groups}
                   isOpen={showMenuId === future.id}
-                  onToggle={() => setShowMenuId((prev) => (prev === future.id ? null : future.id))}
+                  onToggle={(event) => {
+                    event.stopPropagation()
+                    setShowMenuId((prev) => (prev === future.id ? null : future.id))
+                  }}
                   onMove={onMove}
                   onDelete={onDelete}
                 />

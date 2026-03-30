@@ -26,6 +26,7 @@ export { SearchStockModal } from './modals/SearchStockModal'
 export { SearchFundModal } from './modals/SearchFundModal'
 export { SearchFutureModal } from './modals/SearchFutureModal'
 export { GlobalIndexTrendModal } from './modals/GlobalIndexTrendModal'
+export { FutureChartModal } from './modals/FutureChartModal'
 
 // Global components
 export { GlobalMarketView } from './global/GlobalMarketView'

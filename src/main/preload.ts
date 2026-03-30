@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getGlobalIndexQuotes: () => ipcRenderer.invoke('db-get-global-index-quotes'),
     getGlobalIndexTrend: (symbol: string, period: 'today' | 'history') =>
       ipcRenderer.invoke('db-get-global-index-trend', symbol, period),
+    getFutureIntraday: (symbol: string) => ipcRenderer.invoke('db-get-future-intraday', symbol),
     getStockIntraday: (symbol: string) => ipcRenderer.invoke('db-get-stock-intraday', symbol),
     
     //搜索
