@@ -330,7 +330,7 @@ const App: React.FC = () => {
           />
         )}
 
-        <div className="flex-1 p-4 overflow-auto w-full">
+        <div className="flex-1 p-4 overflow-auto w-full h-[calc(100vh-4rem)]">
           {activeTab === 'stock' ? (
             <StockView
               darkMode={darkMode}

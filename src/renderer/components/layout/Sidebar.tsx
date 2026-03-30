@@ -56,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ? 'bg-gray-800/50 border-gray-700/50'
         : 'bg-white/50 border-gray-200/50'
     } border-r backdrop-blur-sm`}>
-      <div className="w-64 h-[calc(100vh-4rem)] flex flex-col p-4 lg:sticky lg:top-16">
+      <div className="w-64 h-[calc(100vh-4rem)] flex flex-col p-4">
         {/* 头部：标题和收起按钮 */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
