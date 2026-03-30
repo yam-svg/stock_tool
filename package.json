@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/main/main.js",
   "scripts": {
+    "icon:generate": "node scripts/generate-fa-chartline-icon.js",
     "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:main\"",
     "dev:renderer": "vite",
     "dev:main": "tsc -w -p tsconfig.main.json",
@@ -24,10 +25,16 @@
     },
     "files": [
       "dist/**/*",
-      "main/**/*"
+      "main/**/*",
+      "build/icons/**/*"
     ],
     "win": {
+      "icon": "build/icons/fa-chart-line.ico",
       "target": "nsis"
+    },
+    "nsis": {
+      "installerIcon": "build/icons/fa-chart-line.ico",
+      "uninstallerIcon": "build/icons/fa-chart-line.ico"
     }
   },
   "author": "",
@@ -44,6 +51,7 @@
     "cross-env": "^10.1.0",
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1",
+    "png-to-ico": "^3.0.1",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
     "typescript": "^5.9.3",

@@ -1,7 +1,23 @@
-import { BrowserWindow } from 'electron'
+import { BrowserWindow, app } from 'electron'
+import * as fs from 'fs'
 import * as path from 'path'
 
 let mainWindow: BrowserWindow | null = null
+
+function resolveAppIconPath() {
+  const candidates = [
+    path.join(process.cwd(), 'build', 'icons', 'fa-chart-line.png'),
+    path.join(process.resourcesPath, 'build', 'icons', 'fa-chart-line.png'),
+    path.join(process.resourcesPath, 'app.asar', 'build', 'icons', 'fa-chart-line.png'),
+  ]
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate
+  }
+
+  // Fallback for unusual working directories during development.
+  return app.isPackaged ? undefined : path.join(__dirname, '../../../build/icons/fa-chart-line.png')
+}
 
 /**
  * 创建应用窗口
@@ -14,6 +30,7 @@ export function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: resolveAppIconPath(),
     webPreferences: {
       preload: path.join(__dirname, '../preload.js'),
       nodeIntegration: false,
