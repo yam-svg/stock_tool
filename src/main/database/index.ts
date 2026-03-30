@@ -19,17 +19,46 @@ import {
 
 let db: Database.Database | null = null
 
-function tryMigrateLegacyDatabase(targetDbPath: string) {
-  if (fs.existsSync(targetDbPath)) {
-    const currentSize = fs.statSync(targetDbPath).size
-    // A fresh empty SQLite file is usually very small; keep real data files intact.
-    if (currentSize > 32 * 1024) return
+function getHoldingRowCount(dbPath: string) {
+  if (!fs.existsSync(dbPath)) return 0
+
+  let tempDb: Database.Database | null = null
+  try {
+    tempDb = new Database(dbPath, { readonly: true, fileMustExist: true })
+    const hasTable = (tableName: string) => {
+      const row = tempDb!
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name = ?")
+        .get(tableName)
+      return !!row
+    }
+
+    const countRows = (tableName: string) => {
+      if (!hasTable(tableName)) return 0
+      const row = tempDb!.prepare(`SELECT COUNT(1) as count FROM ${tableName}`).get() as { count?: number }
+      return Number(row?.count || 0)
+    }
+
+    return countRows('stocks') + countRows('funds') + countRows('futures')
+  } catch {
+    return 0
+  } finally {
+    if (tempDb) tempDb.close()
   }
+}
+
+function hasMeaningfulData(dbPath: string) {
+  return getHoldingRowCount(dbPath) > 0
+}
+
+function tryMigrateLegacyDatabase(targetDbPath: string) {
+  if (hasMeaningfulData(targetDbPath)) return
 
   const userDataDir = path.dirname(targetDbPath)
   const appDataDir = app.getPath('appData')
   const legacyDirs = [
+    userDataDir,
     path.join(appDataDir, 'Stock666'),
+    path.join(appDataDir, 'stock666'),
     path.join(appDataDir, 'my-electron-app'),
   ]
 
@@ -38,21 +67,30 @@ function tryMigrateLegacyDatabase(targetDbPath: string) {
   const pickLegacyDb = (dir: string) => {
     if (!fs.existsSync(dir)) return ''
 
+    const candidates = new Set<string>()
     for (const fileName of preferredDbNames) {
       const fullPath = path.join(dir, fileName)
-      if (fs.existsSync(fullPath)) return fullPath
+      if (fs.existsSync(fullPath)) candidates.add(fullPath)
     }
 
-    const dbFiles = fs
+    fs
       .readdirSync(dir)
       .filter((name) => name.toLowerCase().endsWith('.db'))
-      .map((name) => {
-        const fullPath = path.join(dir, name)
-        return { fullPath, size: fs.statSync(fullPath).size }
-      })
-      .sort((a, b) => b.size - a.size)
+      .forEach((name) => candidates.add(path.join(dir, name)))
 
-    return dbFiles[0]?.fullPath || ''
+    const ranked = Array.from(candidates)
+      .filter((fullPath) => fullPath !== targetDbPath)
+      .map((fullPath) => ({
+        fullPath,
+        hasData: hasMeaningfulData(fullPath),
+        size: fs.statSync(fullPath).size,
+      }))
+      .sort((a, b) => {
+        if (a.hasData !== b.hasData) return a.hasData ? -1 : 1
+        return b.size - a.size
+      })
+
+    return ranked[0]?.fullPath || ''
   }
 
   for (const legacyDir of legacyDirs) {
@@ -63,7 +101,8 @@ function tryMigrateLegacyDatabase(targetDbPath: string) {
       fs.mkdirSync(userDataDir, { recursive: true })
 
       if (fs.existsSync(targetDbPath)) {
-        fs.renameSync(targetDbPath, `${targetDbPath}.bak`)
+        const backupPath = `${targetDbPath}.${Date.now()}.bak`
+        fs.renameSync(targetDbPath, backupPath)
       }
 
       fs.copyFileSync(sourceDbPath, targetDbPath)
