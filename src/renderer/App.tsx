@@ -1,5 +1,5 @@
 import { Menu } from 'lucide-react'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { EditModal, FundView, FutureView, GlobalIndexTrendModal, GlobalMarketView, Header, MoveModal, SearchFundModal, SearchFutureModal, SearchStockModal, Sidebar, StockView } from './components'
 import { useStore } from './store'
 import { useAppLifecycle, useGroupActions, useHoldingActions, usePortfolioMetrics } from './hooks'
@@ -87,6 +87,7 @@ const App: React.FC = () => {
   const [searchFutureModalOpen, setSearchFutureModalOpen] = useState(false)
   const [globalTrendModalOpen, setGlobalTrendModalOpen] = useState(false)
   const [selectedGlobalIndex, setSelectedGlobalIndex] = useState<GlobalIndexQuote | null>(null)
+  const prevActiveTabRef = useRef(activeTab)
 
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [editingItem, setEditItem] = useState<EditableHolding | null>(null)
@@ -209,6 +210,19 @@ const App: React.FC = () => {
     addFund,
     addFuture,
   })
+
+  // 切换到基金/全球市场页时立即刷新一次，确保看到最新数据。
+  useEffect(() => {
+    const prevTab = prevActiveTabRef.current
+    if (activeTab !== prevTab) {
+      if (activeTab === 'global') {
+        void refreshGlobalIndexes()
+      } else if (activeTab === 'fund') {
+        void refreshFundQuotes()
+      }
+    }
+    prevActiveTabRef.current = activeTab
+  }, [activeTab, refreshFundQuotes, refreshGlobalIndexes])
 
   // 仅在存在开市市场时自动刷新全球指数
   useEffect(() => {
