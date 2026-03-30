@@ -30,37 +30,61 @@ function pngChunk(type: string, data: Buffer) {
   return Buffer.concat([lengthBuffer, chunkData, crcBuffer])
 }
 
-function createRandomPngIcon(size = 32) {
+function createChartLinePngIcon(size = 32) {
   const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(size, 0)
   ihdr.writeUInt32BE(size, 4)
   ihdr[8] = 8
   ihdr[9] = 6
-  ihdr[10] = 0
-  ihdr[11] = 0
-  ihdr[12] = 0
-
-  const palette = Array.from({ length: 5 }, () => ({
-    r: 80 + Math.floor(Math.random() * 176),
-    g: 80 + Math.floor(Math.random() * 176),
-    b: 80 + Math.floor(Math.random() * 176),
-  }))
 
   const raw = Buffer.alloc((size * 4 + 1) * size)
+  const setPixel = (x: number, y: number, r: number, g: number, b: number, a = 255) => {
+    if (x < 0 || y < 0 || x >= size || y >= size) return
+    const rowStart = y * (size * 4 + 1)
+    const pixel = rowStart + 1 + x * 4
+    raw[pixel] = r
+    raw[pixel + 1] = g
+    raw[pixel + 2] = b
+    raw[pixel + 3] = a
+  }
+
+  // 蓝色底色
   for (let y = 0; y < size; y += 1) {
     const rowStart = y * (size * 4 + 1)
     raw[rowStart] = 0
     for (let x = 0; x < size; x += 1) {
-      const cell = Math.floor(x / 4) + Math.floor(y / 4)
-      const color = palette[cell % palette.length]
-      const pixel = rowStart + 1 + x * 4
-      raw[pixel] = color.r
-      raw[pixel + 1] = color.g
-      raw[pixel + 2] = color.b
-      raw[pixel + 3] = 255
+      setPixel(x, y, 37, 99, 235, 255)
     }
   }
+
+  // 白色折线（简化 FaChartLine 视觉）
+  const points = [
+    [6, 23],
+    [11, 18],
+    [16, 20],
+    [22, 12],
+    [27, 14],
+  ] as const
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const [x1, y1] = points[i]
+    const [x2, y2] = points[i + 1]
+    const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1))
+    for (let s = 0; s <= steps; s += 1) {
+      const x = Math.round(x1 + ((x2 - x1) * s) / steps)
+      const y = Math.round(y1 + ((y2 - y1) * s) / steps)
+      for (let dx = -1; dx <= 1; dx += 1) {
+        for (let dy = -1; dy <= 1; dy += 1) {
+          setPixel(x + dx, y + dy, 255, 255, 255, 255)
+        }
+      }
+    }
+  }
+
+  // 轴线
+  for (let x = 5; x <= 27; x += 1) setPixel(x, 25, 255, 255, 255, 210)
+  for (let y = 7; y <= 25; y += 1) setPixel(5, y, 255, 255, 255, 210)
 
   const idat = deflateSync(raw, { level: 9 })
   return Buffer.concat([
@@ -72,7 +96,7 @@ function createRandomPngIcon(size = 32) {
 }
 
 function createTrayIcon() {
-  const pngBuffer = createRandomPngIcon(32)
+  const pngBuffer = createChartLinePngIcon(32)
   return nativeImage.createFromBuffer(pngBuffer).resize({ width: 16, height: 16 })
 }
 
