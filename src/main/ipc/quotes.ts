@@ -1036,19 +1036,33 @@ export function registerStockIntradayHandler() {
       const market = fullSymbol.startsWith('sh') ? 'sh' : 'sz'
       const code = fullSymbol.substring(2)
       
-      // 新浪分时数据接口（返回今天的分时数据）
-      const intradayUrl = `https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.getKLineData?symbol=${market}${code}&scale=5&ma=no&datalen=288`
-      
-      console.log('Fetching intraday from Sina:', intradayUrl)
-      
-      const intradayResponse = await axios.get(intradayUrl, {
-        headers: {
-          Referer: 'https://finance.sina.com.cn',
-        },
-        timeout: 10000,
-      })
+      const fetchIntradayByScale = async (scale: number, datalen: number) => {
+        const intradayUrl = `https://quotes.sina.cn/cn/api/json_v2.php/CN_MarketDataService.getKLineData?symbol=${market}${code}&scale=${scale}&ma=no&datalen=${datalen}`
+        console.log('Fetching intraday from Sina:', intradayUrl)
 
-      const intradayData = intradayResponse.data
+        const intradayResponse = await axios.get(intradayUrl, {
+          headers: {
+            Referer: 'https://finance.sina.com.cn',
+          },
+          timeout: 10000,
+        })
+
+        return intradayResponse.data
+      }
+
+      // 优先 1 分钟粒度；若接口不可用则回退 5 分钟，保证可用性。
+      let intradayData: any[] = []
+      try {
+        const oneMinuteData = await fetchIntradayByScale(1, 600)
+        intradayData = Array.isArray(oneMinuteData) ? oneMinuteData : []
+      } catch (error) {
+        console.warn('1-minute intraday unavailable, fallback to 5-minute:', error)
+      }
+
+      if (intradayData.length === 0) {
+        const fiveMinuteData = await fetchIntradayByScale(5, 288)
+        intradayData = Array.isArray(fiveMinuteData) ? fiveMinuteData : []
+      }
       
       if (!intradayData || !Array.isArray(intradayData) || intradayData.length === 0) {
         console.error('Intraday data is empty or invalid')
