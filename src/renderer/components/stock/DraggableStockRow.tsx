@@ -101,16 +101,16 @@ export const DraggableStockRow: React.FC<DraggableStockRowProps> = ({
       </div>
       <div className="font-medium">{stock.name}</div>
       <div className="text-right">{stock.quantity}</div>
-      <div className="text-right">¥{stock.costPrice.toFixed(2)}</div>
+      <div className="text-right">¥{stock.costPrice.toFixed(3)}</div>
       <div className={`text-right font-bold ${
         (quote?.change || 0) >= 0 ? 'text-red-500' : 'text-green-500'
       }`}>
-        ¥{currentPrice ? currentPrice.toFixed(4) : '-'}
+        ¥{currentPrice ? currentPrice.toFixed(3) : '-'}
       </div>
       <div className={`text-right font-bold ${
         priceChange >= 0 ? 'text-red-500' : 'text-green-500'
       }`}>
-        {priceChange >= 0 ? '+' : ''}{priceChange ? priceChange.toFixed(4) : '-'}
+        {priceChange >= 0 ? '+' : ''}{priceChange ? priceChange.toFixed(3) : '-'}
       </div>
       <div className={`text-right font-bold ${
         changePercent >= 0 ? 'text-red-500' : 'text-green-500'

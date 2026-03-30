@@ -69,10 +69,10 @@ export const StockForm: React.FC<StockFormProps> = ({
         <Input
           label="买入价格"
           type="number"
-          step="0.01"
+          step="0.001"
           value={newStock.buyPrice}
           onChange={(e) => onStockChange({ buyPrice: parseFloat(e.target.value) || 0 })}
-          placeholder="0.00"
+          placeholder="0.000"
           darkMode={darkMode}
           error={errors.buyPrice}
         />

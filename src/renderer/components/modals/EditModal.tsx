@@ -73,6 +73,7 @@ export const EditModal: React.FC<EditModalProps> = ({
           <Input
             label="买入价格 / 单位成本"
             type="number"
+            step="0.001"
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
             darkMode={darkMode}

@@ -162,9 +162,10 @@ export const SearchStockModal: React.FC<SearchStockModalProps> = ({
             <Input
               label="买入价格"
               type="number"
+              step="0.001"
               value={buyPrice}
               onChange={(e) => setBuyPrice(parseFloat(e.target.value) || 0)}
-              placeholder="0.00"
+              placeholder="0.000"
               darkMode={darkMode}
               error={errors.buyPrice}
               disabled={!selectedStock}

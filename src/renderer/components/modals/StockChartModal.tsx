@@ -137,10 +137,10 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
         >
           <div className="text-sm font-medium mb-1">{data.time}</div>
           <div className={`text-lg font-bold ${isPriceUp ? 'text-red-500' : 'text-green-500'}`}>
-            ¥{data.price.toFixed(2)}
+            ¥{data.price.toFixed(3)}
           </div>
           <div className={`text-xs ${isPriceUp ? 'text-red-400' : 'text-green-400'}`}>
-            {isPriceUp ? '+' : ''}{priceChange.toFixed(2)} ({isPriceUp ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+            {isPriceUp ? '+' : ''}{priceChange.toFixed(3)} ({isPriceUp ? '+' : ''}{priceChangePercent.toFixed(2)}%)
           </div>
         </div>
       )
@@ -228,14 +228,14 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
               <div className="mb-6 flex items-center justify-between">
                 <div>
                   <div className={`text-4xl font-bold ${isUp ? 'text-red-500' : 'text-green-500'}`}>
-                    ¥{currentPrice.toFixed(2)}
+                    ¥{currentPrice.toFixed(3)}
                   </div>
                   <div className={`text-lg ${isUp ? 'text-red-400' : 'text-green-400'}`}>
-                    {isUp ? '+' : ''}{change.toFixed(2)} ({isUp ? '+' : ''}{changePercent.toFixed(2)}%)
+                    {isUp ? '+' : ''}{change.toFixed(3)} ({isUp ? '+' : ''}{changePercent.toFixed(2)}%)
                   </div>
                 </div>
                 <div className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  昨收: ¥{yesterdayClose.toFixed(2)}
+                  昨收: ¥{yesterdayClose.toFixed(3)}
                 </div>
               </div>
 
@@ -256,7 +256,7 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
                     stroke={darkMode ? '#9CA3AF' : '#6B7280'}
                     tick={{ fontSize: 12 }}
                     domain={['auto', 'auto']}
-                    tickFormatter={(value) => `¥${value.toFixed(2)}`}
+                    tickFormatter={(value) => `¥${value.toFixed(3)}`}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <ReferenceLine
@@ -292,7 +292,7 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
                     最高
                   </div>
                   <div className="text-sm font-bold text-red-500">
-                    ¥{Math.max(...data.map((d) => d.price)).toFixed(2)}
+                    ¥{Math.max(...data.map((d) => d.price)).toFixed(3)}
                   </div>
                 </div>
                 <div>
@@ -300,7 +300,7 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
                     最低
                   </div>
                   <div className="text-sm font-bold text-green-500">
-                    ¥{Math.min(...data.map((d) => d.price)).toFixed(2)}
+                    ¥{Math.min(...data.map((d) => d.price)).toFixed(3)}
                   </div>
                 </div>
                 <div>
@@ -308,7 +308,7 @@ export const StockChartModal: React.FC<StockChartModalProps> = ({
                     今开
                   </div>
                   <div className="text-sm font-bold">
-                    ¥{data[0].price.toFixed(2)}
+                    ¥{data[0].price.toFixed(3)}
                   </div>
                 </div>
                 <div>
