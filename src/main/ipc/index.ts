@@ -7,6 +7,7 @@ export { registerAllFundHandlers } from './fund'
 export { registerAllFutureHandlers } from './future'
 export { registerAllQuoteHandlers } from './quotes'
 export { registerAllSearchHandlers } from './search'
+export { registerStockNewsHandlers } from './news'
 
 /**
  * 注册所有IPC handlers
@@ -17,11 +18,13 @@ export function registerAllIpcHandlers() {
   const { registerAllFutureHandlers } = require('./future')
   const { registerAllQuoteHandlers } = require('./quotes')
   const { registerAllSearchHandlers } = require('./search')
+  const { registerStockNewsHandlers } = require('./news')
 
   registerAllStockHandlers()
   registerAllFundHandlers()
   registerAllFutureHandlers()
   registerAllQuoteHandlers()
   registerAllSearchHandlers()
+  registerStockNewsHandlers()
 }
 

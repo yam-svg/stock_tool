@@ -47,7 +47,7 @@ export function useHoldingActions({
 
   // 单项移动完成后统一收敛弹窗状态，避免残留上下文。
   const handleMoveItem = (itemId: string, newGroupId: string) => {
-    if (activeTab === 'global') return
+    if (activeTab === 'global' || activeTab === 'news') return
     if (activeTab === 'stock') {
       void moveStockToGroup(itemId, newGroupId)
     } else if (activeTab === 'fund') {
@@ -67,14 +67,14 @@ export function useHoldingActions({
   }
 
   const handleEditItem = (item: EditableHolding) => {
-    if (activeTab === 'global' || activeTab === 'future') return
+    if (activeTab === 'global' || activeTab === 'news' || activeTab === 'future') return
     setEditItem(item)
     setEditModalOpen(true)
   }
 
   // 编辑提交根据 tab 路由到 stock/fund，不在视图层分支。
   const handleUpdateItem = async (data: UpdatePayload) => {
-    if (activeTab === 'global') return
+    if (activeTab === 'global' || activeTab === 'news') return
     if (!editingItem) return
 
     setIsUpdating(true)
@@ -101,7 +101,7 @@ export function useHoldingActions({
 
   // 提交新增股票后统一关闭弹窗并清空目标分组。
   const handleStockSubmit = async (payload: StockSubmitPayload) => {
-    if (activeTab === 'global') return
+    if (activeTab === 'global' || activeTab === 'news') return
     const { code, name, buyPrice, quantity, groupId } = payload
     if (!groupId) return
 
@@ -123,7 +123,7 @@ export function useHoldingActions({
 
   // 提交新增基金与股票保持一致的状态收敛策略。
   const handleFundSubmit = async (payload: FundSubmitPayload) => {
-    if (activeTab === 'global') return
+    if (activeTab === 'global' || activeTab === 'news') return
     const { code, name, buyPrice, quantity, groupId, fundType, company, manager } = payload
     if (!groupId) return
 
@@ -147,7 +147,7 @@ export function useHoldingActions({
   }
 
   const handleFutureSubmit = async (payload: FutureSubmitPayload) => {
-    if (activeTab === 'global') return
+    if (activeTab === 'global' || activeTab === 'news') return
     const { code, name, groupId } = payload
     if (!groupId) return
 

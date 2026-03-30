@@ -142,6 +142,34 @@ export interface FutureSearchResult {
   market: 'CN' | 'INTL'
 }
 
+export interface StockNewsArticle {
+  id: string
+  title: string
+  summary: string
+  url: string
+  source: string
+  publishedAt: number
+  imageUrl?: string
+}
+
+export interface NewsSourceHealth {
+  name: string
+  available: boolean
+  latency: number
+}
+
+export interface NewsSourceCheckResult {
+  sources: Record<string, NewsSourceHealth>
+  availableCount: number
+  totalCount: number
+  isHealthy: boolean
+}
+
+export interface ArticleContent {
+  html: string
+  contentLength: number
+}
+
 //持仓收益计算结果接口
 export interface PositionProfit {
   cost: number
@@ -159,7 +187,7 @@ export interface RefreshConfig {
 
 //应用状态接口
 export interface AppState {
-  activeTab: 'stock' | 'fund' | 'future' | 'global'
+  activeTab: 'stock' | 'fund' | 'future' | 'global' | 'news'
   refreshConfig: RefreshConfig
   darkMode: boolean
   stockViewMode?: 'card' | 'list'
@@ -263,6 +291,9 @@ export interface DatabaseAPI {
     }
     error?: string
   }>
+  getStockNews: (limit?: number) => Promise<StockNewsArticle[]>
+  checkNewsSources: () => Promise<NewsSourceCheckResult>
+  getArticleContent: (url: string) => Promise<{ success: boolean; data?: ArticleContent; error?: string }>
 
   // 搜索
   searchStocks: (keyword: string) => Promise<StockSearchResult[]>

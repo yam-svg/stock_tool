@@ -30,6 +30,7 @@ export { FutureChartModal } from './modals/FutureChartModal'
 
 // Global components
 export { GlobalMarketView } from './global/GlobalMarketView'
+export { NewsView } from './news/NewsView'
 
 // Future components
 export { FutureView } from './future/FutureView'

@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 
 interface UIState {
-  activeTab: 'stock' | 'fund' | 'future' | 'global'
+  activeTab: 'stock' | 'fund' | 'future' | 'global' | 'news'
   darkMode: boolean
   stockViewMode: 'card' | 'list'
   fundViewMode: 'card' | 'list'
@@ -10,7 +10,7 @@ interface UIState {
   globalViewMode: 'card' | 'list'
   sidebarCollapsed: boolean
 
-  setActiveTab: (tab: 'stock' | 'fund' | 'future' | 'global') => void
+  setActiveTab: (tab: 'stock' | 'fund' | 'future' | 'global' | 'news') => void
   toggleDarkMode: () => void
   setStockViewMode: (mode: 'card' | 'list') => void
   setFundViewMode: (mode: 'card' | 'list') => void

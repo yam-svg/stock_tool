@@ -8,6 +8,7 @@ import { useFundStore } from './fundStore'
 import { useFutureStore } from './futureStore'
 import { useRefreshStore } from './refreshStore'
 import { useGlobalMarketStore } from './globalMarketStore'
+import { useNewsStore } from './newsStore'
 
 /**
  * 合并所有Store为一个统一接口
@@ -162,4 +163,4 @@ function loadUIConfig() {
 }
 
 // 直接导出子Store以便需要时单独使用
-export { useUIStore, useStockStore, useFundStore, useFutureStore, useRefreshStore, useGlobalMarketStore }
+export { useUIStore, useStockStore, useFundStore, useFutureStore, useRefreshStore, useGlobalMarketStore, useNewsStore }

@@ -1,6 +1,6 @@
 import { Menu } from 'lucide-react'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { EditModal, FundView, FutureView, GlobalIndexTrendModal, GlobalMarketView, Header, MoveModal, SearchFundModal, SearchFutureModal, SearchStockModal, Sidebar, StockView } from './components'
+import { EditModal, FundView, FutureView, GlobalIndexTrendModal, GlobalMarketView, Header, MoveModal, NewsView, SearchFundModal, SearchFutureModal, SearchStockModal, Sidebar, StockView } from './components'
 import { useStore } from './store'
 import { useAppLifecycle, useGroupActions, useHoldingActions, usePortfolioMetrics } from './hooks'
 import { EditableHolding } from './types/hooks'
@@ -87,6 +87,7 @@ const App: React.FC = () => {
   const [searchFutureModalOpen, setSearchFutureModalOpen] = useState(false)
   const [globalTrendModalOpen, setGlobalTrendModalOpen] = useState(false)
   const [selectedGlobalIndex, setSelectedGlobalIndex] = useState<GlobalIndexQuote | null>(null)
+  const [newsRefreshTrigger, setNewsRefreshTrigger] = useState(0)
   const prevActiveTabRef = useRef(activeTab)
 
   const [editModalOpen, setEditModalOpen] = useState(false)
@@ -219,6 +220,8 @@ const App: React.FC = () => {
         void refreshGlobalIndexes()
       } else if (activeTab === 'fund') {
         void refreshFundQuotes()
+      } else if (activeTab === 'news') {
+        setNewsRefreshTrigger((value) => value + 1)
       }
     }
     prevActiveTabRef.current = activeTab
@@ -246,6 +249,10 @@ const App: React.FC = () => {
   const handleManualRefresh = () => {
     if (activeTab === 'global') {
       void refreshGlobalIndexes()
+      return
+    }
+    if (activeTab === 'news') {
+      setNewsRefreshTrigger((value) => value + 1)
       return
     }
     void refreshStockQuotes()
@@ -284,7 +291,7 @@ const App: React.FC = () => {
       />
 
       <div className="flex relative w-full">
-        {activeTab !== 'global' && sidebarCollapsed && (
+        {activeTab !== 'global' && activeTab !== 'news' && sidebarCollapsed && (
           <IconButton
             onClick={toggleSidebar}
             darkMode={darkMode}
@@ -295,7 +302,7 @@ const App: React.FC = () => {
           />
         )}
 
-        {activeTab !== 'global' && !sidebarCollapsed && (
+        {activeTab !== 'global' && activeTab !== 'news' && !sidebarCollapsed && (
           <button
             type="button"
             aria-label="关闭分组侧栏"
@@ -304,7 +311,7 @@ const App: React.FC = () => {
           />
         )}
 
-        {activeTab !== 'global' && (
+        {activeTab !== 'global' && activeTab !== 'news' && (
           <Sidebar
             darkMode={darkMode}
             activeTab={activeTab === 'stock' ? 'stock' : activeTab === 'fund' ? 'fund' : 'future'}
@@ -358,7 +365,7 @@ const App: React.FC = () => {
             <FundView darkMode={darkMode} onEditFund={handleEditItem} />
           ) : activeTab === 'future' ? (
             <FutureView darkMode={darkMode} />
-          ) : (
+          ) : activeTab === 'global' ? (
             <GlobalMarketView
               darkMode={darkMode}
               indexes={globalIndexes}
@@ -369,6 +376,8 @@ const App: React.FC = () => {
                 setGlobalTrendModalOpen(true)
               }}
             />
+          ) : (
+            <NewsView darkMode={darkMode} refreshTrigger={newsRefreshTrigger} />
           )}
         </div>
       </div>

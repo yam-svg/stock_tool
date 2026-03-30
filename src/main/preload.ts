@@ -51,6 +51,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('db-get-global-index-trend', symbol, period),
     getFutureIntraday: (symbol: string) => ipcRenderer.invoke('db-get-future-intraday', symbol),
     getStockIntraday: (symbol: string) => ipcRenderer.invoke('db-get-stock-intraday', symbol),
+    getStockNews: (limit?: number) => ipcRenderer.invoke('db-get-stock-news', limit),
+    checkNewsSources: () => ipcRenderer.invoke('db-check-news-sources'),
+    getArticleContent: (url: string) => ipcRenderer.invoke('db-get-article-content', url),
     
     //搜索
     searchStocks: (keyword: string) => ipcRenderer.invoke('stock-search', keyword),

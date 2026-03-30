@@ -1,6 +1,6 @@
 import { Fund, FundGroup, FundQuote, Future, FutureGroup, FutureQuote, Stock, StockGroup, StockQuote } from '../../shared/types'
 
-export type AppTab = 'stock' | 'fund' | 'future' | 'global'
+export type AppTab = 'stock' | 'fund' | 'future' | 'global' | 'news'
 
 export interface EditableHolding {
   id: string
