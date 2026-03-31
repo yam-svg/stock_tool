@@ -190,11 +190,45 @@ export async function registerGlobalIndexQuoteHandlers() {
 
     const result = response.data?.chart?.result?.[0]
     const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
-    const validCloses = closes.filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0)
-    if (validCloses.length === 0) return null
+    const timestamps = (result?.timestamp as Array<number | null> | undefined) || []
+    const gmtOffsetSeconds = Number(result?.meta?.gmtoffset) || 0
 
-    const price = validCloses[validCloses.length - 1]
-    const prevClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : price
+    const isValidClose = (value: number | null | undefined): value is number =>
+      typeof value === 'number' && Number.isFinite(value) && value > 0
+
+    const toExchangeDateKey = (timestampSeconds: number) => {
+      const exchangeDate = new Date((timestampSeconds + gmtOffsetSeconds) * 1000)
+      const year = exchangeDate.getUTCFullYear()
+      const month = String(exchangeDate.getUTCMonth() + 1).padStart(2, '0')
+      const day = String(exchangeDate.getUTCDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const validCloseIndexes = closes.reduce<number[]>((acc, value, index) => {
+      if (isValidClose(value)) acc.push(index)
+      return acc
+    }, [])
+    if (validCloseIndexes.length === 0) return null
+
+    const latestCloseIndex = validCloseIndexes[validCloseIndexes.length - 1]
+    const latestClose = closes[latestCloseIndex]
+    if (!isValidClose(latestClose)) return null
+
+    const lastTimestamp = Number(timestamps[timestamps.length - 1])
+    const hasCurrentSessionDailyBar = Number.isFinite(lastTimestamp)
+      ? toExchangeDateKey(lastTimestamp) === toExchangeDateKey(Math.floor(Date.now() / 1000))
+      : false
+
+    const lastRawClose = closes.length > 0 ? closes[closes.length - 1] : null
+    const lastRawCloseIsValid = isValidClose(lastRawClose)
+
+    const prevCloseIndex = (!lastRawCloseIsValid || !hasCurrentSessionDailyBar)
+      ? latestCloseIndex
+      : validCloseIndexes[validCloseIndexes.length - 2] ?? latestCloseIndex
+
+    const prevCloseValue = closes[prevCloseIndex]
+    const prevClose = isValidClose(prevCloseValue) ? prevCloseValue : latestClose
+    const price = latestClose
     const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0
 
     return {
