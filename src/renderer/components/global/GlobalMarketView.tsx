@@ -1,5 +1,5 @@
 import React from 'react'
-import { LayoutGrid, List } from 'lucide-react'
+import { AlertCircle, LayoutGrid, List } from 'lucide-react'
 import { GlobalIndexQuote } from '../../../shared/types'
 
 interface GlobalMarketViewProps {
@@ -55,6 +55,19 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
             <span>列表</span>
           </button>
         </div>
+      </div>
+
+      <div
+        className={`rounded-md border px-3 py-2 text-xs flex items-start gap-2 ${
+          darkMode
+            ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+            : 'border-amber-300 bg-amber-50 text-amber-800'
+        }`}
+      >
+        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+        <span>
+          提示：部分指数可能存在数据延迟（如恒生指数、恒生科技指数），请以交易所或官方行情终端为准。
+        </span>
       </div>
 
       {indexes.length === 0 ? (
