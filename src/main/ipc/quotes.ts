@@ -33,19 +33,45 @@ const fetchUnifiedPreviousClose = async (symbol: string) => {
 
   const result = response.data?.chart?.result?.[0]
   const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
-  const validCloses = closes.filter((v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0)
 
-  // Use the last two daily closes as the canonical previous-close source.
-  // Yahoo meta.chartPreviousClose may vary by query range and cause drift.
-  let previousClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : NaN
-  if (!Number.isFinite(previousClose) || previousClose <= 0) {
-    previousClose = validCloses.length === 1 ? validCloses[0] : NaN
+  const isValidClose = (value: number | null | undefined): value is number =>
+    typeof value === 'number' && Number.isFinite(value) && value > 0
+
+  const validCloseIndexes = closes.reduce<number[]>((acc, value, index) => {
+    if (isValidClose(value)) acc.push(index)
+    return acc
+  }, [])
+
+  const lastRawClose = closes.length > 0 ? closes[closes.length - 1] : null
+  const lastRawCloseIsValid = isValidClose(lastRawClose)
+
+  // If the latest daily candle is still forming (often null), the last valid close is yesterday's close.
+  // Otherwise, use the previous valid close because the latest one is today's completed close.
+  let previousClose = NaN
+  if (validCloseIndexes.length > 0) {
+    const targetIndex = lastRawCloseIsValid
+      ? validCloseIndexes[validCloseIndexes.length - 2] ?? validCloseIndexes[0]
+      : validCloseIndexes[validCloseIndexes.length - 1]
+
+    const targetClose = closes[targetIndex]
+    if (isValidClose(targetClose)) {
+      previousClose = targetClose
+    }
   }
+
   if (!Number.isFinite(previousClose) || previousClose <= 0) {
     previousClose = Number(result?.meta?.regularMarketPreviousClose)
   }
   if (!Number.isFinite(previousClose) || previousClose <= 0) {
     previousClose = Number(result?.meta?.chartPreviousClose)
+  }
+
+  // Last fallback: use the latest available daily close to avoid returning invalid values.
+  if ((!Number.isFinite(previousClose) || previousClose <= 0) && validCloseIndexes.length > 0) {
+    const latestClose = closes[validCloseIndexes[validCloseIndexes.length - 1]]
+    if (isValidClose(latestClose)) {
+      previousClose = latestClose
+    }
   }
 
   if (!Number.isFinite(previousClose) || previousClose <= 0) {
