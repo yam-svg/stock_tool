@@ -2,6 +2,7 @@ import React from 'react'
 import { FolderInput, MoreVertical, Trash2 } from 'lucide-react'
 import { Future, FutureGroup } from '../../../shared/types'
 import { MoveModal } from '../modals'
+import { ConfirmModal } from '../modals/ConfirmModal'
 
 interface FutureActionMenuProps {
   darkMode: boolean
@@ -23,6 +24,7 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
   onDelete,
 }) => {
   const [showMoveModal, setShowMoveModal] = React.useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false)
   const menuRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -78,10 +80,8 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
             <button
               onClick={(event) => {
                 event.stopPropagation()
-                if (confirm(`确定要删除${future.name}吗？`)) {
-                  onDelete(future.id)
-                  onToggle({} as any)
-                }
+                setShowDeleteConfirm(true)
+                onToggle({} as any)
               }}
               className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 text-red-500 ${
                 darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
@@ -105,6 +105,21 @@ export const FutureActionMenu: React.FC<FutureActionMenuProps> = ({
         groups={groups}
         currentGroupId={future.groupId}
         title={`移动 ${future.name}`}
+      />
+      {/* 删除确认模态框 */}
+      <ConfirmModal
+        darkMode={darkMode}
+        isOpen={showDeleteConfirm}
+        title="删除期货"
+        message={`确定要删除 "${future.name}" 吗？此操作无法撤销。`}
+        confirmText="删除"
+        cancelText="取消"
+        isDangerous={true}
+        onConfirm={() => {
+          onDelete(future.id)
+          setShowDeleteConfirm(false)
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </>
   )

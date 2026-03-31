@@ -2,6 +2,7 @@ import React from 'react'
 import { Trash2, MoreVertical, FolderInput, Edit2 } from 'lucide-react'
 import { Fund, FundQuote, FundGroup } from '../../../shared/types'
 import { isFundQuoteUpdatedToday } from '../../utils/fundQuote'
+import { ConfirmModal } from '../modals'
 
 interface FundCardProps {
   darkMode: boolean
@@ -24,6 +25,7 @@ export const FundCard: React.FC<FundCardProps> = ({
 }) => {
   const [showMenu, setShowMenu] = React.useState(false)
   const [showMoveMenu, setShowMoveMenu] = React.useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false)
   const [flashColor, setFlashColor] = React.useState<'red' | 'green' | null>(null)
   const prevNavRef = React.useRef<number>(quote?.nav || 0)
   const menuRef = React.useRef<HTMLDivElement>(null)
@@ -202,10 +204,8 @@ export const FundCard: React.FC<FundCardProps> = ({
                 {/* 删除 */}
                 <button
                   onClick={() => {
-                    if (confirm(`确定要删除${fund.name}吗？`)) {
-                      onDelete(fund.id)
-                      setShowMenu(false)
-                    }
+                    setShowDeleteConfirm(true)
+                    setShowMenu(false)
                   }}
                   className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 text-red-500 ${
                     darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
@@ -267,6 +267,22 @@ export const FundCard: React.FC<FundCardProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* 删除确认模态框 */}
+      <ConfirmModal
+        darkMode={darkMode}
+        isOpen={showDeleteConfirm}
+        title="删除基金"
+        message={`确定要删除 "${fund.name}" 吗？此操作无法撤销。`}
+        confirmText="删除"
+        cancelText="取消"
+        isDangerous={true}
+        onConfirm={() => {
+          onDelete(fund.id)
+          setShowDeleteConfirm(false)
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   )
 }

@@ -7,4 +7,4 @@ export { SearchFutureModal } from './SearchFutureModal'
 export { StockChartModal } from './StockChartModal'
 export { GlobalIndexTrendModal } from './GlobalIndexTrendModal'
 export { FutureChartModal } from './FutureChartModal'
-
+export { ConfirmModal } from './ConfirmModal'

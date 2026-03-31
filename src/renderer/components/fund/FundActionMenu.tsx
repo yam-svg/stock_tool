@@ -2,6 +2,7 @@ import React from 'react'
 import { Trash2, Edit2, FolderInput, MoreVertical } from 'lucide-react'
 import { Fund, FundGroup } from '../../../shared/types'
 import { MoveModal } from '../modals'
+import { ConfirmModal } from '../modals/ConfirmModal'
 
 interface FundActionMenuProps {
   darkMode: boolean
@@ -29,6 +30,7 @@ export const FundActionMenu: React.FC<FundActionMenuProps> = ({
   buttonClassName,
 }) => {
   const [showMoveModal, setShowMoveModal] = React.useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false)
   const menuRef = React.useRef<HTMLDivElement>(null)
 
   // 点击外部关闭菜单
@@ -113,10 +115,8 @@ export const FundActionMenu: React.FC<FundActionMenuProps> = ({
             {/* 删除 */}
             <button
               onClick={() => {
-                if (confirm(`确定要删除${fund.name}吗？`)) {
-                  onDelete(fund.id)
-                  onToggle({} as any)
-                }
+                setShowDeleteConfirm(true)
+                onToggle({} as any)
               }}
               className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 text-red-500 ${
                 darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
@@ -141,6 +141,21 @@ export const FundActionMenu: React.FC<FundActionMenuProps> = ({
         groups={groups}
         currentGroupId={fund.groupId}
         title={`移动 ${fund.name}`}
+      />
+      {/* 删除确认模态框 */}
+      <ConfirmModal
+        darkMode={darkMode}
+        isOpen={showDeleteConfirm}
+        title="删除基金"
+        message={`确定要删除 "${fund.name}" 吗？此操作无法撤销。`}
+        confirmText="删除"
+        cancelText="取消"
+        isDangerous={true}
+        onConfirm={() => {
+          onDelete(fund.id)
+          setShowDeleteConfirm(false)
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </>
   )

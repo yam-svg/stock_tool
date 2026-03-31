@@ -1,7 +1,8 @@
 ﻿import React from "react";
 import { Trash2, Edit2, FolderInput, MoreVertical } from "lucide-react";
 import { Stock, StockGroup } from "../../../shared/types";
-import { MoveModal } from "../modals/MoveModal";
+import { MoveModal } from '../modals';
+import { ConfirmModal } from "../modals/ConfirmModal";
 interface StockActionMenuProps {
   darkMode: boolean;
   stock: Stock;
@@ -27,6 +28,7 @@ export const StockActionMenu: React.FC<StockActionMenuProps> = ({
   buttonClassName,
 }) => {
   const [showMoveModal, setShowMoveModal] = React.useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement>(null);
   // 点击外部关闭菜单
   React.useEffect(() => {
@@ -104,10 +106,8 @@ export const StockActionMenu: React.FC<StockActionMenuProps> = ({
             {/* 删除 */}
             <button
               onClick={() => {
-                if (confirm(`确定要删除${stock.name}吗？`)) {
-                  onDelete(stock.id);
-                  onToggle({} as any);
-                }
+                setShowDeleteConfirm(true);
+                onToggle({} as any);
               }}
               className={`w-full px-3 py-2 text-sm text-left flex items-center space-x-2 text-red-500 ${
                 darkMode ? "hover:bg-gray-700" : "hover:bg-gray-100"
@@ -131,6 +131,21 @@ export const StockActionMenu: React.FC<StockActionMenuProps> = ({
         groups={groups}
         currentGroupId={stock.groupId}
         title={`移动 ${stock.name}`}
+      />
+      {/* 删除确认模态框 */}
+      <ConfirmModal
+        darkMode={darkMode}
+        isOpen={showDeleteConfirm}
+        title="删除股票"
+        message={`确定要删除 "${stock.name}" 吗？此操作无法撤销。`}
+        confirmText="删除"
+        cancelText="取消"
+        isDangerous={true}
+        onConfirm={() => {
+          onDelete(stock.id);
+          setShowDeleteConfirm(false);
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
       />
     </>
   );
