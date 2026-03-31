@@ -13,6 +13,52 @@ const GLOBAL_TREND_PERIOD_CONFIG: Record<GlobalTrendPeriod, { interval: string; 
 const globalPreviousCloseCache = new Map<string, { value: number; timestamp: number }>()
 const GLOBAL_PREVIOUS_CLOSE_CACHE_TTL = 60 * 1000
 
+const YAHOO_SYMBOL_MAP: Record<string, string> = {
+  '^N225': '^N225',
+  '^KS11': '^KS11',
+  '^HSI': '^HSI',
+  '^HSTECH': 'HSTECH.HK',
+}
+
+const resolveYahooSymbol = (symbol: string) => YAHOO_SYMBOL_MAP[symbol] || symbol
+
+const TENCENT_HK_INDEX_SYMBOL_MAP: Record<string, string> = {
+  '^HSI': 'r_hkHSI',
+  '^HSTECH': 'r_hkHSTECH',
+}
+
+const fetchTencentHkIndexQuote = async (symbol: string): Promise<{ price: number; changePercent: number; previousClose: number } | null> => {
+  const tencentSymbol = TENCENT_HK_INDEX_SYMBOL_MAP[symbol]
+  if (!tencentSymbol) return null
+
+  const response = await axios.get(`https://qt.gtimg.cn/q=${tencentSymbol}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0',
+      Referer: 'https://gu.qq.com',
+    },
+    timeout: 10000,
+  })
+
+  const text = String(response.data || '')
+  const match = text.match(/v_[^=]+="([^"]*)"/)
+  if (!match || !match[1]) return null
+
+  const fields = match[1].split('~')
+  const price = Number(fields[3])
+  const previousClose = Number(fields[4])
+  const tencentChangePercent = Number(fields[32])
+
+  if (!Number.isFinite(price) || price <= 0 || !Number.isFinite(previousClose) || previousClose <= 0) {
+    return null
+  }
+
+  const changePercent = Number.isFinite(tencentChangePercent)
+    ? tencentChangePercent
+    : ((price - previousClose) / previousClose) * 100
+
+  return { price, changePercent, previousClose }
+}
+
 const fetchUnifiedPreviousClose = async (symbol: string) => {
   const cached = globalPreviousCloseCache.get(symbol)
   const now = Date.now()
@@ -20,7 +66,8 @@ const fetchUnifiedPreviousClose = async (symbol: string) => {
     return cached.value
   }
 
-  const encodedSymbol = encodeURIComponent(symbol)
+  const yahooSymbol = resolveYahooSymbol(symbol)
+  const encodedSymbol = encodeURIComponent(yahooSymbol)
   const response = await axios.get(
     `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=1d&range=10d`,
     {
@@ -166,15 +213,8 @@ const fetchCnIndexTodayTrendFromSina = async (symbol: string) => {
  * 注册 IPC：获取全球指数行情
  */
 export async function registerGlobalIndexQuoteHandlers() {
-  const yahooSymbolMap: Record<string, string> = {
-    '^N225': '^N225',
-    '^KS11': '^KS11',
-    '^HSI': '^HSI',
-    '^HSTECH': '^HSTECH',
-  }
-
   const fetchYahooIndexQuote = async (symbol: string) => {
-    const yahooSymbol = yahooSymbolMap[symbol]
+    const yahooSymbol = resolveYahooSymbol(symbol)
     if (!yahooSymbol) return null
 
     const encodedSymbol = encodeURIComponent(yahooSymbol)
@@ -243,7 +283,21 @@ export async function registerGlobalIndexQuoteHandlers() {
     const now = Date.now()
     const quoteMap = new Map<string, { price: number; changePercent: number }>()
     
-    // 1️⃣ 新浪接口
+    // 1️⃣ 先尝试腾讯实时港股指数，避免新浪港股延迟导致卡片不刷新
+    try {
+      const hkSymbols: Array<'^HSI' | '^HSTECH'> = ['^HSI', '^HSTECH']
+      for (const hkSymbol of hkSymbols) {
+        const quote = await fetchTencentHkIndexQuote(hkSymbol)
+        const sinaKey = SINA_SYMBOL_MAP[hkSymbol]
+        if (quote && sinaKey) {
+          quoteMap.set(sinaKey, { price: quote.price, changePercent: quote.changePercent })
+        }
+      }
+    } catch (err) {
+      console.warn('腾讯港股指数接口获取失败', err)
+    }
+
+    // 2️⃣ 新浪接口
     try {
       const res = await axios.get(sinaUrl, {
         responseType: "arraybuffer",
@@ -255,12 +309,16 @@ export async function registerGlobalIndexQuoteHandlers() {
       })
       const text = iconv.decode(res.data, "gbk")
       const sinaQuotes = parseSinaData(text)
-      sinaQuotes.forEach((v, k) => quoteMap.set(k, v))
+      sinaQuotes.forEach((v, k) => {
+        // 港股指数优先保留腾讯实时数据；若腾讯失败则回退新浪
+        if ((k === 'rt_hkHSI' || k === 'rt_hkHSTECH') && quoteMap.has(k)) return
+        quoteMap.set(k, v)
+      })
     } catch (err) {
       console.warn("新浪接口获取失败", err)
     }
     
-    // 2️⃣ 对新浪无返回或未配置新浪映射的指数做 Yahoo 兜底（覆盖日经225、韩国综合指数）
+    // 3️⃣ 对新浪无返回或未配置新浪映射的指数做 Yahoo 兜底（覆盖日经225、韩国综合指数）
     for (const item of GLOBAL_INDEXES) {
       const sinaSymbol = SINA_SYMBOL_MAP[item.symbol]
       if (sinaSymbol && quoteMap.has(sinaSymbol)) continue
@@ -333,7 +391,8 @@ export function registerGlobalIndexTrendHandler() {
       }
 
       const { interval, range } = GLOBAL_TREND_PERIOD_CONFIG[period]
-      const encodedSymbol = encodeURIComponent(symbol)
+      const yahooSymbol = resolveYahooSymbol(symbol)
+      const encodedSymbol = encodeURIComponent(yahooSymbol)
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=${interval}&range=${range}`
       const response = await axios.get(url, {
         headers: {
@@ -410,19 +469,67 @@ export function registerGlobalIndexTrendHandler() {
       }
 
       let previousClose: number
-      try {
-        previousClose = await fetchUnifiedPreviousClose(symbol)
-      } catch (error) {
-        const regularPreviousClose = Number(result?.meta?.regularMarketPreviousClose)
-        const chartPreviousClose = Number(result?.meta?.chartPreviousClose)
-        previousClose = Number.isFinite(regularPreviousClose) && regularPreviousClose > 0
-          ? regularPreviousClose
-          : Number.isFinite(chartPreviousClose) && chartPreviousClose > 0
-            ? chartPreviousClose
-            : points.length > 1
-              ? points[points.length - 2].value
-              : points[points.length - 1].value
-        console.warn(`Fallback previous close for ${symbol}:`, error)
+      
+      // 对于港股指数（^HSI, ^HSTECH），优先使用腾讯实时前收，保持与卡片行情同源
+      if (symbol === '^HSI' || symbol === '^HSTECH') {
+        try {
+          const tencentQuote = await fetchTencentHkIndexQuote(symbol)
+          if (tencentQuote && tencentQuote.previousClose > 0) {
+            previousClose = tencentQuote.previousClose
+          } else {
+            throw new Error('Invalid Tencent previousClose')
+          }
+        } catch (tencentError) {
+          console.warn(`[TREND] Failed to get Tencent previousClose for ${symbol}, fallback to Sina:`, tencentError)
+          try {
+            const sinaSymbol = SINA_SYMBOL_MAP[symbol]
+            const sinaUrl = `http://hq.sinajs.cn/list=${sinaSymbol}`
+            const sinaRes = await axios.get(sinaUrl, {
+              responseType: "arraybuffer",
+              headers: {
+                Referer: "https://finance.sina.com.cn",
+                "User-Agent": "Mozilla/5.0",
+              },
+              timeout: 10000,
+            })
+            const sinaText = iconv.decode(sinaRes.data, "gbk")
+            const sinaMatch = sinaText.match(/var hq_str_[^=]+="([^"]*)"/)
+            const arr = sinaMatch?.[1]?.split(',') || []
+            const sinaPreClose = Number(arr[3])
+            if (!Number.isFinite(sinaPreClose) || sinaPreClose <= 0) throw new Error('Invalid Sina previousClose')
+            previousClose = sinaPreClose
+          } catch (sinaError) {
+            try {
+              previousClose = await fetchUnifiedPreviousClose(symbol)
+            } catch (yahooError) {
+              const regularPreviousClose = Number(result?.meta?.regularMarketPreviousClose)
+              const chartPreviousClose = Number(result?.meta?.chartPreviousClose)
+              previousClose = Number.isFinite(regularPreviousClose) && regularPreviousClose > 0
+                ? regularPreviousClose
+                : Number.isFinite(chartPreviousClose) && chartPreviousClose > 0
+                  ? chartPreviousClose
+                  : points.length > 1
+                    ? points[points.length - 2].value
+                    : points[points.length - 1].value
+              console.warn(`[TREND] Fallback previous close for ${symbol}:`, yahooError)
+            }
+          }
+        }
+      } else {
+        try {
+          previousClose = await fetchUnifiedPreviousClose(symbol)
+        } catch (error) {
+          const regularPreviousClose = Number(result?.meta?.regularMarketPreviousClose)
+          const chartPreviousClose = Number(result?.meta?.chartPreviousClose)
+          previousClose = Number.isFinite(regularPreviousClose) && regularPreviousClose > 0
+            ? regularPreviousClose
+            : Number.isFinite(chartPreviousClose) && chartPreviousClose > 0
+              ? chartPreviousClose
+              : points.length > 1
+                ? points[points.length - 2].value
+                : points[points.length - 1].value
+          console.warn(`Fallback previous close for ${symbol}:`, error)
+        }
       }
 
       const indexInfo = GLOBAL_INDEXES.find((item) => item.symbol === symbol)
@@ -786,7 +893,7 @@ export function registerFundQuoteHandlers() {
             
             if (!rowMatch) return
             
-            // 提取行中的所有单元格
+            // 提取行中的所有单��格
             const cellRegex = /<td[^>]*>(.*?)<\/td>/g
             const cells: string[] = []
             let cellMatch

@@ -84,12 +84,12 @@ export function parseSinaData(text: string): Map<string, { price: number; change
       price = parseFloat(arr[1])
       changePercent = parseFloat(arr[2])
     }
-    // 恒生指数
+    // 恒生指数 / 恒生科技（新浪港股指数格式）
     else if (sinaSymbol.startsWith("rt_hk")) {
-      price = parseFloat(arr[2])        // 当前价
-      const yesterdayClose = parseFloat(arr[3])  // 昨日收盘
-      if (!isNaN(price) && !isNaN(yesterdayClose) && yesterdayClose > 0) {
-        changePercent = ((price - yesterdayClose) / yesterdayClose) * 100
+      price = parseFloat(arr[2])
+      const previousClose = parseFloat(arr[3])
+      if (!isNaN(price) && !isNaN(previousClose) && previousClose > 0) {
+        changePercent = ((price - previousClose) / previousClose) * 100
       }
     }
     // A股指数
