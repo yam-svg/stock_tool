@@ -69,9 +69,16 @@ export const FundCard: React.FC<FundCardProps> = ({
   }, [showMenu])
   
   const currentNav = quote?.nav || 0
+  const officialChangePercent = quote?.officialChangePercent ?? quote?.changePercent
+  const officialPrevNav = quote?.officialPrevNav
+  const estimateNav = quote?.estimatedNav
+  const estimateChangePercent = quote?.estimatedChangePercent
+  const hasEstimate = quote?.hasEstimate && typeof estimateNav === 'number' && estimateNav > 0
   const profit = currentNav * fund.shares - fund.costNav * fund.shares
   const profitRate = fund.costNav !== 0 ? ((currentNav - fund.costNav) / fund.costNav) * 100 : 0
-  const previousNav = currentNav ? currentNav - (quote?.change || 0) : 0
+  const previousNav = typeof officialPrevNav === 'number' && officialPrevNav > 0
+    ? officialPrevNav
+    : (currentNav ? currentNav - (quote?.change || 0) : 0)
   const updateTimeText = quote?.updateTime || '-'
   const isUpdatedToday = isFundQuoteUpdatedToday(quote, fund)
 
@@ -260,10 +267,23 @@ export const FundCard: React.FC<FundCardProps> = ({
           <div className="text-gray-500">当日涨跌幅</div>
           <div
             className={`font-bold ${
-              (quote?.changePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'
+              (officialChangePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'
             }`}
           >
-            {quote?.changePercent ? quote.changePercent.toFixed(2) + '%' : '-'}
+            {officialChangePercent != null ? `${officialChangePercent >= 0 ? '+' : ''}${officialChangePercent.toFixed(2)}%` : '-'}
+          </div>
+        </div>
+        <div>
+          <div className="text-gray-500">估值预测</div>
+          <div className={`font-bold ${
+            (estimateChangePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'
+          }`}>
+            {hasEstimate && estimateChangePercent != null
+              ? `${estimateChangePercent >= 0 ? '+' : ''}${estimateChangePercent.toFixed(2)}%`
+              : '暂无估值'}
+          </div>
+          <div className="text-[11px] text-gray-500">
+            {hasEstimate ? `估值 ${estimateNav.toFixed(4)}` : ''}
           </div>
         </div>
       </div>

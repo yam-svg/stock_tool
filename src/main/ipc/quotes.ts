@@ -675,6 +675,135 @@ export function registerFundQuoteHandlers() {
     if (second) return second.replace('T', ' ').replace(/\.[0-9]+Z?$/, '')
     return ''
   }
+
+  const isTodayValue = (raw?: string) => {
+    const value = String(raw || '').trim()
+    if (!value) return false
+    const normalized = value.replace(/\//g, '-').replace('T', ' ')
+    const match = normalized.match(/(\d{4})-(\d{1,2})-(\d{1,2})/)
+    if (!match) return false
+
+    const year = Number(match[1])
+    const month = Number(match[2])
+    const day = Number(match[3])
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return false
+
+    const now = new Date()
+    return now.getFullYear() === year && now.getMonth() + 1 === month && now.getDate() === day
+  }
+
+  const toValidNumber = (raw: unknown) => {
+    if (raw == null) return NaN
+    const cleaned = String(raw).replace(/[%+,\s]/g, '').trim()
+    if (!cleaned || cleaned === '--') return NaN
+    const value = Number(cleaned)
+    return Number.isFinite(value) ? value : NaN
+  }
+
+  const stripHtml = (value: string) =>
+    value
+      .replace(/<[^>]*>/g, '')
+      .replace(/&nbsp;/g, '')
+      .replace(/&amp;/g, '&')
+      .trim()
+
+  const parseF10LatestNav = (content: string) => {
+    const tbodyMatch = content.match(/<tbody>(.*?)<\/tbody>/s)
+    if (!tbodyMatch || !tbodyMatch[1]) return null
+
+    const firstRowMatch = tbodyMatch[1].match(/<tr[^>]*>(.*?)<\/tr>/s)
+    if (!firstRowMatch || !firstRowMatch[1]) return null
+
+    const headers: string[] = []
+    const theadMatch = content.match(/<thead>(.*?)<\/thead>/s)
+    if (theadMatch && theadMatch[1]) {
+      const headerRegex = /<th[^>]*>(.*?)<\/th>/g
+      let headerMatch: RegExpExecArray | null
+      while ((headerMatch = headerRegex.exec(theadMatch[1])) !== null) {
+        headers.push(stripHtml(headerMatch[1]))
+      }
+    }
+
+    const cells: string[] = []
+    const cellRegex = /<td[^>]*>(.*?)<\/td>/g
+    let cellMatch: RegExpExecArray | null
+    while ((cellMatch = cellRegex.exec(firstRowMatch[1])) !== null) {
+      cells.push(stripHtml(cellMatch[1]))
+    }
+
+    if (cells.length < 2) return null
+
+    const findIndex = (keywords: string[], fallbackIndex: number) => {
+      const index = headers.findIndex((header) => keywords.some((kw) => header.includes(kw)))
+      return index >= 0 ? index : fallbackIndex
+    }
+
+    const dateIndex = findIndex(['净值日期', '日期'], 0)
+    const navIndex = findIndex(['单位净值'], 1)
+    const growthIndex = findIndex(['日增长率', '涨跌幅'], 3)
+
+    const date = cells[dateIndex] || ''
+    const nav = toValidNumber(cells[navIndex])
+    const changePercent = toValidNumber(cells[growthIndex])
+
+    if (!Number.isFinite(nav) || nav <= 0) return null
+
+    const previousNav = Number.isFinite(changePercent)
+      ? nav / (1 + changePercent / 100)
+      : NaN
+
+    return {
+      date,
+      nav,
+      changePercent,
+      previousNav,
+    }
+  }
+
+  const buildOfficialOnlyQuote = (code: string, name: string, parsed: { date: string; nav: number; changePercent: number; previousNav: number }) => {
+    const officialPrevNav = Number.isFinite(parsed.previousNav) && parsed.previousNav > 0 ? parsed.previousNav : 0
+    const officialChange = officialPrevNav > 0 ? parsed.nav - officialPrevNav : 0
+    const officialChangePercent = Number.isFinite(parsed.changePercent)
+      ? parsed.changePercent
+      : (officialPrevNav > 0 ? (officialChange / officialPrevNav) * 100 : 0)
+
+    return {
+      code,
+      name,
+      nav: Number(parsed.nav.toFixed(4)),
+      change: Number(officialChange.toFixed(4)),
+      changePercent: Number(officialChangePercent.toFixed(2)),
+      date: parsed.date || new Date().toISOString().split('T')[0],
+      updateTime: buildUpdateTime(parsed.date),
+      officialNav: Number(parsed.nav.toFixed(4)),
+      officialPrevNav: Number(officialPrevNav.toFixed(4)),
+      officialChange: Number(officialChange.toFixed(4)),
+      officialChangePercent: Number(officialChangePercent.toFixed(2)),
+      hasEstimate: false,
+    }
+  }
+
+  const enrichWithOfficialQuote = (quote: any, parsed: { date: string; nav: number; changePercent: number; previousNav: number }) => {
+    const officialPrevNav = Number.isFinite(parsed.previousNav) && parsed.previousNav > 0 ? parsed.previousNav : 0
+    const officialChange = officialPrevNav > 0 ? parsed.nav - officialPrevNav : 0
+    const officialChangePercent = Number.isFinite(parsed.changePercent)
+      ? parsed.changePercent
+      : (officialPrevNav > 0 ? (officialChange / officialPrevNav) * 100 : 0)
+
+    return {
+      ...quote,
+      nav: Number(parsed.nav.toFixed(4)),
+      change: Number(officialChange.toFixed(4)),
+      changePercent: Number(officialChangePercent.toFixed(2)),
+      officialNav: Number(parsed.nav.toFixed(4)),
+      officialPrevNav: Number(officialPrevNav.toFixed(4)),
+      officialChange: Number(officialChange.toFixed(4)),
+      officialChangePercent: Number(officialChangePercent.toFixed(2)),
+      date: quote.date || parsed.date || new Date().toISOString().split('T')[0],
+      updateTime: quote.updateTime || buildUpdateTime(parsed.date),
+      hasEstimate: Boolean(quote?.hasEstimate),
+    }
+  }
   
   ipcMain.handle('db-get-fund-quotes', async (_event, codes: string[]) => {
     if (codes.length === 0) return []
@@ -741,30 +870,34 @@ export function registerFundQuoteHandlers() {
             const fundCode = json.fundcode || code
             const name = json.name as string
             
-            const gsz = parseFloat(json.gsz) || 0
-            const dwjz = parseFloat(json.dwjz) || 0
-            const nav = gsz || dwjz || 0
-            const preNav = dwjz || 0
-            
-            let change = 0
-            let changePercent = 0
-            
-            if (json.gszzl) {
-              changePercent = parseFloat(json.gszzl) || 0
-              change = preNav !== 0 ? (changePercent / 100) * preNav : 0
-            } else if (nav !== 0 && preNav !== 0) {
-              change = nav - preNav
-              changePercent = (change / preNav) * 100
-            }
+            const gsz = parseFloat(json.gsz)
+            const dwjz = parseFloat(json.dwjz)
+            const estimatedNav = Number.isFinite(gsz) && gsz > 0 ? gsz : 0
+            const officialNav = Number.isFinite(dwjz) && dwjz > 0 ? dwjz : 0
+            // 当前净值以官方净值为主，估值仅用于“估值预测”展示。
+            const nav = officialNav || estimatedNav || 0
+
+            const estimatedChangePercentRaw = parseFloat(json.gszzl)
+            const estimatedChangePercent = Number.isFinite(estimatedChangePercentRaw) ? estimatedChangePercentRaw : 0
+            const estimatedChange = officialNav !== 0
+              ? (estimatedChangePercent / 100) * officialNav
+              : 0
             
             const quoteData = {
               code: fundCode,
               name,
-              nav: nav || preNav || 0,
-              change: Number(change.toFixed(4)),
-              changePercent: Number(changePercent.toFixed(2)),
+              nav: nav || 0,
+              // 默认值先保留，后续通过官方净值接口覆盖为真实涨跌幅
+              change: 0,
+              changePercent: 0,
               date: (json.jzrq as string) || (json.gztime as string) || new Date().toISOString().split('T')[0],
               updateTime: buildUpdateTime(json.gztime as string, json.jzrq as string),
+              officialNav: officialNav || undefined,
+              estimatedNav: estimatedNav || undefined,
+              estimatedChange: Number(estimatedChange.toFixed(4)),
+              estimatedChangePercent: Number(estimatedChangePercent.toFixed(2)),
+              estimateTime: buildUpdateTime(json.gztime as string),
+              hasEstimate: estimatedNav > 0 && isTodayValue(json.gztime as string),
             }
             
             results[fundCode] = quoteData
@@ -824,6 +957,11 @@ export function registerFundQuoteHandlers() {
               changePercent: Number(changePercent.toFixed(2)),
               date: data[4] || new Date().toISOString().split('T')[0],
               updateTime: buildUpdateTime(data[4]),
+              officialNav: Number((nav || preNav || 0).toFixed(4)),
+              officialPrevNav: Number(preNav.toFixed(4)),
+              officialChange: Number(change.toFixed(4)),
+              officialChangePercent: Number(changePercent.toFixed(2)),
+              hasEstimate: false,
             }
             
             results[code] = quoteData
@@ -879,43 +1017,9 @@ export function registerFundQuoteHandlers() {
             
             const content = response.data
             if (!content || typeof content !== 'string') return
-            
-            // 解析HTML表格中的第一行（最新净值）
-            const tableRegex = /<tbody>(.*?)<\/tbody>/s
-            const tableMatch = content.match(tableRegex)
-            
-            if (!tableMatch || !tableMatch[1]) return
-            
-            const tbody = tableMatch[1]
-            // 提取第一行（最新净值数据）
-            const firstRowRegex = /<tr[^>]*>(.*?)<\/tr>/
-            const rowMatch = tbody.match(firstRowRegex)
-            
-            if (!rowMatch) return
-            
-            // 提取行中的所有单��格
-            const cellRegex = /<td[^>]*>(.*?)<\/td>/g
-            const cells: string[] = []
-            let cellMatch
-            
-            while ((cellMatch = cellRegex.exec(rowMatch[1])) !== null) {
-              const cellText = cellMatch[1]
-                .replace(/<[^>]*>/g, '') // 移除HTML标签
-                .replace(/&nbsp;/g, '')
-                .replace(/&amp;/g, '&')
-                .trim()
-              cells.push(cellText)
-            }
-            
-            if (cells.length < 4) return
-            
-            // 提取数据
-            const date = cells[0] // 净值日期
-            const navStr = cells[1] // 单位净值
-            const growthStr = cells[3] // 日增长率
-            
-            const nav = parseFloat(navStr) || 0
-            const growthPercent = parseFloat(growthStr) || 0
+
+            const parsed = parseF10LatestNav(content)
+            if (!parsed) return
             
             // 获取基金名称（从上一个查询或设置默认值）
             let fundName = `基金${code}`
@@ -934,15 +1038,7 @@ export function registerFundQuoteHandlers() {
               // 获取名称失败，使用默认值
             }
             
-            const quoteData = {
-              code,
-              name: fundName,
-              nav,
-              change: 0, // 仅有最新净值，无法计算涨跌额
-              changePercent: growthPercent,
-              date: date || new Date().toISOString().split('T')[0],
-              updateTime: buildUpdateTime(date),
-            }
+            const quoteData = buildOfficialOnlyQuote(code, fundName, parsed)
             
             results[code] = quoteData
             fundCache.set(code, { data: quoteData, timestamp: now })
@@ -979,30 +1075,33 @@ export function registerFundQuoteHandlers() {
               const fundCode = json.fundcode || code
               const name = json.name as string
               
-              const gsz = parseFloat(json.gsz) || 0
-              const dwjz = parseFloat(json.dwjz) || 0
-              const nav = gsz || dwjz || 0
-              const preNav = dwjz || 0
-              
-              let change = 0
-              let changePercent = 0
-              
-              if (json.gszzl) {
-                changePercent = parseFloat(json.gszzl) || 0
-                change = preNav !== 0 ? (changePercent / 100) * preNav : 0
-              } else if (nav !== 0 && preNav !== 0) {
-                change = nav - preNav
-                changePercent = (change / preNav) * 100
-              }
+              const gsz = parseFloat(json.gsz)
+              const dwjz = parseFloat(json.dwjz)
+              const estimatedNav = Number.isFinite(gsz) && gsz > 0 ? gsz : 0
+              const officialNav = Number.isFinite(dwjz) && dwjz > 0 ? dwjz : 0
+              // 当前净值以官方净值为主，估值仅用于“估值预测”展示。
+              const nav = officialNav || estimatedNav || 0
+
+              const estimatedChangePercentRaw = parseFloat(json.gszzl)
+              const estimatedChangePercent = Number.isFinite(estimatedChangePercentRaw) ? estimatedChangePercentRaw : 0
+              const estimatedChange = officialNav !== 0
+                ? (estimatedChangePercent / 100) * officialNav
+                : 0
               
               const quoteData = {
                 code: fundCode,
                 name,
-                nav: nav || preNav || 0,
-                change: Number(change.toFixed(4)),
-                changePercent: Number(changePercent.toFixed(2)),
+                nav: nav || 0,
+                change: 0,
+                changePercent: 0,
                 date: (json.jzrq as string) || (json.gztime as string) || new Date().toISOString().split('T')[0],
                 updateTime: buildUpdateTime(json.gztime as string, json.jzrq as string),
+                officialNav: officialNav || undefined,
+                estimatedNav: estimatedNav || undefined,
+                estimatedChange: Number(estimatedChange.toFixed(4)),
+                estimatedChangePercent: Number(estimatedChangePercent.toFixed(2)),
+                estimateTime: buildUpdateTime(json.gztime as string),
+                hasEstimate: estimatedNav > 0 && isTodayValue(json.gztime as string),
               }
               
               results[fundCode] = quoteData
@@ -1063,6 +1162,11 @@ export function registerFundQuoteHandlers() {
               changePercent: Number(changePercent.toFixed(2)),
               date: data[4] || new Date().toISOString().split('T')[0],
               updateTime: buildUpdateTime(data[4]),
+              officialNav: Number((nav || preNav || 0).toFixed(4)),
+              officialPrevNav: Number(preNav.toFixed(4)),
+              officialChange: Number(change.toFixed(4)),
+              officialChangePercent: Number(changePercent.toFixed(2)),
+              hasEstimate: false,
             }
             
             results[code] = quoteData
@@ -1075,6 +1179,44 @@ export function registerFundQuoteHandlers() {
       }
     }
     
+    // 使用官方净值接口补全真实涨跌幅（避免把盘中估值涨跌幅当作当日涨跌幅）。
+    const codesNeedOfficial = uniqueCodes.filter((code) => {
+      const quote = results[code]
+      if (!quote) return false
+      return !Number.isFinite(Number(quote.officialChangePercent))
+    })
+
+    if (codesNeedOfficial.length > 0) {
+      await Promise.all(
+        codesNeedOfficial.map(async (code) => {
+          try {
+            const response = await axios.get(
+              `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&sdate=&edate=&code=${code}`,
+              {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                  Referer: 'https://fundf10.eastmoney.com/',
+                },
+                timeout: 8000,
+              },
+            )
+
+            const content = response.data
+            if (!content || typeof content !== 'string') return
+
+            const parsed = parseF10LatestNav(content)
+            if (!parsed) return
+
+            const merged = enrichWithOfficialQuote(results[code], parsed)
+            results[code] = merged
+            fundCache.set(code, { data: merged, timestamp: now })
+          } catch (error) {
+            console.warn(`❌ F10 official enrich failed for fund ${code}:`, (error instanceof Error) ? error.message : error)
+          }
+        }),
+      )
+    }
+
     // 通用兜底：对仍未命中的基金统一尝试东方财富 F10 历史净值接口。
     const unresolvedCodes = uniqueCodes.filter((code) => !results[code])
     if (unresolvedCodes.length > 0) {
@@ -1095,40 +1237,10 @@ export function registerFundQuoteHandlers() {
             const content = response.data
             if (!content || typeof content !== 'string') return
 
-            const tbodyMatch = content.match(/<tbody>(.*?)<\/tbody>/s)
-            if (!tbodyMatch || !tbodyMatch[1]) return
+            const parsed = parseF10LatestNav(content)
+            if (!parsed) return
 
-            const rowMatch = tbodyMatch[1].match(/<tr[^>]*>(.*?)<\/tr>/)
-            if (!rowMatch || !rowMatch[1]) return
-
-            const cellRegex = /<td[^>]*>(.*?)<\/td>/g
-            const cells: string[] = []
-            let cellMatch: RegExpExecArray | null
-
-            while ((cellMatch = cellRegex.exec(rowMatch[1])) !== null) {
-              const cellText = cellMatch[1]
-                .replace(/<[^>]*>/g, '')
-                .replace(/&nbsp;/g, '')
-                .replace(/&amp;/g, '&')
-                .trim()
-              cells.push(cellText)
-            }
-
-            if (cells.length < 4) return
-
-            const date = cells[0]
-            const nav = parseFloat(cells[1]) || 0
-            const growthPercent = parseFloat(cells[3]) || 0
-
-            const quoteData = {
-              code,
-              name: `基金${code}`,
-              nav,
-              change: 0,
-              changePercent: growthPercent,
-              date: date || new Date().toISOString().split('T')[0],
-              updateTime: buildUpdateTime(date),
-            }
+            const quoteData = buildOfficialOnlyQuote(code, `基金${code}`, parsed)
 
             results[code] = quoteData
             fundCache.set(code, { data: quoteData, timestamp: now })

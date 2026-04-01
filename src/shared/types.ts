@@ -82,6 +82,15 @@ export interface FundQuote {
   changePercent: number
   date: string
   updateTime: string
+  officialNav?: number
+  officialPrevNav?: number
+  officialChange?: number
+  officialChangePercent?: number
+  estimatedNav?: number
+  estimatedChange?: number
+  estimatedChangePercent?: number
+  estimateTime?: string
+  hasEstimate?: boolean
 }
 
 //期货行情数据接口

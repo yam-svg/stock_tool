@@ -80,6 +80,10 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
   const quote = quotes[fund.code]
   const isUpdatedToday = isFundQuoteUpdatedToday(quote, fund)
   const currentNav = quote?.nav || 0
+  const officialChangePercent = quote?.officialChangePercent ?? quote?.changePercent
+  const estimateChangePercent = quote?.estimatedChangePercent
+  const estimateNav = quote?.estimatedNav
+  const hasEstimate = quote?.hasEstimate && typeof estimateNav === 'number' && estimateNav > 0
   const updateTimeText = quote?.updateTime || '-'
   const cost = fund.costNav * fund.shares
   const marketValue = currentNav * fund.shares
@@ -97,8 +101,8 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
       style={{
         ...style,
         gridTemplateColumns: enableDrag
-          ? '40px 2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr'
-          : '2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr',
+          ? '40px 2fr 2fr 1fr 1fr 1fr 1.3fr 1.8fr 1.3fr 2fr 1fr'
+          : '2fr 2fr 1fr 1fr 1fr 1.3fr 1.8fr 1.3fr 2fr 1fr',
       }}
     >
       {isUpdatedToday && (
@@ -144,11 +148,23 @@ const FundRow: React.FC<FundRowProps> = React.memo(({
         {currentNav ? currentNav.toFixed(4) : '-'}
       </div>
       <div className={`text-right font-bold ${
-        (quote?.changePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'
+        (officialChangePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'
       }`}>
-        {quote?.changePercent != null ? `${quote.changePercent >= 0 ? '+' : ''}${quote.changePercent.toFixed(2)}%` : '-'}
+        {officialChangePercent != null ? `${officialChangePercent >= 0 ? '+' : ''}${officialChangePercent.toFixed(2)}%` : '-'}
         
         <div className="text-xs text-gray-500">更新时间：{updateTimeText}</div>
+      </div>
+      <div className="text-right">
+        {hasEstimate ? (
+          <>
+            <div className={`font-bold ${(estimateChangePercent || 0) >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+              {estimateChangePercent != null ? `${estimateChangePercent >= 0 ? '+' : ''}${estimateChangePercent.toFixed(2)}%` : '-'}
+            </div>
+            <div className="text-xs text-gray-500">估值 {estimateNav.toFixed(4)}</div>
+          </>
+        ) : (
+          <div className="text-xs text-gray-500">暂无估值</div>
+        )}
       </div>
       <div className="text-right">
         <div className="font-medium">¥{marketValue.toFixed(2)}</div>
@@ -259,8 +275,8 @@ export const FundList: React.FC<FundListProps> = ({
         }`}
         style={{
           gridTemplateColumns: enableDrag
-            ? '40px 2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr'
-            : '2fr 2fr 1fr 1fr 1fr 1.5fr 1.3fr 2fr 1fr',
+            ? '40px 2fr 2fr 1fr 1fr 1fr 1.3fr 1.8fr 1.3fr 2fr 1fr'
+            : '2fr 2fr 1fr 1fr 1fr 1.3fr 1.8fr 1.3fr 2fr 1fr',
         }}
       >
         {enableDrag && <div></div>}
@@ -270,6 +286,7 @@ export const FundList: React.FC<FundListProps> = ({
         <div>{renderHeaderCell('成本净值', 'costNav', 'right')}</div>
         <div>{renderHeaderCell('当前净值', 'currentNav', 'right')}</div>
         <div>{renderHeaderCell('涨跌幅', null, 'right')}</div>
+        <div>{renderHeaderCell('估值预测', null, 'right')}</div>
         <div>{renderHeaderCell('市值', 'marketValue', 'right')}</div>
         <div>{renderHeaderCell('收益', 'profit', 'right')}</div>
         <div>{renderHeaderCell('操作', null, 'center')}</div>
