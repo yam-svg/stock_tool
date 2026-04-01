@@ -21,6 +21,11 @@ npm run dev
 npm run start:dev
 ```
 
+如果无法启动, 请执行以下命令, 然后重新执行步骤2
+```bash
+npm run build
+```
+
 ### 打包安装程序（Windows）
 ```bash
 npm run package
