@@ -22,6 +22,48 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
 
 const resolveYahooSymbol = (symbol: string) => YAHOO_SYMBOL_MAP[symbol] || symbol
 
+const GLOBAL_FORCE_YAHOO_SYMBOLS = new Set(['^N225', '^KS11'])
+
+const isValidPositiveNumber = (value: number | null | undefined): value is number =>
+  typeof value === 'number' && Number.isFinite(value) && value > 0
+
+const toExchangeDateKey = (timestampSeconds: number, gmtOffsetSeconds: number) => {
+  const exchangeDate = new Date((timestampSeconds + gmtOffsetSeconds) * 1000)
+  const year = exchangeDate.getUTCFullYear()
+  const month = String(exchangeDate.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(exchangeDate.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const extractPreviousCloseFromIntraday = (result: any) => {
+  const timestamps = (result?.timestamp as Array<number | null> | undefined) || []
+  const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
+  const gmtOffsetSeconds = Number(result?.meta?.gmtoffset) || 0
+
+  const orderedDays: string[] = []
+  const dayLastClose = new Map<string, number>()
+
+  for (let i = 0; i < Math.min(timestamps.length, closes.length); i += 1) {
+    const ts = Number(timestamps[i])
+    const close = closes[i]
+    if (!Number.isFinite(ts) || !isValidPositiveNumber(close)) continue
+
+    const dateKey = toExchangeDateKey(ts, gmtOffsetSeconds)
+    if (!dayLastClose.has(dateKey)) {
+      orderedDays.push(dateKey)
+    }
+    dayLastClose.set(dateKey, close)
+  }
+
+  if (orderedDays.length >= 2) {
+    const prevDayKey = orderedDays[orderedDays.length - 2]
+    const prevClose = dayLastClose.get(prevDayKey)
+    if (isValidPositiveNumber(prevClose)) return prevClose
+  }
+
+  return NaN
+}
+
 const TENCENT_HK_INDEX_SYMBOL_MAP: Record<string, string> = {
   '^HSI': 'r_hkHSI',
   '^HSTECH': 'r_hkHSTECH',
@@ -69,7 +111,7 @@ const fetchUnifiedPreviousClose = async (symbol: string) => {
   const yahooSymbol = resolveYahooSymbol(symbol)
   const encodedSymbol = encodeURIComponent(yahooSymbol)
   const response = await axios.get(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=1d&range=10d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=1m&range=5d`,
     {
       headers: {
         'User-Agent': 'Mozilla/5.0',
@@ -79,44 +121,22 @@ const fetchUnifiedPreviousClose = async (symbol: string) => {
   )
 
   const result = response.data?.chart?.result?.[0]
-  const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
-
-  const isValidClose = (value: number | null | undefined): value is number =>
-    typeof value === 'number' && Number.isFinite(value) && value > 0
-
-  const validCloseIndexes = closes.reduce<number[]>((acc, value, index) => {
-    if (isValidClose(value)) acc.push(index)
-    return acc
-  }, [])
-
-  const lastRawClose = closes.length > 0 ? closes[closes.length - 1] : null
-  const lastRawCloseIsValid = isValidClose(lastRawClose)
-
-  // If the latest daily candle is still forming (often null), the last valid close is yesterday's close.
-  // Otherwise, use the previous valid close because the latest one is today's completed close.
   let previousClose = NaN
-  if (validCloseIndexes.length > 0) {
-    const targetIndex = lastRawCloseIsValid
-      ? validCloseIndexes[validCloseIndexes.length - 2] ?? validCloseIndexes[0]
-      : validCloseIndexes[validCloseIndexes.length - 1]
 
-    const targetClose = closes[targetIndex]
-    if (isValidClose(targetClose)) {
-      previousClose = targetClose
-    }
+  previousClose = extractPreviousCloseFromIntraday(result)
+
+  if (!Number.isFinite(previousClose) || previousClose <= 0) {
+    previousClose = Number(result?.meta?.chartPreviousClose)
   }
 
   if (!Number.isFinite(previousClose) || previousClose <= 0) {
     previousClose = Number(result?.meta?.regularMarketPreviousClose)
   }
-  if (!Number.isFinite(previousClose) || previousClose <= 0) {
-    previousClose = Number(result?.meta?.chartPreviousClose)
-  }
 
-  // Last fallback: use the latest available daily close to avoid returning invalid values.
-  if ((!Number.isFinite(previousClose) || previousClose <= 0) && validCloseIndexes.length > 0) {
-    const latestClose = closes[validCloseIndexes[validCloseIndexes.length - 1]]
-    if (isValidClose(latestClose)) {
+  if (!Number.isFinite(previousClose) || previousClose <= 0) {
+    const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
+    const latestClose = [...closes].reverse().find((value): value is number => typeof value === 'number' && Number.isFinite(value) && value > 0)
+    if (typeof latestClose === 'number') {
       previousClose = latestClose
     }
   }
@@ -219,7 +239,7 @@ export async function registerGlobalIndexQuoteHandlers() {
 
     const encodedSymbol = encodeURIComponent(yahooSymbol)
     const response = await axios.get(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=1d&range=7d`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodedSymbol}?interval=1m&range=5d`,
       {
         headers: {
           'User-Agent': 'Mozilla/5.0',
@@ -230,45 +250,21 @@ export async function registerGlobalIndexQuoteHandlers() {
 
     const result = response.data?.chart?.result?.[0]
     const closes = (result?.indicators?.quote?.[0]?.close as Array<number | null> | undefined) || []
-    const timestamps = (result?.timestamp as Array<number | null> | undefined) || []
-    const gmtOffsetSeconds = Number(result?.meta?.gmtoffset) || 0
 
-    const isValidClose = (value: number | null | undefined): value is number =>
-      typeof value === 'number' && Number.isFinite(value) && value > 0
+    const latestClose = [...closes].reverse().find(isValidPositiveNumber)
+    const marketPrice = Number(result?.meta?.regularMarketPrice)
+    const price = Number.isFinite(marketPrice) && marketPrice > 0
+      ? marketPrice
+      : (typeof latestClose === 'number' ? latestClose : NaN)
+    if (!Number.isFinite(price) || price <= 0) return null
 
-    const toExchangeDateKey = (timestampSeconds: number) => {
-      const exchangeDate = new Date((timestampSeconds + gmtOffsetSeconds) * 1000)
-      const year = exchangeDate.getUTCFullYear()
-      const month = String(exchangeDate.getUTCMonth() + 1).padStart(2, '0')
-      const day = String(exchangeDate.getUTCDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
+    let prevClose = extractPreviousCloseFromIntraday(result)
+    if (!Number.isFinite(prevClose) || prevClose <= 0) {
+      prevClose = await fetchUnifiedPreviousClose(symbol)
     }
 
-    const validCloseIndexes = closes.reduce<number[]>((acc, value, index) => {
-      if (isValidClose(value)) acc.push(index)
-      return acc
-    }, [])
-    if (validCloseIndexes.length === 0) return null
+    if (!Number.isFinite(prevClose) || prevClose <= 0) return null
 
-    const latestCloseIndex = validCloseIndexes[validCloseIndexes.length - 1]
-    const latestClose = closes[latestCloseIndex]
-    if (!isValidClose(latestClose)) return null
-
-    const lastTimestamp = Number(timestamps[timestamps.length - 1])
-    const hasCurrentSessionDailyBar = Number.isFinite(lastTimestamp)
-      ? toExchangeDateKey(lastTimestamp) === toExchangeDateKey(Math.floor(Date.now() / 1000))
-      : false
-
-    const lastRawClose = closes.length > 0 ? closes[closes.length - 1] : null
-    const lastRawCloseIsValid = isValidClose(lastRawClose)
-
-    const prevCloseIndex = (!lastRawCloseIsValid || !hasCurrentSessionDailyBar)
-      ? latestCloseIndex
-      : validCloseIndexes[validCloseIndexes.length - 2] ?? latestCloseIndex
-
-    const prevCloseValue = closes[prevCloseIndex]
-    const prevClose = isValidClose(prevCloseValue) ? prevCloseValue : latestClose
-    const price = latestClose
     const changePercent = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0
 
     return {
@@ -321,11 +317,15 @@ export async function registerGlobalIndexQuoteHandlers() {
     // 3️⃣ 对新浪无返回或未配置新浪映射的指数做 Yahoo 兜底（覆盖日经225、韩国综合指数）
     for (const item of GLOBAL_INDEXES) {
       const sinaSymbol = SINA_SYMBOL_MAP[item.symbol]
-      if (sinaSymbol && quoteMap.has(sinaSymbol)) continue
+      const shouldForceYahoo = GLOBAL_FORCE_YAHOO_SYMBOLS.has(item.symbol)
+      if (!shouldForceYahoo && sinaSymbol && quoteMap.has(sinaSymbol)) continue
 
       try {
         const yahooQuote = await fetchYahooIndexQuote(item.symbol)
         if (yahooQuote) {
+          if (sinaSymbol) {
+            quoteMap.set(sinaSymbol, yahooQuote)
+          }
           quoteMap.set(item.symbol, yahooQuote)
         }
       } catch (err) {
