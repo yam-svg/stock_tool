@@ -24,8 +24,10 @@ const App: React.FC = () => {
     stockNextMarketOpenTime,
     futureNextMarketOpenTime,
     globalIndexes,
+    globalTrendTodayBySymbol,
     globalRefreshing,
     refreshGlobalIndexes,
+    refreshGlobalIndexTrends,
     stockGroups,
     fundGroups,
     futureGroups,
@@ -218,6 +220,7 @@ const App: React.FC = () => {
     if (activeTab !== prevTab) {
       if (activeTab === 'global') {
         void refreshGlobalIndexes()
+        void refreshGlobalIndexTrends(undefined, true)
       } else if (activeTab === 'fund') {
         void refreshFundQuotes()
       } else if (activeTab === 'news') {
@@ -225,7 +228,7 @@ const App: React.FC = () => {
       }
     }
     prevActiveTabRef.current = activeTab
-  }, [activeTab, refreshFundQuotes, refreshGlobalIndexes])
+  }, [activeTab, refreshFundQuotes, refreshGlobalIndexTrends, refreshGlobalIndexes])
 
   // 仅在存在开市市场时自动刷新全球指数
   useEffect(() => {
@@ -249,6 +252,7 @@ const App: React.FC = () => {
   const handleManualRefresh = () => {
     if (activeTab === 'global') {
       void refreshGlobalIndexes()
+      void refreshGlobalIndexTrends(undefined, true)
       return
     }
     if (activeTab === 'news') {
@@ -369,6 +373,7 @@ const App: React.FC = () => {
             <GlobalMarketView
               darkMode={darkMode}
               indexes={globalIndexes}
+              trendTodayBySymbol={globalTrendTodayBySymbol}
               viewMode={globalViewMode}
               setViewMode={setGlobalViewMode}
               onSelectIndex={(index) => {

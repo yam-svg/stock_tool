@@ -104,8 +104,10 @@ export const useStore = () => {
 
     // Global Market Store
     globalIndexes: globalMarketStore.globalIndexes,
+    globalTrendTodayBySymbol: globalMarketStore.trendTodayBySymbol,
     globalRefreshing: globalMarketStore.refreshing,
     refreshGlobalIndexes: globalMarketStore.refreshGlobalIndexes,
+    refreshGlobalIndexTrends: globalMarketStore.refreshGlobalIndexTrends,
 
     // 全局加载状态和错误
     loading: stockStore.loading || fundStore.loading || futureStore.loading || refreshStore.loading || globalMarketStore.loading,

@@ -1,10 +1,12 @@
 import React from 'react'
 import { AlertCircle, LayoutGrid, List } from 'lucide-react'
-import { GlobalIndexQuote } from '../../../shared/types'
+import { GlobalIndexQuote, GlobalIndexTrendPoint } from '../../../shared/types'
+import { GlobalMiniTrend } from './GlobalMiniTrend'
 
 interface GlobalMarketViewProps {
   darkMode: boolean
   indexes: GlobalIndexQuote[]
+  trendTodayBySymbol: Record<string, GlobalIndexTrendPoint[]>
   viewMode: 'card' | 'list'
   setViewMode: (mode: 'card' | 'list') => void
   onSelectIndex: (index: GlobalIndexQuote) => void
@@ -13,6 +15,7 @@ interface GlobalMarketViewProps {
 export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
   darkMode,
   indexes,
+  trendTodayBySymbol,
   viewMode,
   setViewMode,
   onSelectIndex,
@@ -98,24 +101,34 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
                   : 'border-gray-200 bg-white/70 hover:bg-gray-100/80'
               }`}
             >
-              <div className="flex items-start justify-between mb-2">
+              <div className="flex justify-between items-end">
                 <div>
-                  <div className="text-xs font-semibold leading-5">{item.name}</div>
-                  <div className="text-[11px] text-gray-500">{item.code}</div>
-                </div>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
-                    item.isOpen
-                      ? 'bg-green-500/20 text-green-500'
-                      : 'bg-gray-500/20 text-gray-500'
-                  }`}
-                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="text-xs font-semibold leading-5">{item.name}</div>
+                      <div className="text-[11px] text-gray-500">{item.code}</div>
+                    </div>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${
+                        item.isOpen
+                          ? 'bg-green-500/20 text-green-500'
+                          : 'bg-gray-500/20 text-gray-500'
+                      }`}
+                    >
                   {item.isOpen ? '开市' : '休市'}
                 </span>
-              </div>
-              <div className="text-lg font-bold leading-6 mb-0.5">{item.value > 0 ? item.value.toFixed(2) : '-'}</div>
-              <div className={`text-xs font-medium ${item.changePercent >= 0 ? 'text-red-500' : 'text-green-500'}`}>
-                {item.value > 0 ? `${item.changePercent >= 0 ? '+' : ''}${item.changePercent.toFixed(2)}%` : '-'}
+                  </div>
+                  <div className="text-lg font-bold leading-6 mb-0.5">{item.value > 0 ? item.value.toFixed(2) : '-'}</div>
+                  <div className={`text-xs font-medium ${item.changePercent >= 0 ? 'text-red-500' : 'text-green-500'}`}>
+                    {item.value > 0 ? `${item.changePercent >= 0 ? '+' : ''}${item.changePercent.toFixed(2)}%` : '-'}
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <GlobalMiniTrend
+                    darkMode={darkMode}
+                    points={trendTodayBySymbol[item.symbol]}
+                  />
+                </div>
               </div>
             </div>
           ))}
@@ -126,12 +139,13 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
             darkMode ? 'border-gray-700 bg-gray-800/50' : 'border-gray-200 bg-white/70'
           }`}
         >
-          <div className={`grid gap-4 px-4 py-3 text-xs font-semibold ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'}`} style={{ gridTemplateColumns: '1.4fr 0.8fr 1fr 0.8fr 0.8fr' }}>
+          <div className={`grid gap-4 px-4 py-3 text-xs font-semibold ${darkMode ? 'bg-gray-700/50' : 'bg-gray-100/50'}`} style={{ gridTemplateColumns: '1.3fr 0.8fr 1fr 0.8fr 0.9fr 1.1fr' }}>
             <div>市场</div>
             <div>代码</div>
             <div className="text-right">指数值</div>
             <div className="text-right">涨跌幅</div>
             <div className="text-right">状态</div>
+            <div className="text-right">日内走势</div>
           </div>
           <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
             {indexes.map((item) => (
@@ -149,7 +163,7 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
                 className={`grid gap-4 px-4 py-3 text-sm cursor-pointer transition-colors ${
                   darkMode ? 'hover:bg-gray-700/50' : 'hover:bg-gray-100/60'
                 }`}
-                style={{ gridTemplateColumns: '1.4fr 0.8fr 1fr 0.8fr 0.8fr' }}
+                style={{ gridTemplateColumns: '1.3fr 0.8fr 1fr 0.8fr 0.9fr 1.1fr' }}
               >
                 <div className="font-medium">{item.name}</div>
                 <div className="text-gray-500">{item.code}</div>
@@ -167,6 +181,9 @@ export const GlobalMarketView: React.FC<GlobalMarketViewProps> = ({
                   >
                     {item.isOpen ? '开市' : '休市'}
                   </span>
+                </div>
+                <div className="flex justify-end">
+                  <GlobalMiniTrend darkMode={darkMode} points={trendTodayBySymbol[item.symbol]} />
                 </div>
               </div>
             ))}
